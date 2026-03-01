@@ -1,0 +1,12 @@
+SIM, é isso mesmo!
+
+Você deve cadastrar os emails DENTRO do Console do Firebase.
+
+1. Vá em **Authentication** (no menu esquerdo).
+2. Clique na aba **Users** (Usuários).
+3. Clique no botão **Add user** (Adicionar usuário).
+
+Lá você cadastra o `admin@example.com` e a senha dele.
+E também cadastra o outro email (ex: `dono@teste.com`) e a senha dele.
+
+Não é no código, é no site do Firebase mesmo.

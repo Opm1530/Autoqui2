@@ -1,0 +1,9 @@
+SIM! É exatamente isso.
+
+Você deve entrar no site do Firebase (Console), ir em "Authentication", depois na aba "Users" e clicar em "Add user".
+
+Lá você cria:
+1. O usuário `admin@example.com` (com a senha que você quiser).
+2. O outro usuário (ex: `dono@loja.com`) (com a senha que você quiser).
+
+Se fizer isso, o login vai funcionar!
