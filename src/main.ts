@@ -260,7 +260,8 @@ class App {
     if (!user || !user.companyId || user.role === 'admin') return;
 
     try {
-      const count = await orderService.getOpenOrdersCount(user.companyId);
+      const userStoreIds = user.storeIds || (user.storeId ? [user.storeId] : []);
+      const count = await orderService.getOpenOrdersCount(user.companyId, user.role === 'owner' ? [] : userStoreIds);
       const badge = document.getElementById('orders-count-badge');
       if (badge) {
         badge.textContent = count.toString();

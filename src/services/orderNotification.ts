@@ -368,6 +368,13 @@ class OrderNotificationService {
             }
 
             if (isHumanSupport && !this.notifiedSupportIds.has(notifyKey)) {
+                // Check store isolation
+                const currentUser = authService.getCurrentUser();
+                if (currentUser && currentUser.role !== 'admin') {
+                    const userStoreIds = currentUser.storeIds || (currentUser.storeId ? [currentUser.storeId] : []);
+                    if (data.lojaId && !userStoreIds.includes(data.lojaId)) return;
+                }
+
                 this.showHumanSupportAlert({
                     ...data,
                     id,
@@ -411,7 +418,13 @@ class OrderNotificationService {
 
         // ── Listener 1: pedidos (coleção 'pedidos') ──
         const ordersRef = collection(db, 'pedidos');
-        const q = query(ordersRef, orderBy('criadoEm', 'desc'), limit(50));
+        // Filter by companyId in query for better performance
+        const q = query(
+            ordersRef,
+            where('empresaId', '==', companyId),
+            orderBy('criadoEm', 'desc'),
+            limit(50)
+        );
 
         this.unsubscribe = onSnapshot(q, (snapshot) => {
             snapshot.docChanges().forEach((change) => {
@@ -427,6 +440,12 @@ class OrderNotificationService {
 
                 this.orderStatusMap.set(id, status);
                 if (data.empresaId && data.empresaId !== companyId) return;
+
+                // Check store isolation
+                if (currentUser && currentUser.role !== 'admin') {
+                    const userStoreIds = currentUser.storeIds || (currentUser.storeId ? [currentUser.storeId] : []);
+                    if (data.lojaId && !userStoreIds.includes(data.lojaId)) return;
+                }
 
                 if (status === 'em_preparo' && prevStatus === 'aguardando_pagamento') {
                     if (!data.manuallyConfirmed) {

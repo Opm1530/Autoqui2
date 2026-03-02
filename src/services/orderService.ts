@@ -233,7 +233,7 @@ export const orderService = {
         return await dbService.get('pedidos', orderId);
     },
 
-    async getOpenOrdersCount(companyId: string): Promise<number> {
+    async getOpenOrdersCount(companyId: string, storeIds?: string[]): Promise<number> {
         try {
             const orders = await dbService.getAll('pedidos', {
                 field: 'empresaId',
@@ -241,6 +241,11 @@ export const orderService = {
                 value: companyId
             });
             return orders.filter((o: any) => {
+                // Filter by store if provided
+                if (storeIds && storeIds.length > 0) {
+                    if (!o.lojaId || !storeIds.includes(o.lojaId)) return false;
+                }
+
                 const status = (o.status || 'em_montagem').toLowerCase();
                 return status !== 'finalizado' && status !== 'cancelado';
             }).length;

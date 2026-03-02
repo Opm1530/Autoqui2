@@ -45,7 +45,12 @@ export const Dashboard = async () => {
                     operator: '==',
                     value: user.companyId
                 });
-                metrics.messages = messages.filter((m: any) => m.role === 'assistente').length;
+                const userStoreIds = user.storeIds || (user.storeId ? [user.storeId] : []);
+                metrics.messages = messages.filter((m: any) => {
+                    if (m.role !== 'assistente') return false;
+                    if (user.role === 'owner') return true;
+                    return m.lojaId && userStoreIds.includes(m.lojaId);
+                }).length;
             }
 
             // Compute total sales and orders metrics
@@ -55,15 +60,21 @@ export const Dashboard = async () => {
                     operator: '==',
                     value: user.companyId
                 });
-                metrics.orders_pending = orders.filter((o: any) => o.status !== 'finalizado' && o.status !== 'cancelado').length;
-                metrics.orders_paid = orders.filter((o: any) => o.status === 'finalizado').length;
+                const userStoreIds = user.storeIds || (user.storeId ? [user.storeId] : []);
+
+                const filteredOrders = user.role === 'owner'
+                    ? orders
+                    : orders.filter((o: any) => o.lojaId && userStoreIds.includes(o.lojaId));
+
+                metrics.orders_pending = filteredOrders.filter((o: any) => o.status !== 'finalizado' && o.status !== 'cancelado').length;
+                metrics.orders_paid = filteredOrders.filter((o: any) => o.status === 'finalizado').length;
 
                 let totalSales = 0;
                 let ordersToday = 0;
                 const today = new Date();
                 today.setHours(0, 0, 0, 0);
 
-                orders.forEach((o: any) => {
+                filteredOrders.forEach((o: any) => {
                     if (o.status === 'finalizado') {
                         totalSales += (o.value || o.total || 0);
                     }

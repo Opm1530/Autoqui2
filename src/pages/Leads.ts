@@ -54,6 +54,11 @@ export const Leads = async () => {
         value: currentUser.companyId
     });
 
+    const userStoreIds = (currentUser as any).storeIds || ((currentUser as any).storeId ? [(currentUser as any).storeId] : []);
+    if (currentUser.role !== 'owner') {
+        leads = leads.filter(l => l.lojaId && userStoreIds.includes(l.lojaId));
+    }
+
     // ── active filter state ──
     let activeFilter = 'todos';
 
@@ -158,6 +163,11 @@ export const Leads = async () => {
 
             const unsubscribe = onSnapshot(qLeads, (snapshot) => {
                 leads = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+                const userStoreIds = (currentUser as any).storeIds || ((currentUser as any).storeId ? [(currentUser as any).storeId] : []);
+                if (currentUser.role !== 'owner') {
+                    leads = leads.filter(l => l.lojaId && userStoreIds.includes(l.lojaId));
+                }
 
                 // Update UI
                 const tbody = document.getElementById('leads-tbody');
