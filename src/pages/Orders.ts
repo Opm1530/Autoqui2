@@ -105,7 +105,7 @@ export const Orders = async () => {
     let orders: any[] = await dbService.getAll('pedidos', {
         field: 'empresaId',
         operator: '==',
-        value: currentUser.companyId
+        value: currentUser!.companyId
     });
 
     // Sort: newest first
@@ -115,13 +115,13 @@ export const Orders = async () => {
         return tb - ta;
     });
 
-    const companyDoc = await dbService.get('companies', currentUser.companyId);
+    const companyDoc = await dbService.get('companies', currentUser!.companyId);
     const stores = (companyDoc as any)?.stores as Store[] || [];
 
     const leads = await dbService.getAll('leads', {
         field: 'empresaId',
         operator: '==',
-        value: currentUser.companyId
+        value: currentUser!.companyId
     }) as Lead[];
 
     const getStoreName = (lojaId: string) => {
@@ -240,7 +240,7 @@ export const Orders = async () => {
     function setupListeners() {
         // Real-time listener
         const ordersRef = collection(db, 'pedidos');
-        const qOrders = query(ordersRef, where('empresaId', '==', currentUser.companyId));
+        const qOrders = query(ordersRef, where('empresaId', '==', currentUser!.companyId));
 
         // Use a window property to avoid duplicate listeners when re-rendering the same page
         if ((window as any)._ordersUnsubscribe) {
