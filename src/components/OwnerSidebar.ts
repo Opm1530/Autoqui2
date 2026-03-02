@@ -101,7 +101,7 @@ export const OwnerSidebar = async () => {
                 <div class="user-profile">
                     <div class="avatar">DO</div>
                     <div class="user-info">
-                        <span class="name">Dono do Cliente</span><br>
+                        <span class="name">Dono da Empresa</span><br>
                         <span class="role">Owner</span>
                     </div>
                 </div>
