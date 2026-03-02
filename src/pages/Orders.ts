@@ -116,7 +116,13 @@ export const Orders = async () => {
     });
 
     const companyDoc = await dbService.get('companies', currentUser!.companyId);
-    const stores = (companyDoc as any)?.stores as Store[] || [];
+    let stores = (companyDoc as any)?.stores as Store[] || [];
+
+    if (currentUser!.role !== 'owner') {
+        const userStoreIds = (currentUser as any).storeIds || ((currentUser as any).storeId ? [(currentUser as any).storeId] : []);
+        stores = stores.filter((s: any) => userStoreIds.includes(s.id));
+        orders = orders.filter((o: any) => userStoreIds.includes(o.lojaId));
+    }
 
     const leads = await dbService.getAll('leads', {
         field: 'empresaId',
@@ -250,6 +256,11 @@ export const Orders = async () => {
         const unsubscribe = onSnapshot(qOrders, (snapshot) => {
             // Update orders array in place
             orders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+            if (currentUser!.role !== 'owner') {
+                const userStoreIds = (currentUser as any).storeIds || ((currentUser as any).storeId ? [(currentUser as any).storeId] : []);
+                orders = orders.filter((o: any) => userStoreIds.includes(o.lojaId));
+            }
 
             // Sort
             orders.sort((a, b) => {

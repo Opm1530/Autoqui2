@@ -16,6 +16,8 @@ export interface AppUser {
     email: string | null;
     role: UserRole;
     companyId?: string;
+    storeId?: string;
+    storeIds?: string[];
 }
 
 class AuthService {
@@ -58,7 +60,9 @@ class AuthService {
                                 uid: firebaseUser.uid,
                                 email: firebaseUser.email,
                                 role: userData.role,
-                                companyId: userData.companyId
+                                companyId: userData.companyId,
+                                storeId: userData.storeId,
+                                storeIds: userData.storeIds
                             };
                         } else {
                             // User exists in Auth but not in DB - likely deleted

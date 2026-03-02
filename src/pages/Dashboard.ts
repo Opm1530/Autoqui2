@@ -141,7 +141,8 @@ export const Dashboard = async () => {
             let stores = company?.stores || [];
 
             if (currentUser.role !== 'owner') {
-                stores = stores.filter((s: any) => s.id === currentUser.storeId);
+                const userStoreIds = currentUser.storeIds || (currentUser.storeId ? [currentUser.storeId] : []);
+                stores = stores.filter((s: any) => userStoreIds.includes(s.id));
             }
 
             if (stores.length === 0) {

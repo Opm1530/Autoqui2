@@ -42,11 +42,13 @@ export const Products = async () => {
     let stores = company?.stores || [];
 
     const isOwner = currentUser.role === 'owner';
+    const userStoreIds = (currentUser as any).storeIds || ((currentUser as any).storeId ? [(currentUser as any).storeId] : []);
+
     if (!isOwner) {
-        stores = stores.filter((s: any) => s.id === (currentUser as any).storeId);
+        stores = stores.filter((s: any) => userStoreIds.includes(s.id));
     }
 
-    let activeStoreFilter = isOwner ? 'all' : ((currentUser as any).storeId || '');
+    let activeStoreFilter = isOwner ? 'all' : (userStoreIds.length === 1 ? userStoreIds[0] : 'employee_all');
 
     // Temporary storage for files during bulk creation
     let pendingFiles: Map<string, File> = new Map();
@@ -75,10 +77,15 @@ export const Products = async () => {
 
     const renderRows = () => {
         let filteredProducts = products;
-        if (activeStoreFilter !== 'all') {
+        if (activeStoreFilter !== 'all' && activeStoreFilter !== 'employee_all') {
             filteredProducts = products.filter((p: any) =>
                 (p.storeIds && p.storeIds.includes(activeStoreFilter)) ||
                 (p.storeId === activeStoreFilter)
+            );
+        } else if (activeStoreFilter === 'employee_all') {
+            filteredProducts = products.filter((p: any) =>
+                (p.storeIds && p.storeIds.some((sid: string) => userStoreIds.includes(sid))) ||
+                (p.storeId && userStoreIds.includes(p.storeId))
             );
         }
 
