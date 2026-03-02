@@ -1,4 +1,24 @@
-export const EmployeeSidebar = () => {
+import { authService } from '../services/auth';
+import { dbService } from '../services/db';
+
+export const EmployeeSidebar = async () => {
+    const user = authService.getCurrentUser();
+    let showVenda = false;
+    let showAgendamento = false;
+
+    if (user && user.companyId) {
+        try {
+            const companyDoc = await dbService.get('companies', user.companyId);
+            const company = companyDoc as any;
+            const modulos = company?.modulos_ativos || ['atendimento'];
+
+            if (modulos.includes('venda')) showVenda = true;
+            if (modulos.includes('agendamento')) showAgendamento = true;
+        } catch (error) {
+            console.error('Error fetching company for employee sidebar:', error);
+        }
+    }
+
     return `
         <div class="sidebar">
             <div class="sidebar-logo">
@@ -10,6 +30,8 @@ export const EmployeeSidebar = () => {
                     <span class="icon"><i class="fa-solid fa-chart-line"></i></span>
                     <span>Dashboard</span>
                 </a>
+
+                ${showVenda ? `
                 <a href="/orders" class="nav-item">
                     <span class="icon"><i class="fa-solid fa-cart-shopping"></i></span>
                     <span>Pedidos</span>
@@ -18,6 +40,23 @@ export const EmployeeSidebar = () => {
                 <a href="/products" class="nav-item">
                     <span class="icon"><i class="fa-solid fa-box"></i></span>
                     <span>Produtos</span>
+                </a>
+                ` : ''}
+
+                ${showAgendamento ? `
+                <a href="/products" class="nav-item">
+                    <span class="icon"><i class="fa-solid fa-list-check"></i></span>
+                    <span>Serviços</span>
+                </a>
+                <a href="/schedule" class="nav-item">
+                    <span class="icon"><i class="fa-solid fa-calendar-alt"></i></span>
+                    <span>Agenda</span>
+                </a>
+                ` : ''}
+
+                <a href="/leads" class="nav-item">
+                    <span class="icon"><i class="fa-solid fa-people-group"></i></span>
+                    <span>Leads</span>
                 </a>
             </nav>
             <div class="sidebar-footer">

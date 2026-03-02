@@ -419,7 +419,7 @@ class OrderNotificationService {
 
         // ── Listener 1: pedidos (coleção 'pedidos') ──
         const ordersRef = collection(db, 'pedidos');
-        // Filter by companyId in query for better performance
+        // Index is now active, so server-side filtering is better
         const q = query(
             ordersRef,
             where('empresaId', '==', companyId),
