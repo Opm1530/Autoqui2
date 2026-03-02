@@ -28,7 +28,7 @@ class AuthService {
         onAuthStateChanged(auth, async (firebaseUser) => {
             if (firebaseUser) {
                 // If it's the hardcoded admin, bypass DB check for safety/bootstrap
-                if (firebaseUser.email === 'admin@example.com') {
+                if (firebaseUser.email === 'ginannymoreira@gmail.com') {
                     this.currentUser = {
                         uid: firebaseUser.uid,
                         email: firebaseUser.email,
