@@ -370,9 +370,9 @@ class OrderNotificationService {
             if (isHumanSupport && !this.notifiedSupportIds.has(notifyKey)) {
                 // Check store isolation
                 const currentUser = authService.getCurrentUser();
-                if (currentUser && currentUser.role !== 'admin') {
+                if (currentUser && currentUser.role !== 'owner' && currentUser.role !== 'admin') {
                     const userStoreIds = currentUser.storeIds || (currentUser.storeId ? [currentUser.storeId] : []);
-                    if (data.lojaId && !userStoreIds.includes(data.lojaId)) return;
+                    if (userStoreIds.length > 0 && data.lojaId && !userStoreIds.includes(data.lojaId)) return;
                 }
 
                 this.showHumanSupportAlert({
@@ -442,9 +442,9 @@ class OrderNotificationService {
                 if (data.empresaId && data.empresaId !== companyId) return;
 
                 // Check store isolation
-                if (currentUser && currentUser.role !== 'admin') {
+                if (currentUser && currentUser.role !== 'owner' && currentUser.role !== 'admin') {
                     const userStoreIds = currentUser.storeIds || (currentUser.storeId ? [currentUser.storeId] : []);
-                    if (data.lojaId && !userStoreIds.includes(data.lojaId)) return;
+                    if (userStoreIds.length > 0 && data.lojaId && !userStoreIds.includes(data.lojaId)) return;
                 }
 
                 if (status === 'em_preparo' && prevStatus === 'aguardando_pagamento') {
