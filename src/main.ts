@@ -35,12 +35,16 @@ class App {
   }
 
   private init() {
-    // Wait for auth to initialize
+    let lastUserUid: string | null = null;
     authService.subscribe((user) => {
       this.render();
       if (user) {
-        orderNotification.startListening();
+        if (user.uid !== lastUserUid) {
+          lastUserUid = user.uid;
+          orderNotification.startListening();
+        }
       } else {
+        lastUserUid = null;
         orderNotification.stopListening();
       }
     });

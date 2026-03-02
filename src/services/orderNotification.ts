@@ -372,6 +372,7 @@ class OrderNotificationService {
                 const currentUser = authService.getCurrentUser();
                 if (currentUser && currentUser.role !== 'owner' && currentUser.role !== 'admin') {
                     const userStoreIds = currentUser.storeIds || (currentUser.storeId ? [currentUser.storeId] : []);
+                    console.log('OrderNotification - Checking Lead Store isolation:', { userStoreIds, leadLojaId: data.lojaId });
                     if (userStoreIds.length > 0 && data.lojaId && !userStoreIds.includes(data.lojaId)) return;
                 }
 
@@ -444,6 +445,7 @@ class OrderNotificationService {
                 // Check store isolation
                 if (currentUser && currentUser.role !== 'owner' && currentUser.role !== 'admin') {
                     const userStoreIds = currentUser.storeIds || (currentUser.storeId ? [currentUser.storeId] : []);
+                    console.log('OrderNotification - Checking Store isolation:', { userStoreIds, orderLojaId: data.lojaId });
                     if (userStoreIds.length > 0 && data.lojaId && !userStoreIds.includes(data.lojaId)) return;
                 }
 
