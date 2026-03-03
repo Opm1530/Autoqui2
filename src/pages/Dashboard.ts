@@ -1,6 +1,39 @@
 import { authService } from '../services/auth';
 import { dbService } from '../services/db';
 import { evolutionApi } from '../services/evolutionApi';
+import { toast } from '../services/toast';
+
+// @ts-ignore
+window.copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text).then(() => {
+        toast.success('Link do catálogo copiado!');
+    }).catch(err => {
+        console.error('Erro ao copiar link:', err);
+        toast.error('Erro ao copiar link.');
+    });
+};
+
+// @ts-ignore
+window.toggleStoreActive = async (companyId: string, storeId: string, active: boolean) => {
+    try {
+        const companyDoc = await dbService.get('companies', companyId);
+        if (!companyDoc) return;
+
+        const company = companyDoc as any;
+        const stores = company.stores || [];
+        const storeIndex = stores.findIndex((s: any) => s.id === storeId);
+
+        if (storeIndex !== -1) {
+            stores[storeIndex].active = active;
+            await dbService.update('companies', companyId, { stores });
+            toast.success(`Loja ${active ? 'ativada' : 'desativada'} com sucesso!`);
+            setTimeout(() => location.reload(), 1000);
+        }
+    } catch (error) {
+        console.error('Error toggling store status:', error);
+        toast.error('Erro ao alterar status da loja.');
+    }
+};
 
 export const Dashboard = async () => {
     const user = authService.getCurrentUser();
@@ -183,8 +216,15 @@ export const Dashboard = async () => {
                 if (!inst || store.active === false) {
                     statusHtml = `
                         <div style="background: rgba(239, 68, 68, 0.1); padding: 1rem; border-radius: 8px; border-left: 4px solid var(--danger); margin-bottom: 1rem;">
-                            <p style="margin: 0; font-weight: 600; color: var(--danger);"><i class="fa-solid fa-circle-xmark"></i> Loja Inoperante</p>
-                            <p style="margin: 0.25rem 0 0 0; font-size: 0.85rem; color: var(--text-muted);">A loja está inativa ou não possui instância vinculada.</p>
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <p style="margin: 0; font-weight: 600; color: var(--danger);"><i class="fa-solid fa-circle-xmark"></i> Loja Inoperante</p>
+                                    <p style="margin: 0.25rem 0 0 0; font-size: 0.85rem; color: var(--text-muted);">A loja está inativa ou não possui instância vinculada.</p>
+                                </div>
+                                <button class="btn-primary btn-sm" onclick="toggleStoreActive('${company.id}', '${store.id}', true)">
+                                    <i class="fa-solid fa-play"></i> Ativar Loja
+                                </button>
+                            </div>
                         </div>
                     `;
                 } else {
@@ -194,16 +234,30 @@ export const Dashboard = async () => {
                             isOnline = true;
                             statusHtml = `
                                 <div style="background: rgba(34, 197, 94, 0.1); padding: 1rem; border-radius: 8px; border-left: 4px solid #22c55e; margin-bottom: 1rem;">
-                                    <p style="margin: 0; font-weight: 600; color: #22c55e;"><i class="fa-solid fa-circle-check"></i> Instância Conectada</p>
-                                    <p style="margin: 0.25rem 0 0 0; font-size: 0.85rem; color: var(--text-muted);">A IA e o WhatsApp estão online (Instância: ${instanceName}).</p>
+                                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                                        <div>
+                                            <p style="margin: 0; font-weight: 600; color: #22c55e;"><i class="fa-solid fa-circle-check"></i> Instância Conectada</p>
+                                            <p style="margin: 0.25rem 0 0 0; font-size: 0.85rem; color: var(--text-muted);">A IA e o WhatsApp estão online (Instância: ${instanceName}).</p>
+                                        </div>
+                                        <button class="btn-danger btn-sm" onclick="toggleStoreActive('${company.id}', '${store.id}', false)" style="background: #ef4444; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">
+                                            <i class="fa-solid fa-power-off"></i> Desativar
+                                        </button>
+                                    </div>
                                 </div>
                             `;
                         } else {
                             const qrData = await evolutionApi.getQRCode(instanceName);
                             statusHtml = `
                                 <div style="background: rgba(239, 68, 68, 0.1); padding: 1rem; border-radius: 8px; border-left: 4px solid var(--danger); margin-bottom: 1rem;">
-                                    <p style="margin: 0; font-weight: 600; color: var(--danger);"><i class="fa-solid fa-triangle-exclamation"></i> Instância Desconectada</p>
-                                    <p style="margin: 0.25rem 0 0.5rem 0; font-size: 0.85rem; color: var(--text-muted);">Instância: ${instanceName}. Escaneie o QR Code.</p>
+                                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
+                                        <div>
+                                            <p style="margin: 0; font-weight: 600; color: var(--danger);"><i class="fa-solid fa-triangle-exclamation"></i> Instância Desconectada</p>
+                                            <p style="margin: 0.25rem 0 0.5rem 0; font-size: 0.85rem; color: var(--text-muted);">Instância: ${instanceName}. Escaneie o QR Code.</p>
+                                        </div>
+                                        <button class="btn-danger btn-sm" onclick="toggleStoreActive('${company.id}', '${store.id}', false)" style="background: #ef4444; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">
+                                            <i class="fa-solid fa-power-off"></i> Desativar
+                                        </button>
+                                    </div>
                                     ${qrData?.base64 ? `<img src="${qrData.base64}" alt="QR" style="width:150px;height:150px;display:block;margin:0 auto;border-radius:8px;">` : '<p style="font-size:0.8rem;text-align:center;">Sem QR Code</p>'}
                                 </div>
                             `;
@@ -221,11 +275,19 @@ export const Dashboard = async () => {
                         <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
                             <div>
                                 <h3 style="margin-bottom: 0.25rem;"><i class="fa-solid fa-store"></i> ${store.name}</h3>
-                                <div style="display:flex; gap: 0.5rem;">
+                                <div style="display:flex; gap: 0.5rem; flex-wrap: wrap;">
                                     <span class="badge ${isOperable ? 'success' : 'danger'}">${isOperable ? 'Operante' : 'Inoperante'}</span>
                                     <span class="badge ${isOnline ? 'success' : 'warning'}">${isOnline ? 'WhatsApp Online' : 'WhatsApp Offline'}</span>
                                     <span class="badge ${freteAtivo ? 'success' : 'warning'}">${freteAtivo ? 'Frete Ativo' : 'Retirada Apenas'}</span>
                                 </div>
+                            </div>
+                            <div style="display: flex; gap: 10px;">
+                                <a href="/catalog/${store.id}" target="_blank" class="btn-secondary btn-sm" style="text-decoration: none; display: flex; align-items: center; gap: 6px; padding: 6px 12px; font-size: 0.8rem; border-radius: 6px;">
+                                    <i class="fa-solid fa-up-right-from-square" style="font-size: 0.75rem;"></i> Abrir Catálogo
+                                </a>
+                                <button class="btn-secondary btn-sm" onclick="copyToClipboard('${window.location.origin}/catalog/${store.id}')" style="display: flex; align-items: center; gap: 6px; padding: 6px 12px; font-size: 0.8rem; border-radius: 6px;">
+                                    <i class="fa-solid fa-copy" style="font-size: 0.75rem;"></i> Copiar Link
+                                </button>
                             </div>
                         </div>
                         ${statusHtml}
