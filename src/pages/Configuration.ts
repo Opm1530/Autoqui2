@@ -2,6 +2,8 @@ import { dbService } from '../services/db';
 import { authService } from '../services/auth';
 import { toast } from '../services/toast';
 import { evolutionApi } from '../services/evolutionApi';
+import { storage } from '../firebase/config';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 interface Instance {
     id: string;
@@ -467,12 +469,67 @@ export const Configuration = async () => {
                     ${buildMsgEditors()}
                 </div>
             </div>
+
+            <div class="card" style="margin-top: 1.5rem;">
+                <div class="config-section-title">
+                    <i class="fa-solid fa-store" style="color:var(--primary);"></i> Configurações do Catálogo
+                </div>
+                <p style="color:var(--text-muted);font-size:0.9rem;margin-bottom:1.25rem;">
+                    Personalize a aparência e os dados de contato do seu catálogo público.
+                </p>
+                
+                <div class="field" style="margin-bottom: 20px;">
+                    <label style="font-size:0.8rem; font-weight:700; color:var(--text-dim); text-transform:uppercase; margin-bottom:8px; display:block;">WhatsApp de Atendimento (Com DDD)</label>
+                    <input type="text" id="catalog-whatsapp" value="${config?.design?.whatsapp || ''}" class="time-input" style="width:100%;" placeholder="Ex: 5511999999999">
+                    <p style="font-size:0.75rem; color:var(--text-dim); margin-top:5px;">Este número será usado no botão flutuante do catálogo.</p>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 20px;">
+                    <div class="field">
+                        <label style="font-size:0.8rem; font-weight:700; color:var(--text-dim); text-transform:uppercase; margin-bottom:8px; display:block;">Cor Primária</label>
+                        <div style="display:flex; gap:10px; align-items:center;">
+                            <input type="color" id="primary-color" value="${config?.design?.primaryColor || '#6366f1'}" style="width:50px; height:40px; border:none; background:none; cursor:pointer;">
+                            <input type="text" id="primary-color-hex" value="${config?.design?.primaryColor || '#6366f1'}" class="time-input" style="flex:1;">
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label style="font-size:0.8rem; font-weight:700; color:var(--text-dim); text-transform:uppercase; margin-bottom:8px; display:block;">Cor Secundária (Fundo)</label>
+                        <div style="display:flex; gap:10px; align-items:center;">
+                            <input type="color" id="secondary-color" value="${config?.design?.secondaryColor || '#0f172a'}" style="width:50px; height:40px; border:none; background:none; cursor:pointer;">
+                            <input type="text" id="secondary-color-hex" value="${config?.design?.secondaryColor || '#0f172a'}" class="time-input" style="flex:1;">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="field" style="margin-bottom: 20px;">
+                    <label style="font-size:0.8rem; font-weight:700; color:var(--text-dim); text-transform:uppercase; margin-bottom:8px; display:block;">Logo do Catálogo</label>
+                    <div style="display:flex; align-items:center; gap:20px;">
+                        <div id="logo-preview" style="width:80px; height:80px; border-radius:12px; border:1px solid var(--border-color); display:flex; align-items:center; justify-content:center; background:var(--surface-hover); overflow:hidden;">
+                            ${config?.design?.logoUrl ? `<img src="${config.design.logoUrl}" style="width:100%; height:100%; object-fit:contain;">` : '<i class="fa-solid fa-image fa-2x" style="color:var(--text-dim);"></i>'}
+                        </div>
+                        <div style="flex:1;">
+                            <input type="file" id="logo-upload" accept="image/*" style="display:none;">
+                            <button class="btn-secondary" onclick="document.getElementById('logo-upload').click()">
+                                <i class="fa-solid fa-upload"></i> Escolher Logo
+                            </button>
+                            <p style="font-size:0.75rem; color:var(--text-dim); margin-top:5px;">Tamanho recomendado: 200x200px (PNG ou SVG transparente)</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="text-align:right;">
+                    <button class="btn-save-msg" id="btn-save-design">
+                         <i class="fa-solid fa-floppy-disk"></i> Salvar Configurações
+                    </button>
+                </div>
+            </div>
         `;
 
         // Wait to populate and setup binds
         setTimeout(() => {
             updateInstanceIndicator();
             setupStoreListeners();
+            setupDesignListeners();
         }, 50);
     }
 
@@ -724,6 +781,76 @@ export const Configuration = async () => {
                     btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Salvar';
                 }
             });
+        });
+    }
+
+    function setupDesignListeners() {
+        const primaryColor = document.getElementById('primary-color') as HTMLInputElement;
+        const primaryHex = document.getElementById('primary-color-hex') as HTMLInputElement;
+        const secondaryColor = document.getElementById('secondary-color') as HTMLInputElement;
+        const secondaryHex = document.getElementById('secondary-color-hex') as HTMLInputElement;
+        const logoUpload = document.getElementById('logo-upload') as HTMLInputElement;
+        const btnSaveDesign = document.getElementById('btn-save-design');
+
+        // Sync color pickers with hex inputs
+        primaryColor?.addEventListener('input', () => primaryHex.value = primaryColor.value);
+        primaryHex?.addEventListener('change', () => primaryColor.value = primaryHex.value);
+        secondaryColor?.addEventListener('input', () => secondaryHex.value = secondaryColor.value);
+        secondaryHex?.addEventListener('change', () => secondaryColor.value = secondaryHex.value);
+
+        let pendingLogoFile: File | null = null;
+        logoUpload?.addEventListener('change', () => {
+            if (logoUpload.files && logoUpload.files[0]) {
+                pendingLogoFile = logoUpload.files[0];
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const preview = document.getElementById('logo-preview');
+                    if (preview) preview.innerHTML = `<img src="${e.target?.result}" style="width:100%; height:100%; object-fit:contain;">`;
+                };
+                reader.readAsDataURL(pendingLogoFile);
+            }
+        });
+
+        btnSaveDesign?.addEventListener('click', async () => {
+            try {
+                btnSaveDesign.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Salvando...';
+
+                let logoUrl = getLojaConfig(activeStoreId)?.design?.logoUrl || '';
+
+                if (pendingLogoFile) {
+                    const storageRef = ref(storage, `logos/${companyId}/${activeStoreId}_${Date.now()}`);
+                    await uploadBytes(storageRef, pendingLogoFile);
+                    logoUrl = await getDownloadURL(storageRef);
+                }
+
+                const design = {
+                    primaryColor: primaryHex.value,
+                    secondaryColor: secondaryHex.value,
+                    logoUrl,
+                    whatsapp: (document.getElementById('catalog-whatsapp') as HTMLInputElement).value.replace(/\D/g, '')
+                };
+
+                const config = getLojaConfig(activeStoreId);
+                if (config) {
+                    await dbService.update('loja_config', config.id, { design });
+                    config.design = design;
+                } else {
+                    const newId = await dbService.create('loja_config', {
+                        empresaId: companyId,
+                        lojaId: activeStoreId,
+                        design
+                    });
+                    lojaConfigsRaw.push({ id: newId as string, empresaId: companyId, lojaId: activeStoreId, design });
+                }
+
+                toast.success('Configurações do catálogo atualizadas!');
+                btnSaveDesign.innerHTML = '<i class="fa-solid fa-check"></i> Salvo!';
+                setTimeout(() => { btnSaveDesign.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Salvar Configurações'; }, 2000);
+            } catch (err) {
+                console.error('Save design error:', err);
+                toast.error('Erro ao salvar design.');
+                btnSaveDesign.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Salvar Visual';
+            }
         });
     }
 };

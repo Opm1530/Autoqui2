@@ -151,6 +151,10 @@ export const Dashboard = async () => {
             const company = companyDoc as any;
             let stores = company?.stores || [];
 
+            // Fetch all instances once to match with stores
+            const instancesRaw = await dbService.getAll('instancias', { field: 'empresaId', operator: '==', value: companyId });
+            const allInstances = instancesRaw as any[];
+
             if (currentUser.role !== 'owner') {
                 const userStoreIds = currentUser.storeIds || (currentUser.storeId ? [currentUser.storeId] : []);
                 stores = stores.filter((s: any) => userStoreIds.includes(s.id));
@@ -172,7 +176,11 @@ export const Dashboard = async () => {
                 let statusHtml = '';
                 let isOnline = false;
 
-                if (!store.instancia_id || !store.active) {
+                // Find instance for this store (check both links)
+                const inst = allInstances.find(i => i.lojaId === store.id) || (store.instancia_id ? allInstances.find(i => i.id === store.instancia_id) : null);
+                const instanceName = inst?.nome;
+
+                if (!inst || store.active === false) {
                     statusHtml = `
                         <div style="background: rgba(239, 68, 68, 0.1); padding: 1rem; border-radius: 8px; border-left: 4px solid var(--danger); margin-bottom: 1rem;">
                             <p style="margin: 0; font-weight: 600; color: var(--danger);"><i class="fa-solid fa-circle-xmark"></i> Loja Inoperante</p>
@@ -180,38 +188,33 @@ export const Dashboard = async () => {
                         </div>
                     `;
                 } else {
-                    const instDoc = await dbService.get('instancias', store.instancia_id);
-                    const instanceName = (instDoc as any)?.nome;
-                    if (instanceName) {
-                        try {
-                            const status = await evolutionApi.getInstanceStatus(instanceName);
-                            if (status.connected) {
-                                isOnline = true;
-                                statusHtml = `
-                                    <div style="background: rgba(34, 197, 94, 0.1); padding: 1rem; border-radius: 8px; border-left: 4px solid #22c55e; margin-bottom: 1rem;">
-                                        <p style="margin: 0; font-weight: 600; color: #22c55e;"><i class="fa-solid fa-circle-check"></i> Instância Conectada</p>
-                                        <p style="margin: 0.25rem 0 0 0; font-size: 0.85rem; color: var(--text-muted);">A IA e o WhatsApp estão online (Instância: ${instanceName}).</p>
-                                    </div>
-                                `;
-                            } else {
-                                const qrData = await evolutionApi.getQRCode(instanceName);
-                                statusHtml = `
-                                    <div style="background: rgba(239, 68, 68, 0.1); padding: 1rem; border-radius: 8px; border-left: 4px solid var(--danger); margin-bottom: 1rem;">
-                                        <p style="margin: 0; font-weight: 600; color: var(--danger);"><i class="fa-solid fa-triangle-exclamation"></i> Instância Desconectada</p>
-                                        <p style="margin: 0.25rem 0 0.5rem 0; font-size: 0.85rem; color: var(--text-muted);">Instância: ${instanceName}. Escaneie o QR Code.</p>
-                                        ${qrData?.base64 ? `<img src="${qrData.base64}" alt="QR" style="width:150px;height:150px;display:block;margin:0 auto;border-radius:8px;">` : '<p style="font-size:0.8rem;text-align:center;">Sem QR Code</p>'}
-                                    </div>
-                                `;
-                            }
-                        } catch (e) {
-                            statusHtml = `<p style="color:var(--danger);font-size:0.85rem;">Erro ao verificar instância (${instanceName}).</p>`;
+                    try {
+                        const status = await evolutionApi.getInstanceStatus(instanceName);
+                        if (status.connected) {
+                            isOnline = true;
+                            statusHtml = `
+                                <div style="background: rgba(34, 197, 94, 0.1); padding: 1rem; border-radius: 8px; border-left: 4px solid #22c55e; margin-bottom: 1rem;">
+                                    <p style="margin: 0; font-weight: 600; color: #22c55e;"><i class="fa-solid fa-circle-check"></i> Instância Conectada</p>
+                                    <p style="margin: 0.25rem 0 0 0; font-size: 0.85rem; color: var(--text-muted);">A IA e o WhatsApp estão online (Instância: ${instanceName}).</p>
+                                </div>
+                            `;
+                        } else {
+                            const qrData = await evolutionApi.getQRCode(instanceName);
+                            statusHtml = `
+                                <div style="background: rgba(239, 68, 68, 0.1); padding: 1rem; border-radius: 8px; border-left: 4px solid var(--danger); margin-bottom: 1rem;">
+                                    <p style="margin: 0; font-weight: 600; color: var(--danger);"><i class="fa-solid fa-triangle-exclamation"></i> Instância Desconectada</p>
+                                    <p style="margin: 0.25rem 0 0.5rem 0; font-size: 0.85rem; color: var(--text-muted);">Instância: ${instanceName}. Escaneie o QR Code.</p>
+                                    ${qrData?.base64 ? `<img src="${qrData.base64}" alt="QR" style="width:150px;height:150px;display:block;margin:0 auto;border-radius:8px;">` : '<p style="font-size:0.8rem;text-align:center;">Sem QR Code</p>'}
+                                </div>
+                            `;
                         }
-                    } else {
-                        statusHtml = `<p style="color:var(--danger);font-size:0.85rem;">Instância vinculada não encontrada no banco de dados.</p>`;
+                    } catch (e) {
+                        statusHtml = `<p style="color:var(--danger);font-size:0.85rem;">Erro ao verificar instância (${instanceName}).</p>`;
                     }
                 }
 
                 const freteAtivo = store.frete_ativo !== false; // default to true if undefined
+                const isOperable = inst && store.active !== false;
 
                 html += `
                     <div class="card" style="margin-top: 1.5rem; border: 1px solid ${isOnline ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)'};">
@@ -219,7 +222,7 @@ export const Dashboard = async () => {
                             <div>
                                 <h3 style="margin-bottom: 0.25rem;"><i class="fa-solid fa-store"></i> ${store.name}</h3>
                                 <div style="display:flex; gap: 0.5rem;">
-                                    <span class="badge ${(store.active && store.instancia_id) ? 'success' : 'danger'}">${(store.active && store.instancia_id) ? 'Operante' : 'Inoperante'}</span>
+                                    <span class="badge ${isOperable ? 'success' : 'danger'}">${isOperable ? 'Operante' : 'Inoperante'}</span>
                                     <span class="badge ${isOnline ? 'success' : 'warning'}">${isOnline ? 'WhatsApp Online' : 'WhatsApp Offline'}</span>
                                     <span class="badge ${freteAtivo ? 'success' : 'warning'}">${freteAtivo ? 'Frete Ativo' : 'Retirada Apenas'}</span>
                                 </div>
@@ -230,10 +233,42 @@ export const Dashboard = async () => {
                 `;
             }
 
+            // Also show instances NOT linked to any store
+            const linkedInstIds = stores.map((s: any) => s.instancia_id).filter((id: any) => !!id);
+            const redundantInstIds = allInstances.filter(i => i.lojaId).map(i => i.id);
+            const allLinkedIds = new Set([...linkedInstIds, ...redundantInstIds]);
+
+            const unlinkedInstances = allInstances.filter(i => !allLinkedIds.has(i.id));
+
+            if (unlinkedInstances.length > 0) {
+                html += `
+                    <div class="card" style="margin-top: 2rem; border: 1px dashed rgba(255,255,255,0.2); background: rgba(255,255,255,0.02);">
+                        <h4 style="margin-bottom: 1rem; color: var(--text-muted);"><i class="fa-solid fa-link-slash"></i> Instâncias não vinculadas a lojas</h4>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1rem;">
+                `;
+
+                for (const inst of unlinkedInstances) {
+                    let isOnline = false;
+                    try {
+                        const status = await evolutionApi.getInstanceStatus(inst.nome);
+                        isOnline = status.connected;
+                    } catch (e) { }
+
+                    html += `
+                        <div style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 8px;">
+                            <div style="display:flex; justify-content:space-between; align-items:center;">
+                                <strong>${inst.nome}</strong>
+                                <span class="badge ${isOnline ? 'success' : 'warning'}">${isOnline ? 'Online' : 'Offline'}</span>
+                            </div>
+                            <p style="font-size:0.75rem; color: var(--text-muted); margin-top: 0.5rem;">Vá em Configurações > Lojas para vincular esta instância a uma unidade.</p>
+                        </div>
+                    `;
+                }
+
+                html += `</div></div>`;
+            }
+
             container.innerHTML = html;
-
-            // Toggle frete removed from dashboard
-
         } catch (error) {
             console.error('Error setting up Store statuses:', error);
             container.innerHTML = `

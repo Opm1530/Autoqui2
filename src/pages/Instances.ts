@@ -35,7 +35,7 @@ export const Instances = async () => {
         for (const inst of instances) {
             try {
                 const apiStatus = await evolutionApi.getInstanceStatus(inst.nome);
-                const currentStatus = apiStatus.connected ? 'conectado' : (inst.status === 'conectado' ? 'desconectado' : inst.status);
+                const currentStatus = apiStatus.connected ? 'conectado' : 'desconectado';
 
                 if (currentStatus !== inst.status) {
                     await dbService.update('instancias', inst.id, { status: currentStatus });
@@ -312,7 +312,7 @@ export const Instances = async () => {
                     const id = await dbService.create('instancias', newInstance);
                     instances.push({ id, ...newInstance, createdAt: { toDate: () => new Date() } } as any);
 
-                    toast.success('Instância criada!');
+                    toast.success('Instância criada! Agora vincule-a a uma loja nas configurações.');
                     newModal?.classList.add('hidden');
                     refreshTable();
                     (window as any).connectInstance(uniqueName);

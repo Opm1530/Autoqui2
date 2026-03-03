@@ -15,6 +15,9 @@ interface Product {
     imageUrl?: string;
     imagemPath?: string;
     downloadToken?: string;
+    promotionalActive?: boolean;
+    promotionalName?: string;
+    promotionalPrice?: number;
 }
 
 const getProductImageUrl = (p: Product) => {
@@ -212,11 +215,18 @@ export const Products = async () => {
                 emptyMsg.style.display = 'none';
 
                 const imgUrl = getProductImageUrl(product);
-                const itemHtml = createProductItemHtml('edit-item', product.name, product.price, imgUrl);
+                const itemHtml = createProductItemHtml(
+                    'edit-item',
+                    product.name,
+                    product.price,
+                    imgUrl,
+                    product.promotionalActive,
+                    product.promotionalName,
+                    product.promotionalPrice
+                );
                 listContainer.innerHTML = itemHtml;
 
                 // Add event listener for the file input of this item
-                // We need to attach listeners after injecting HTML
                 setTimeout(() => {
                     attachItemListeners('edit-item');
                 }, 0);
@@ -288,7 +298,15 @@ export const Products = async () => {
     }, 100);
 
     // Helpers
-    const createProductItemHtml = (tempId: string, name: string = '', price: number | string = '', imageUrl: string | null = null) => {
+    const createProductItemHtml = (
+        tempId: string,
+        name: string = '',
+        price: number | string = '',
+        imageUrl: string | null = null,
+        promotionalActive: boolean = false,
+        promotionalName: string = '',
+        promotionalPrice: number | string = ''
+    ) => {
         return `
             <div class="product-item-card" id="card-${tempId}">
                  <div class="item-visual">
@@ -318,6 +336,26 @@ export const Products = async () => {
                         <div class="field price-field">
                             <label>Preço (R$)</label>
                             <input type="number" name="price-${tempId}" value="${price}" class="item-price" placeholder="0,00" step="0.01" required>
+                        </div>
+                    </div>
+                    
+                    <div class="promotional-section" style="margin-top: 15px; padding-top: 10px; border-top: 1px dashed var(--border-color);">
+                        <label class="promotional-toggle" style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--primary); font-weight: 600; font-size: 0.85rem;">
+                            <input type="checkbox" name="promotional-active-${tempId}" class="promotional-checkbox" ${promotionalActive ? 'checked' : ''} style="width: 16px; height: 16px;">
+                            <i class="fa-solid fa-tag"></i> Ativar Promoção
+                        </label>
+                        
+                        <div class="promotional-fields ${promotionalActive ? '' : 'hidden'}" id="promotional-fields-${tempId}" style="margin-top: 10px; border-radius: 8px; background: rgba(99, 102, 241, 0.05); padding: 12px; border: 1px solid rgba(99, 102, 241, 0.2);">
+                            <div class="input-row">
+                                <div class="field">
+                                    <label>Título da Promoção</label>
+                                    <input type="text" name="promotional-name-${tempId}" value="${promotionalName}" placeholder="Ex: Oferta Relâmpago!" class="promotional-name-input">
+                                </div>
+                                <div class="field price-field">
+                                    <label>Preço Promo (R$)</label>
+                                    <input type="number" name="promotional-price-${tempId}" value="${promotionalPrice}" placeholder="0,00" step="0.01" class="promotional-price-input">
+                                </div>
+                            </div>
                         </div>
                     </div>
                  </div>
@@ -364,6 +402,16 @@ export const Products = async () => {
         if (btnChange && fileInput) {
             btnChange.addEventListener('click', () => {
                 fileInput.click();
+            });
+        }
+
+        // Promotional toggle listener
+        const promoToggle = document.querySelector(`input[name="promotional-active-${tempId}"]`) as HTMLInputElement;
+        const promoFields = document.getElementById(`promotional-fields-${tempId}`);
+        if (promoToggle && promoFields) {
+            promoToggle.addEventListener('change', () => {
+                if (promoToggle.checked) promoFields.classList.remove('hidden');
+                else promoFields.classList.add('hidden');
             });
         }
     }
@@ -540,11 +588,25 @@ export const Products = async () => {
             }
         </style>
         <div class="page-container">
-            <div class="page-header" style="justify-content: space-between; align-items: center;">
+            <div class="page-header" style="justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;">
                 <div>
                      <h2 class="page-title" style="margin-bottom: 4px;">${isAgendamento ? 'Catálogo de Serviços' : 'Catálogo de Produtos'}</h2>
                      <p style="color: var(--text-muted); font-size: 0.9rem;">${isAgendamento ? 'Gerencie os serviços oferecidos pela sua empresa.' : 'Gerencie os produtos visíveis no cardápio das suas lojas.'}</p>
                 </div>
+                
+                <div id="catalog-link-container" class="hidden" style="flex: 1; min-width: 300px; max-width: 500px; background: rgba(99, 102, 241, 0.1); border: 1px dashed var(--primary); border-radius: 12px; padding: 10px 15px; display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+                    <div style="flex: 1; overflow: hidden;">
+                        <span style="font-size: 0.7rem; color: var(--primary); font-weight: 700; text-transform: uppercase; display: block; margin-bottom: 2px;">Link do Catálogo</span>
+                        <input type="text" id="catalog-url-display" readonly style="width: 100%; background: transparent; border: none; color: white; font-size: 0.85rem; text-overflow: ellipsis; outline: none;" value="">
+                    </div>
+                    <button id="btn-copy-catalog" class="btn-primary" style="padding: 8px 12px; font-size: 0.8rem; flex-shrink: 0;">
+                        <i class="fa-solid fa-copy"></i> Copiar
+                    </button>
+                    <a id="btn-open-catalog" href="" target="_blank" class="btn-secondary" style="padding: 8px 12px; font-size: 0.8rem; flex-shrink: 0;">
+                        <i class="fa-solid fa-external-link"></i>
+                    </a>
+                </div>
+
                 <button id="btn-new-product" class="btn-primary"><i style="color: #fff;" class="fa-solid fa-plus"></i> Novo ${labelSingular}</button>
             </div>
 
@@ -595,14 +657,44 @@ export const Products = async () => {
 
         // Store Filter Pills
         const pills = document.querySelectorAll('.filter-pill');
+        const catalogContainer = document.getElementById('catalog-link-container');
+        const catalogUrlInput = document.getElementById('catalog-url-display') as HTMLInputElement;
+        const btnOpenCatalog = document.getElementById('btn-open-catalog') as HTMLAnchorElement;
+
+        const updateCatalogLink = (storeId: string) => {
+            if (!catalogContainer || !catalogUrlInput || !btnOpenCatalog) return;
+
+            if (storeId === 'all' || storeId === 'employee_all') {
+                catalogContainer.classList.add('hidden');
+            } else {
+                const url = `${window.location.origin}/catalog/${storeId}`;
+                catalogUrlInput.value = url;
+                btnOpenCatalog.href = url;
+                catalogContainer.classList.remove('hidden');
+            }
+        };
+
+        updateCatalogLink(activeStoreFilter);
+
         pills.forEach(pill => {
             (pill as HTMLElement).onclick = () => {
                 pills.forEach(p => p.classList.remove('active'));
                 pill.classList.add('active');
                 activeStoreFilter = (pill as HTMLElement).dataset.value || 'all';
+                updateCatalogLink(activeStoreFilter);
                 refreshTable();
             };
         });
+
+        const btnCopyCatalog = document.getElementById('btn-copy-catalog');
+        if (btnCopyCatalog) {
+            btnCopyCatalog.onclick = () => {
+                const url = catalogUrlInput.value;
+                navigator.clipboard.writeText(url).then(() => {
+                    toast.success('Link do catálogo copiado!');
+                });
+            };
+        }
 
         if (btnNew && modal) {
             btnNew.onclick = () => {
@@ -752,12 +844,19 @@ export const Products = async () => {
                             downloadToken = urlObj.searchParams.get('token') || '';
                         }
 
+                        const promoActive = (item.querySelector(`input[name="promotional-active-${tempId}"]`) as HTMLInputElement).checked;
+                        const promoName = (item.querySelector(`input[name="promotional-name-${tempId}"]`) as HTMLInputElement).value;
+                        const promoPrice = (item.querySelector(`input[name="promotional-price-${tempId}"]`) as HTMLInputElement).value;
+
                         const productData: any = {
                             name: nameInput.value,
                             price: parseFloat(priceInput.value) || 0,
                             active: true,
                             storeIds,
-                            companyId
+                            companyId,
+                            promotionalActive: promoActive,
+                            promotionalName: promoName,
+                            promotionalPrice: parseFloat(promoPrice) || 0
                         };
 
                         if (imagemPath) productData.imagemPath = imagemPath;

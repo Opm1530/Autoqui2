@@ -25,6 +25,8 @@ import { Schedule } from './pages/Schedule';
 import { Webhooks } from './pages/Webhooks';
 import { MercadoPago } from './pages/MercadoPago';
 
+import { Catalog } from './pages/Catalog';
+
 // Core Application Logic
 class App {
   private appElement: HTMLElement;
@@ -101,8 +103,14 @@ class App {
     const path = window.location.pathname;
     const user = authService.getCurrentUser();
 
-    // 1. Unauthenticated -> Redirect to Login
+    // 1. Unauthenticated -> Login or Public Route
     if (!user) {
+      if (path.startsWith('/catalog/')) {
+        const storeId = path.split('/').pop() || '';
+        this.appElement.innerHTML = await Catalog(storeId);
+        return;
+      }
+
       if (path !== '/login') {
         history.replaceState(null, '', '/login');
       }
@@ -115,6 +123,12 @@ class App {
       const dashboardPath = user.role === 'admin' ? '/admin/dashboard' : '/dashboard';
       history.replaceState(null, '', dashboardPath);
       this.render(); // Re-render to show dashboard
+      return;
+    }
+
+    if (path.startsWith('/catalog/')) {
+      const storeId = path.split('/').pop() || '';
+      this.appElement.innerHTML = await Catalog(storeId);
       return;
     }
 

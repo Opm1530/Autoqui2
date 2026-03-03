@@ -137,7 +137,7 @@ export const Orders = async () => {
 
     const isStoreOperable = (lojaId: string) => {
         const store = stores.find((s: any) => s.id === lojaId) as any;
-        return store ? (store.active && store.instancia_id) : false;
+        return store ? (store.active !== false && store.instancia_id) : false;
     };
 
     const getLeadName = (leadId: string, orderNome?: string) => {
