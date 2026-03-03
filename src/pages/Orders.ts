@@ -28,8 +28,9 @@ const STATUS_CONFIG: Record<string, { label: string; cls: string; icon: string }
     em_montagem: { label: 'Em Montagem', cls: 'badge warning', icon: '<i class="fa-solid fa-cart-shopping"></i>' },
     aguardando_pagamento: { label: 'Aguard. Pagamento', cls: 'badge info', icon: '<i class="fa-solid fa-credit-card"></i>' },
     em_preparo: { label: 'Em Preparo', cls: 'badge primary', icon: '<i class="fa-solid fa-utensils"></i>' },
-    saiu_para_entrega: { label: 'Saiu p/ Entrega', cls: 'badge success', icon: '<i class="fa-solid fa-truck"></i>' },
-    finalizado: { label: 'Finalizado', cls: 'badge success', icon: '<i class="fa-solid fa-check"></i>' },
+    pedido_pronto: { label: 'Pronto p/ Retirada', cls: 'badge success', icon: '<i class="fa-solid fa-box" style="color:#fff;"></i>' },
+    saiu_para_entrega: { label: 'Saiu p/ Entrega', cls: 'badge success', icon: '<i class="fa-solid fa-truck" style="color:#fff;"></i>' },
+    finalizado: { label: 'Finalizado', cls: 'badge success', icon: '<i class="fa-solid fa-check" style="color:#fff;"></i>' },
     cancelado: { label: 'Cancelado', cls: 'badge danger', icon: '<i class="fa-solid fa-xmark"></i>' },
 };
 
@@ -52,9 +53,17 @@ const FILTERS = [
     { key: 'em_montagem', label: '<i class="fa-solid fa-cart-shopping"></i> Em Montagem' },
     { key: 'aguardando_pagamento', label: '<i class="fa-solid fa-credit-card"></i> Pag. Pendente' },
     { key: 'em_preparo', label: '<i class="fa-solid fa-utensils"></i> Em Preparo' },
+    { key: 'pedido_pronto', label: '<i class="fa-solid fa-box"></i> Prontos' },
     { key: 'saiu_para_entrega', label: '<i class="fa-solid fa-truck"></i> Em Entrega' },
     { key: 'finalizado', label: '<i class="fa-solid fa-check"></i> Finalizados' },
 ];
+
+function getDeliveryBadge(entrega: string): string {
+    if (entrega === 'retirada') {
+        return `<span class="badge secondary" style="background: rgba(139, 92, 246, 0.1); color: #a78bfa; border: 1px solid rgba(139, 92, 246, 0.2); font-size: 0.7rem; padding: 0.2rem 0.5rem; display: inline-flex; align-items: center; gap: 0.3rem;"><i class="fa-solid fa-store" style="font-size: 0.6rem;"></i> Retirada</span>`;
+    }
+    return `<span class="badge info" style="background: rgba(59, 130, 246, 0.1); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.2); font-size: 0.7rem; padding: 0.2rem 0.5rem; display: inline-flex; align-items: center; gap: 0.3rem;"><i class="fa-solid fa-truck" style="font-size: 0.6rem;"></i> Entrega</span>`;
+}
 
 function getPaymentBadge(payment: string, comprovanteUrl?: string, empresaId?: string): string {
     if (!payment) return `<span class="badge secondary" style="opacity: 0.5; font-size: 0.7rem; padding: 0.2rem 0.5rem;">Pendente</span>`;
@@ -161,7 +170,7 @@ export const Orders = async () => {
 
     const renderRows = (list: any[]) => {
         if (list.length === 0) {
-            return `<tr><td colspan="7" style="text-align:center;padding:2.5rem;color:var(--text-muted);">Nenhum pedido encontrado.</td></tr>`;
+            return `<tr><td colspan="8" style="text-align:center;padding:2.5rem;color:var(--text-muted);">Nenhum pedido encontrado.</td></tr>`;
         }
         return list.map((order: any) => {
             const status = (order.status || 'em_montagem').toLowerCase();
@@ -179,8 +188,7 @@ export const Orders = async () => {
                     </div>
                 </td>
                 <td style="font-weight:600;">R$ ${(order.value || order.total || 0).toFixed(2)}</td>
-                <td>${getStatusBadge(status)}</td>
-                <td>${getPaymentBadge(order.pagamento || order.formaPagamento, order.comprovanteUrl, order.empresaId)}</td>
+                <td>${getStatusBadge(status)}  ${getDeliveryBadge(order.entrega || 'entrega')}  ${getPaymentBadge(order.pagamento || order.formaPagamento, order.comprovanteUrl, order.empresaId)}</td>
                 <td style="color:var(--text-muted);font-size:0.82rem;">${formatDate(order.criadoEm || order.createdAt)}</td>
                 <td>
                     <div class="actions">
@@ -221,7 +229,6 @@ export const Orders = async () => {
                             <th>Cliente</th>
                             <th>Total</th>
                             <th>Status</th>
-                            <th>Pagamento</th>
                             <th>Data/Hora</th>
                             <th>Ações</th>
                         </tr>
@@ -406,7 +413,7 @@ export const Orders = async () => {
         ` : '');
 
         // ── Stage action buttons ──
-        const stageButtons = buildStageButtons(status);
+        const stageButtons = buildStageButtons(order, status);
 
         // ── Intervir button (only when not terminal) ──
         const intervirBtn = !isTerminal ? `
@@ -456,6 +463,10 @@ export const Orders = async () => {
                 <div class="lead-badge-group">
                     <span class="badge-label">Data</span>
                     <span class="badge secondary" style="font-size:0.78rem;">${formatDate(order.criadoEm || order.createdAt)}</span>
+                </div>
+                <div class="lead-badge-group">
+                    <span class="badge-label">Tipo</span>
+                    ${getDeliveryBadge(order.entrega || 'entrega')}
                 </div>
             </div>
 
@@ -556,11 +567,17 @@ export const Orders = async () => {
         bindModalListeners(modal, order, status);
     }
 
-    function buildStageButtons(status: string): string {
+    function buildStageButtons(order: any, status: string): string {
+        const isWithdrawal = order.entrega === 'retirada';
+        const paymentMethod = (order.pagamento || order.formaPagamento || '').toLowerCase();
+        const isPayOnDelivery = paymentMethod.includes('entrega') || paymentMethod.includes('dinheiro') || paymentMethod.includes('maquininha');
+
         switch (status) {
             case 'em_montagem':
+                // For withdrawal + pay on delivery, skip waiting for payment
+                const acceptTarget = (isWithdrawal && isPayOnDelivery) ? 'em_preparo' : 'aguardando_pagamento';
                 return `
-                    <button id="btn-main-action" class="btn-lead-action" data-target="aguardando_pagamento">
+                    <button id="btn-main-action" class="btn-lead-action" data-target="${acceptTarget}">
                         <i class="fa-solid fa-check"></i> Aceitar Pedido
                     </button>
                     <button id="btn-cancel" class="btn-lead-action danger" data-stage="init">
@@ -572,9 +589,20 @@ export const Orders = async () => {
                         <i class="fa-solid fa-credit-card"></i> Confirmar Pagamento
                     </button>`;
             case 'em_preparo':
+                if (isWithdrawal) {
+                    return `
+                        <button id="btn-main-action" class="btn-lead-action" data-target="pedido_pronto">
+                            <i class="fa-solid fa-box"></i> ${isPayOnDelivery ? 'Pronto' : 'Pedido Pronto'}
+                        </button>`;
+                }
                 return `
                     <button id="btn-main-action" class="btn-lead-action" data-target="saiu_para_entrega">
                         <i class="fa-solid fa-truck"></i> Saiu para Entrega
+                    </button>`;
+            case 'pedido_pronto':
+                return `
+                    <button id="btn-main-action" class="btn-lead-action" data-target="finalizado">
+                        <i class="fa-solid fa-flag-checkered"></i> ${isPayOnDelivery ? 'Finalizar' : 'Entregue'}
                     </button>`;
             case 'saiu_para_entrega':
                 return `
@@ -713,6 +741,10 @@ export const Orders = async () => {
                 case 'em_preparo':
                     confirmTitle = 'Confirmar Pagamento';
                     confirmMsg = 'Confirmar que o pagamento foi recebido?';
+                    break;
+                case 'pedido_pronto':
+                    confirmTitle = 'Pedido Pronto';
+                    confirmMsg = 'Marcar pedido como pronto para retirada?';
                     break;
                 case 'saiu_para_entrega':
                     confirmTitle = 'Saiu para Entrega';

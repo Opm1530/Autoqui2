@@ -47,10 +47,22 @@ const MSG_FIELDS = [
         default: 'Olá {{nome_lead}}! Seu pedido #{{numero_pedido}} foi aceito. \n\n📦 Itens: {{lista_produtos}}\n💰 Total: R$ {{valor_total}}\n\nPode me informar a forma de pagamento?',
     },
     {
+        key: 'pedido_aceito_retirada',
+        label: 'Pedido Aceito (Retirada)',
+        icon: 'fa-store',
+        default: 'Olá {{nome_lead}}! Seu pedido #{{numero_pedido}} foi aceito para retirada e já está sendo preparado. \n\n💰 Valor: R$ {{valor_total}}\n\nAguardamos você!',
+    },
+    {
         key: 'pagamento_confirmado',
         label: 'Pagamento Confirmado',
         icon: 'fa-credit-card',
         default: 'Olá {{nome_lead}}! 💳 Pagamento confirmado! Seu pedido #{{numero_pedido}} está sendo preparado.',
+    },
+    {
+        key: 'pedido_pronto',
+        label: 'Pedido Pronto (Retirada)',
+        icon: 'fa-box',
+        default: 'Olá {{nome_lead}}! 📦 Seu pedido #{{numero_pedido}} já está pronto para retirada!',
     },
     {
         key: 'saiu_para_entrega',

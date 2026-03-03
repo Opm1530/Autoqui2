@@ -253,7 +253,12 @@ class OrderNotificationService {
                     valoresAdicionais: valoresAdicionais
                 };
 
-                await orderService.updateOrderStatus(order, companyId, 'aguardando_pagamento', undefined, extraUpdates);
+                const isWithdrawal = (order as any).entrega === 'retirada';
+                const paymentMethod = (order as any).pagamento || (order as any).formaPagamento || '';
+                const isPayOnDelivery = paymentMethod.includes('entrega') || paymentMethod.includes('dinheiro') || paymentMethod.includes('maquininha');
+                const targetStatus = (isWithdrawal && isPayOnDelivery) ? 'em_preparo' : 'aguardando_pagamento';
+
+                await orderService.updateOrderStatus(order, companyId, targetStatus as any, undefined, extraUpdates);
                 toast.success('Pedido aceito e WhatsApp enviado!');
                 modal.remove();
             } catch (error) {
@@ -368,6 +373,9 @@ class OrderNotificationService {
             }
 
             if (isHumanSupport && !this.notifiedSupportIds.has(notifyKey)) {
+                // Skip if current path is a catalog
+                if (window.location.pathname.includes('/catalog/')) return;
+
                 // Check store isolation
                 const currentUser = authService.getCurrentUser();
                 if (currentUser && currentUser.role !== 'owner' && currentUser.role !== 'admin') {
@@ -415,6 +423,14 @@ class OrderNotificationService {
         const currentUser = authService.getCurrentUser();
         if (!currentUser || !currentUser.companyId) return;
 
+        // Security check: Only allow notifications for employees, owners or admins
+        // Public users in the catalog should NOT receive notifications
+        const allowedRoles = ['admin', 'owner', 'employee', 'staff'];
+        if (!allowedRoles.includes(currentUser.role || '')) {
+            console.log('OrderNotification - Unauthorized role for notifications:', currentUser.role);
+            return;
+        }
+
         const companyId = currentUser.companyId;
 
         // ── Listener 1: pedidos (coleção 'pedidos') ──
@@ -441,6 +457,9 @@ class OrderNotificationService {
 
                 this.orderStatusMap.set(id, status);
                 if (data.empresaId && data.empresaId !== companyId) return;
+
+                // Skip if current path is a catalog
+                if (window.location.pathname.includes('/catalog/')) return;
 
                 // Check store isolation
                 if (currentUser && currentUser.role !== 'owner' && currentUser.role !== 'admin') {

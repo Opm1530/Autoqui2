@@ -10,6 +10,7 @@ export type OrderStatus =
     | 'em_montagem'
     | 'aguardando_pagamento'
     | 'em_preparo'
+    | 'pedido_pronto'
     | 'saiu_para_entrega'
     | 'finalizado'
     | 'cancelado';
@@ -41,7 +42,9 @@ function buildVars(order: any, lead: any): Record<string, string> {
 
 const DEFAULT_MESSAGES: Record<string, string> = {
     pedido_aceito: '✅ Pedido confirmado! Pode me informar a forma de pagamento?',
+    pedido_aceito_retirada: '✅ Pedido confirmado para retirada! Já está sendo preparado.',
     pagamento_confirmado: '💳 Pagamento confirmado! Seu pedido já está sendo preparado.',
+    pedido_pronto: '📦 Seu pedido já está pronto para retirada!',
     saiu_para_entrega: '🚚 Boa notícia! Seu pedido saiu para entrega.',
     pedido_entregue: '🏁 Seu pedido foi entregue e finalizado. Obrigado pela preferência!',
     pedido_cancelado: '❌ Seu pedido foi cancelado.',
@@ -53,6 +56,7 @@ function getMsgKey(newStatus: OrderStatus): string | null {
     switch (newStatus) {
         case 'aguardando_pagamento': return 'pedido_aceito';
         case 'em_preparo': return 'pagamento_confirmado';
+        case 'pedido_pronto': return 'pedido_pronto';
         case 'saiu_para_entrega': return 'saiu_para_entrega';
         case 'finalizado': return 'pedido_entregue';
         case 'cancelado': return 'pedido_cancelado';
@@ -135,7 +139,13 @@ export const orderService = {
 
             // 5. Build message
             let message = '';
-            const msgKey = getMsgKey(newStatus);
+            let msgKey = getMsgKey(newStatus);
+
+            // ESPECIAL: Se estivermos indo de 'em_montagem' diretamente para 'em_preparo' (retirada sem pagamento antecipado)
+            if (newStatus === 'em_preparo' && (order.status === 'em_montagem' || !order.status)) {
+                msgKey = 'pedido_aceito_retirada';
+            }
+
             if (msgKey) {
                 if (newStatus === 'cancelado') {
                     const template = customMsgs[msgKey] || DEFAULT_MESSAGES[msgKey] || '';

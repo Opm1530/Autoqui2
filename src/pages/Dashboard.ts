@@ -295,39 +295,41 @@ export const Dashboard = async () => {
                 `;
             }
 
-            // Also show instances NOT linked to any store
-            const linkedInstIds = stores.map((s: any) => s.instancia_id).filter((id: any) => !!id);
-            const redundantInstIds = allInstances.filter(i => i.lojaId).map(i => i.id);
-            const allLinkedIds = new Set([...linkedInstIds, ...redundantInstIds]);
+            // Also show instances NOT linked to any store (Owner and Admin only)
+            if (currentUser.role === 'owner' || currentUser.role === 'admin') {
+                const linkedInstIds = stores.map((s: any) => s.instancia_id).filter((id: any) => !!id);
+                const redundantInstIds = allInstances.filter(i => i.lojaId).map(i => i.id);
+                const allLinkedIds = new Set([...linkedInstIds, ...redundantInstIds]);
 
-            const unlinkedInstances = allInstances.filter(i => !allLinkedIds.has(i.id));
+                const unlinkedInstances = allInstances.filter(i => !allLinkedIds.has(i.id));
 
-            if (unlinkedInstances.length > 0) {
-                html += `
-                    <div class="card" style="margin-top: 2rem; border: 1px dashed rgba(255,255,255,0.2); background: rgba(255,255,255,0.02);">
-                        <h4 style="margin-bottom: 1rem; color: var(--text-muted);"><i class="fa-solid fa-link-slash"></i> Instâncias não vinculadas a lojas</h4>
-                        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1rem;">
-                `;
-
-                for (const inst of unlinkedInstances) {
-                    let isOnline = false;
-                    try {
-                        const status = await evolutionApi.getInstanceStatus(inst.nome);
-                        isOnline = status.connected;
-                    } catch (e) { }
-
+                if (unlinkedInstances.length > 0) {
                     html += `
-                        <div style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 8px;">
-                            <div style="display:flex; justify-content:space-between; align-items:center;">
-                                <strong>${inst.nome}</strong>
-                                <span class="badge ${isOnline ? 'success' : 'warning'}">${isOnline ? 'Online' : 'Offline'}</span>
-                            </div>
-                            <p style="font-size:0.75rem; color: var(--text-muted); margin-top: 0.5rem;">Vá em Configurações > Lojas para vincular esta instância a uma unidade.</p>
-                        </div>
+                        <div class="card" style="margin-top: 2rem; border: 1px dashed rgba(255,255,255,0.2); background: rgba(255,255,255,0.02);">
+                            <h4 style="margin-bottom: 1rem; color: var(--text-muted);"><i class="fa-solid fa-link-slash"></i> Instâncias não vinculadas a lojas</h4>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1rem;">
                     `;
-                }
 
-                html += `</div></div>`;
+                    for (const inst of unlinkedInstances) {
+                        let isOnline = false;
+                        try {
+                            const status = await evolutionApi.getInstanceStatus(inst.nome);
+                            isOnline = status.connected;
+                        } catch (e) { }
+
+                        html += `
+                            <div style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 8px;">
+                                <div style="display:flex; justify-content:space-between; align-items:center;">
+                                    <strong>${inst.nome}</strong>
+                                    <span class="badge ${isOnline ? 'success' : 'warning'}">${isOnline ? 'Online' : 'Offline'}</span>
+                                </div>
+                                <p style="font-size:0.75rem; color: var(--text-muted); margin-top: 0.5rem;">Vá em Configurações > Lojas para vincular esta instância a uma unidade.</p>
+                            </div>
+                        `;
+                    }
+
+                    html += `</div></div>`;
+                }
             }
 
             container.innerHTML = html;
