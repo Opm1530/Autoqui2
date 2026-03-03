@@ -492,6 +492,12 @@ export const Configuration = async () => {
                     indicator.innerHTML = '<span class="badge success"><i class="fa-solid fa-circle-check"></i> Instância Online</span>';
                 } else {
                     indicator.innerHTML = '<span class="badge danger"><i class="fa-solid fa-triangle-exclamation"></i> Instância Desconectada</span>';
+
+                    // Update global status in DB if it was previously marked as connected
+                    if (inst.status === 'conectado') {
+                        await dbService.update('instancias', inst.id, { status: 'desconectado' });
+                        inst.status = 'desconectado';
+                    }
                 }
             } catch (e) {
                 indicator.innerHTML = '<span class="badge warning">Verificando...</span>';
