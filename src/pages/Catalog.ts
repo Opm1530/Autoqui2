@@ -140,6 +140,7 @@ export const Catalog = async (storeId: string) => {
                         radial-gradient(circle at 0% 0%, var(--primary-glow) 0%, transparent 40%),
                         radial-gradient(circle at 100% 100%, var(--primary-glow) 0%, transparent 40%);
                     background-attachment: fixed;
+                    overflow-x: hidden; /* Prevent horizontal scroll */
                 }
 
                 .header {
@@ -151,6 +152,7 @@ export const Catalog = async (storeId: string) => {
                     align-items: center;
                     gap: 20px;
                     animation: fadeInDown 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+                    overflow: hidden; /* Clip the decorative glass effect */
                 }
 
                 .header-glass {
@@ -442,6 +444,8 @@ export const Catalog = async (storeId: string) => {
                     z-index: 9999;
                     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
                     animation: fadeInDown 0.8s backwards 1s;
+                    white-space: nowrap;
+                    max-width: calc(100vw - 40px); /* Ensure it doesn't exceed screen width */
                 }
 
                 .whatsapp-float:hover {
@@ -458,8 +462,29 @@ export const Catalog = async (storeId: string) => {
                     .whatsapp-float {
                         bottom: 20px;
                         right: 20px;
-                        padding: 10px 18px;
-                        font-size: 0.9rem;
+                        padding: 10px 16px;
+                        font-size: 0.85rem;
+                        gap: 8px;
+                    }
+                    .whatsapp-float span {
+                        display: inline-block; /* Keep it simple */
+                    }
+                }
+                
+                @media (max-width: 380px) {
+                    /* On very small screen, hide text to avoid horizontal issues */
+                    .whatsapp-float {
+                        padding: 12px;
+                        border-radius: 50%;
+                        right: 15px;
+                        bottom: 15px;
+                    }
+                    .whatsapp-float span {
+                        display: none;
+                    }
+                    .whatsapp-float i {
+                        font-size: 1.6rem;
+                        margin: 0;
                     }
                 }
             </style>

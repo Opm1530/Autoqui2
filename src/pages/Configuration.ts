@@ -465,6 +465,52 @@ export const Configuration = async () => {
                 </div>
             </div>
 
+            <div class="card" style="margin-bottom: 1.5rem;">
+                <div class="config-section-title">
+                    <i class="fa-solid fa-truck" style="color:var(--primary);"></i> Horário de Entrega
+                </div>
+                <p style="color:var(--text-muted);font-size:0.9rem;margin-bottom:1rem;">
+                    Defina especificamente em quais horários a loja realiza entregas.
+                </p>
+                <div class="horarios-grid">
+                    ${[
+                { key: 'seg', label: 'Segunda-feira' },
+                { key: 'ter', label: 'Terça-feira' },
+                { key: 'qua', label: 'Quarta-feira' },
+                { key: 'qui', label: 'Quinta-feira' },
+                { key: 'sex', label: 'Sexta-feira' },
+                { key: 'sab', label: 'Sábado' },
+                { key: 'dom', label: 'Domingo' }
+            ].map(dia => {
+                const diaInfo = config?.horarios_entrega?.[dia.key] || { active: false, open: '08:00', close: '22:00' };
+                return `
+                        <div class="horario-row ${!diaInfo.active ? 'inactive' : ''}" id="row-entrega-${dia.key}">
+                            <div class="horario-info">
+                                <label class="switch">
+                                    <input type="checkbox" class="dia-toggle-entrega" data-dia="${dia.key}" ${diaInfo.active ? 'checked' : ''}>
+                                    <span class="slider"></span>
+                                </label>
+                                <span class="horario-label">${dia.label}</span>
+                            </div>
+                            <div class="horario-inputs ${!diaInfo.active ? 'hidden' : ''}" id="inputs-entrega-${dia.key}">
+                                <input type="time" class="time-input" id="open-entrega-${dia.key}" value="${diaInfo.open || '08:00'}">
+                                <span style="color:var(--text-dim);font-size:0.8rem;">até</span>
+                                <input type="time" class="time-input" id="close-entrega-${dia.key}" value="${diaInfo.close || '22:00'}">
+                            </div>
+                            <div class="status-label" id="status-entrega-${dia.key}" style="font-size: 0.8rem; color: ${diaInfo.active ? 'var(--success)' : 'var(--text-dim)'}; min-width: 60px; text-align: right;">
+                                ${diaInfo.active ? 'Disponível' : 'Indisponível'}
+                            </div>
+                        </div>
+                    `;
+            }).join('')}
+                </div>
+                <div style="text-align:right; margin-top:1.5rem;">
+                    <button class="btn-save-msg" id="btn-save-horarios-entrega">
+                        <i class="fa-solid fa-floppy-disk"></i> Salvar Horários de Entrega
+                    </button>
+                </div>
+            </div>
+
             <div class="card">
                 <div class="config-section-title">
                     <i class="fa-solid fa-message" style="color:var(--primary);"></i> Mensagens Automáticas
@@ -739,6 +785,67 @@ export const Configuration = async () => {
             } catch (err) {
                 toast.error('Erro ao salvar horários.');
                 btnSaveHorarios.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Salvar Horários';
+            }
+        });
+
+        // Delivery Hours Listeners
+        document.querySelectorAll('.dia-toggle-entrega').forEach((toggle: any) => {
+            toggle.addEventListener('change', () => {
+                const dia = toggle.dataset.dia;
+                const active = toggle.checked;
+                const row = document.getElementById(`row-entrega-${dia}`);
+                const inputs = document.getElementById(`inputs-entrega-${dia}`);
+                const status = document.getElementById(`status-entrega-${dia}`);
+
+                if (active) {
+                    row?.classList.remove('inactive');
+                    inputs?.classList.remove('hidden');
+                    if (status) {
+                        status.innerText = 'Disponível';
+                        status.style.color = 'var(--success)';
+                    }
+                } else {
+                    row?.classList.add('inactive');
+                    inputs?.classList.add('hidden');
+                    if (status) {
+                        status.innerText = 'Indisponível';
+                        status.style.color = 'var(--text-dim)';
+                    }
+                }
+            });
+        });
+
+        const btnSaveHorariosEntrega = document.getElementById('btn-save-horarios-entrega');
+        btnSaveHorariosEntrega?.addEventListener('click', async () => {
+            try {
+                btnSaveHorariosEntrega.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Salvando...';
+                const horarios_entrega: any = {};
+                ['seg', 'ter', 'qua', 'qui', 'sex', 'sab', 'dom'].forEach(dia => {
+                    const active = (document.querySelector(`.dia-toggle-entrega[data-dia="${dia}"]`) as HTMLInputElement).checked;
+                    const open = (document.getElementById(`open-entrega-${dia}`) as HTMLInputElement).value;
+                    const close = (document.getElementById(`close-entrega-${dia}`) as HTMLInputElement).value;
+                    horarios_entrega[dia] = { active, open, close };
+                });
+
+                const config = getLojaConfig(activeStoreId);
+                if (config) {
+                    await dbService.update('loja_config', config.id, { horarios_entrega });
+                    config.horarios_entrega = horarios_entrega;
+                } else {
+                    const newId = await dbService.create('loja_config', {
+                        empresaId: companyId,
+                        lojaId: activeStoreId,
+                        horarios_entrega
+                    });
+                    lojaConfigsRaw.push({ id: newId as string, empresaId: companyId, lojaId: activeStoreId, horarios_entrega });
+                }
+
+                toast.success('Horários de entrega salvos!');
+                btnSaveHorariosEntrega.innerHTML = '<i class="fa-solid fa-check"></i> Salvo!';
+                setTimeout(() => { btnSaveHorariosEntrega.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Salvar Horários de Entrega'; }, 2000);
+            } catch (err) {
+                toast.error('Erro ao salvar horários de entrega.');
+                btnSaveHorariosEntrega.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Salvar Horários de Entrega';
             }
         });
 

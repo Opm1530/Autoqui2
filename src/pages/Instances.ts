@@ -75,6 +75,7 @@ export const Instances = async () => {
                 `<button class="action-btn" onclick="window.connectInstance('${inst.nome}')" title="Conectar"><i style="color: #FFF;" class="fa-solid fa-qrcode"></i></button>` :
                 ''
             }
+                        <button class="action-btn" onclick="window.shareQR('${inst.nome}')" title="Compartilhar Link QR" style="background-color: #6366f1; border-color: #6366f1;"><i style="color: #FFF;" class="fa-solid fa-share-nodes"></i></button>
                         ${inst.status === 'conectado' ?
                 `<button class="action-btn" onclick="window.logoutInstance('${inst.id}', '${inst.nome}')" title="Desconectar" style="background-color: var(--warning); border-color: var(--warning);"><i style="color: #FFF;" class="fa-solid fa-right-from-bracket"></i></button>` :
                 ''
@@ -150,6 +151,12 @@ export const Instances = async () => {
     // Global Functions
     (window as any).refreshApp = () => {
         window.location.reload();
+    };
+
+    (window as any).shareQR = (instanceName: string) => {
+        const url = `${window.location.origin}/qr/${instanceName}`;
+        navigator.clipboard.writeText(url);
+        toast.success('Link de conexão copiado para a área de transferência!');
     };
 
     (window as any).deleteInstance = async (id: string, name: string) => {

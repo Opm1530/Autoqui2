@@ -1,8 +1,8 @@
 // Evolution API v2.3.7 Integration
 // Documentation: https://doc.evolution-api.com/
 
-const EVOLUTION_API_URL = 'https://evolution.vps.pequi.digital';
-const EVOLUTION_API_KEY = '1120d381afc6900754fc87d8264ed6335aeab3223b4d24810a17145399c16e46';
+export const EVOLUTION_API_URL = 'https://evolution.vps.pequi.digital';
+export const EVOLUTION_API_KEY = '1120d381afc6900754fc87d8264ed6335aeab3223b4d24810a17145399c16e46';
 
 interface CreateInstanceResponse {
     instance: {

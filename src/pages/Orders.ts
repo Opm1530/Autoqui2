@@ -361,10 +361,45 @@ export const Orders = async () => {
 
     // ─── Modal ───────────────────────────────────────────────────────────────
 
-    function showOrderModal(order: any) {
+    async function showOrderModal(order: any) {
         const modal = document.getElementById('order-detail-modal');
         const inner = document.getElementById('order-modal-inner');
         if (!modal || !inner) return;
+
+        // Pull prices from catalog if missing or zero
+        const companyId = order.empresaId || authService.getCurrentUser()?.companyId;
+        if (companyId && Array.isArray(order.itens)) {
+            try {
+                const products = await dbService.getAll('products', { field: 'companyId', operator: '==', value: companyId }) as any[];
+                let changed = false;
+                order.itens.forEach((item: any) => {
+                    const itemName = (item.item || '').toLowerCase().trim();
+                    const product = products.find((p: any) => (p.name || '').toLowerCase().trim() === itemName);
+
+                    if (product) {
+                        const catalogPrice = product.promotionalActive ? (product.promotionalPrice || product.price) : product.price;
+                        if (!item.preco || item.preco === 0) {
+                            item.preco = catalogPrice;
+                            changed = true;
+                        }
+                    }
+                });
+
+                if (changed) {
+                    let sum = 0;
+                    order.itens.forEach((i: any) => {
+                        const p = parseFloat(i.preco) || 0;
+                        const q = parseInt(i.quantidade) || 1;
+                        sum += q * p;
+                    });
+                    const addVal = parseFloat(order.valoresAdicionais) || 0;
+                    order.value = sum + addVal;
+                    // Note: We don't save to DB here yet, we let the user confirm when they change status or save the modal
+                }
+            } catch (err) {
+                console.error('Error syncing prices with catalog:', err);
+            }
+        }
 
         const status = (order.status || 'em_montagem').toLowerCase();
         const isTerminal = status === 'finalizado' || status === 'cancelado';

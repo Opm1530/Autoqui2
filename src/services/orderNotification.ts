@@ -2,7 +2,9 @@ import { collection, onSnapshot, query, orderBy, limit, where } from 'firebase/f
 import { db } from '../firebase/config';
 import { orderService } from './orderService';
 import { authService } from './auth';
+import { dbService } from './db';
 import { toast } from './toast';
+
 
 interface OrderData {
     id: string;
@@ -37,6 +39,27 @@ class OrderNotificationService {
         this.humanSupportSound.volume = 0.6;
     }
 
+    private formatCustomerName(data: any): string {
+        const name = data.nome || data.leadName || data.customerName || '';
+        if (name && name.length > 2) return name;
+
+        // If name is missing or too short, check for phone/id and clean it
+        const id = data.leadId || data.telefone || '';
+        if (id) {
+            // Clean "@s.whatsapp.net" or other suffixes
+            const clean = id.split('@')[0];
+            // If it's a phone number, format it nicely
+            if (/^\d+$/.test(clean)) {
+                if (clean.length >= 10) {
+                    return `Cliente (${clean.slice(-8)})`;
+                }
+            }
+            return clean || 'Cliente';
+        }
+
+        return 'Cliente';
+    }
+
     showHumanSupportAlert(order: any) {
         // Play sound (reset first to allow repeated triggers)
         this.humanSupportSound.currentTime = 0;
@@ -46,6 +69,7 @@ class OrderNotificationService {
         const modal = document.createElement('div');
         modal.className = 'order-modal';
         modal.id = `support-modal-${order.id}`;
+        const name = this.formatCustomerName(order);
         modal.innerHTML = `
             <div class="order-modal-content" style="border-top: 5px solid var(--warning);">
                 <div class="order-header">
@@ -54,8 +78,8 @@ class OrderNotificationService {
                 </div>
                 
                 <div class="order-body">
-                    <p style="text-align: center; margin-bottom: 1.5rem; color: var(--text-muted);">
-                        O lead <strong>${order.customerName || order.leadName || 'Cliente'}</strong> está aguardando contato humano.
+                    <p style="text-align: center; margin-bottom: 1.5rem; color: var(--text-main);">
+                        O lead <strong>${name}</strong> está aguardando contato humano.
                     </p>
                     <div class="order-field">
                         <label>Número do Lead:</label>
@@ -77,7 +101,43 @@ class OrderNotificationService {
         });
     }
 
-    showNewOrder(order: OrderData) {
+    async showNewOrder(order: OrderData) {
+        // Pull prices from catalog if missing or zero
+        const companyId = order.empresaId || authService.getCurrentUser()?.companyId;
+        if (companyId && Array.isArray(order.itens)) {
+            try {
+                const products = await dbService.getAll('products', { field: 'companyId', operator: '==', value: companyId }) as any[];
+                let changed = false;
+                order.itens.forEach(item => {
+                    // Try to match by name (case insensitive)
+                    const itemName = (item.item || '').toLowerCase().trim();
+                    const product = products.find(p => (p.name || '').toLowerCase().trim() === itemName);
+
+                    if (product) {
+                        const catalogPrice = product.promotionalActive ? (product.promotionalPrice || product.price) : product.price;
+                        // If price is missing, zero, or different, we update it
+                        if (!item.preco || item.preco === 0) {
+                            item.preco = catalogPrice;
+                            changed = true;
+                        }
+                    }
+                });
+
+                if (changed) {
+                    let sum = 0;
+                    order.itens.forEach(i => {
+                        const p = parseFloat(i.preco as any) || 0;
+                        const q = parseInt(i.quantidade as any) || 1;
+                        sum += q * p;
+                    });
+                    const addVal = parseFloat(order.valoresAdicionais as any) || 0;
+                    order.value = sum + addVal;
+                }
+            } catch (err) {
+                console.error('Error syncing prices with catalog:', err);
+            }
+        }
+
         // Play sound
         this.newOrderSound.play().catch(() => { });
 
@@ -373,8 +433,8 @@ class OrderNotificationService {
             }
 
             if (isHumanSupport && !this.notifiedSupportIds.has(notifyKey)) {
-                // Skip if current path is a catalog
-                if (window.location.pathname.includes('/catalog/')) return;
+                // Skip if current path is a catalog or QR page
+                if (window.location.pathname.includes('/catalog/') || window.location.pathname.includes('/qr/')) return;
 
                 // Check store isolation
                 const currentUser = authService.getCurrentUser();
@@ -388,7 +448,7 @@ class OrderNotificationService {
                     ...data,
                     id,
                     leadId: data.telefone || id,
-                    customerName: data.nome || data.leadName || data.name || data.telefone || 'Cliente'
+                    customerName: this.formatCustomerName(data)
                 });
                 this.notifiedSupportIds.add(notifyKey);
             } else if (!isHumanSupport && this.notifiedSupportIds.has(notifyKey)) {
@@ -458,8 +518,8 @@ class OrderNotificationService {
                 this.orderStatusMap.set(id, status);
                 if (data.empresaId && data.empresaId !== companyId) return;
 
-                // Skip if current path is a catalog
-                if (window.location.pathname.includes('/catalog/')) return;
+                // Skip if current path is a catalog or QR page
+                if (window.location.pathname.includes('/catalog/') || window.location.pathname.includes('/qr/')) return;
 
                 // Check store isolation
                 if (currentUser && currentUser.role !== 'owner' && currentUser.role !== 'admin') {
@@ -480,7 +540,7 @@ class OrderNotificationService {
                         this.showHumanSupportAlert({
                             ...data,
                             id,
-                            customerName: data.leadName || data.nome || data.customerName || data.leadId || 'Cliente'
+                            customerName: this.formatCustomerName(data)
                         });
                         this.notifiedSupportIds.add(notifyKey);
                     }
@@ -493,7 +553,7 @@ class OrderNotificationService {
                     this.showNewOrder({
                         id: change.doc.id,
                         ...data,
-                        customerName: data.nome || data.leadName || data.customerName || data.leadId || 'Cliente',
+                        customerName: this.formatCustomerName(data),
                         endereco: data.endereco || 'Endereço não informado',
                         description: Array.isArray(data.itens) ? data.itens.map((i: any) => `${i.quantidade}x ${i.item}`).join(', ') : 'Sem itens',
                         value: data.value || data.total || 0,

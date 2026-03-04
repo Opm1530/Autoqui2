@@ -26,6 +26,7 @@ import { Webhooks } from './pages/Webhooks';
 import { MercadoPago } from './pages/MercadoPago';
 
 import { Catalog } from './pages/Catalog';
+import { QRPage } from './pages/QRPage';
 
 // Core Application Logic
 class App {
@@ -111,6 +112,12 @@ class App {
         return;
       }
 
+      if (path.startsWith('/qr/')) {
+        const instanceName = path.split('/').pop() || '';
+        this.appElement.innerHTML = await QRPage(instanceName);
+        return;
+      }
+
       if (path !== '/login') {
         history.replaceState(null, '', '/login');
       }
@@ -129,6 +136,12 @@ class App {
     if (path.startsWith('/catalog/')) {
       const storeId = path.split('/').pop() || '';
       this.appElement.innerHTML = await Catalog(storeId);
+      return;
+    }
+
+    if (path.startsWith('/qr/')) {
+      const instanceName = path.split('/').pop() || '';
+      this.appElement.innerHTML = await QRPage(instanceName);
       return;
     }
 

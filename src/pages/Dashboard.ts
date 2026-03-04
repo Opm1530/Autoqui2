@@ -45,7 +45,12 @@ export const Dashboard = async () => {
         payments: 0,
         orders_pending: 0,
         orders_paid: 0,
-        today: 0
+        today: 0,
+        openai: {
+            usage: 0,
+            credits: 0,
+            limit: 0
+        }
     };
 
     let modulos: string[] = ['atendimento']; // Default
@@ -62,6 +67,19 @@ export const Dashboard = async () => {
             });
             metrics.orders_pending = 15;
             metrics.orders_paid = 1200;
+
+            // Fetch OpenAI billing settings (Admin side)
+            const openaiBilling = await dbService.get('settings', 'openai') as any;
+            if (openaiBilling) {
+                metrics.openai = {
+                    usage: openaiBilling.usage || 0,
+                    credits: openaiBilling.credits || 0,
+                    limit: openaiBilling.limit || 0
+                };
+            } else {
+                // Initialize default if not found
+                metrics.openai = { usage: 0, credits: 0, limit: 0 };
+            }
         } catch (error) {
             console.error('Error fetching dashboard data:', error);
         }
@@ -137,16 +155,29 @@ export const Dashboard = async () => {
         </div>
 
         <div class="dashboard-grid">
-            ${modulos.includes('atendimento') ? `
+            ${user.role === 'admin' ? `
+                <div class="stats-card card" style="border: 1px solid rgba(16,185,129,0.3); background: rgba(16,185,129,0.02);">
+                    <div class="stats-icon success"><i style="color: #ffffff8f;" class="fa-solid fa-coins"></i></div>
+                    <div class="stats-info">
+                        <span class="label">Créditos OpenAI</span><br>
+                        <span class="value" style="color:var(--success);">$ ${metrics.openai.credits.toFixed(2)}</span>
+                    </div>
+                </div>
+                <div class="stats-card card" style="border: 1px solid rgba(239,68,68,0.3); background: rgba(239,68,68,0.02);">
+                    <div class="stats-icon danger"><i style="color: #ffffff8f;" class="fa-solid fa-file-invoice-dollar"></i></div>
+                    <div class="stats-info">
+                        <span class="label">Gasto OpenAI (Mês)</span><br>
+                        <span class="value" style="color:var(--danger);">$ ${metrics.openai.usage.toFixed(2)}</span>
+                    </div>
+                </div>
+            ` : ''}
             <div class="stats-card card">
                 <div class="stats-icon primary"><i style="color: #ffffff8f;" class="fa-solid fa-message"></i></div>
                 <div class="stats-info">
-                    <span class="label">Mensagens IA Geradas</span><br>
+                    <span class="label">Mensagens pela IA</span><br>
                     <span class="value">${metrics.messages}</span>
                 </div>
             </div>
-            ` : ''}
-
             ${modulos.includes('venda') ? `
             <div class="stats-card card">
                 <div class="stats-icon success"><i style="color: #ffffff8f;" class="fa-solid fa-money-bill"></i></div>
@@ -209,17 +240,18 @@ export const Dashboard = async () => {
                 let statusHtml = '';
                 let isOnline = false;
 
-                // Find instance for this store (check both links)
-                const inst = allInstances.find(i => i.lojaId === store.id) || (store.instancia_id ? allInstances.find(i => i.id === store.instancia_id) : null);
+                // Find instance for this store (Prioritize explicit link from store object)
+                const inst = (store.instancia_id ? allInstances.find(i => i.id === store.instancia_id) : null) || allInstances.find(i => i.lojaId === store.id);
                 const instanceName = inst?.nome;
 
                 if (!inst || store.active === false) {
+                    const reason = !inst ? 'Sem instância vinculada' : 'Loja desativada';
                     statusHtml = `
                         <div style="background: rgba(239, 68, 68, 0.1); padding: 1rem; border-radius: 8px; border-left: 4px solid var(--danger); margin-bottom: 1rem;">
                             <div style="display: flex; justify-content: space-between; align-items: center;">
                                 <div>
                                     <p style="margin: 0; font-weight: 600; color: var(--danger);"><i class="fa-solid fa-circle-xmark"></i> Loja Inoperante</p>
-                                    <p style="margin: 0.25rem 0 0 0; font-size: 0.85rem; color: var(--text-muted);">A loja está inativa ou não possui instância vinculada.</p>
+                                    <p style="margin: 0.25rem 0 0 0; font-size: 0.85rem; color: var(--text-muted);">${reason}.</p>
                                 </div>
                                 <button class="btn-primary btn-sm" onclick="toggleStoreActive('${company.id}', '${store.id}', true)">
                                     <i class="fa-solid fa-play"></i> Ativar Loja
@@ -230,7 +262,11 @@ export const Dashboard = async () => {
                 } else {
                     try {
                         const status = await evolutionApi.getInstanceStatus(instanceName);
-                        if (status.connected) {
+                        // Be more flexible with state names
+                        const connectedStates = ['open', 'connected', 'CONNECTED', 'ON'];
+                        const isConnected = connectedStates.includes(status.state);
+
+                        if (isConnected) {
                             isOnline = true;
                             statusHtml = `
                                 <div style="background: rgba(34, 197, 94, 0.1); padding: 1rem; border-radius: 8px; border-left: 4px solid #22c55e; margin-bottom: 1rem;">
@@ -252,18 +288,24 @@ export const Dashboard = async () => {
                                     <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
                                         <div>
                                             <p style="margin: 0; font-weight: 600; color: var(--danger);"><i class="fa-solid fa-triangle-exclamation"></i> Instância Desconectada</p>
-                                            <p style="margin: 0.25rem 0 0.5rem 0; font-size: 0.85rem; color: var(--text-muted);">Instância: ${instanceName}. Escaneie o QR Code.</p>
+                                            <p style="margin: 0.25rem 0 0.5rem 0; font-size: 0.85rem; color: var(--text-muted);">Instância: <strong>${instanceName}</strong>. Escaneie o QR Code.</p>
                                         </div>
                                         <button class="btn-danger btn-sm" onclick="toggleStoreActive('${company.id}', '${store.id}', false)" style="background: #ef4444; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">
                                             <i class="fa-solid fa-power-off"></i> Desativar
                                         </button>
                                     </div>
-                                    ${qrData?.base64 ? `<img src="${qrData.base64}" alt="QR" style="width:150px;height:150px;display:block;margin:0 auto;border-radius:8px;">` : '<p style="font-size:0.8rem;text-align:center;">Sem QR Code</p>'}
+                                    ${qrData?.base64 ? `<img src="${qrData.base64}" alt="QR" style="width:150px;height:150px;display:block;margin:0 auto;border-radius:8px; background: white; padding: 5px;">` : '<p style="font-size:0.8rem;text-align:center; padding: 20px;">QR Code indisponível no momento. Tente atualizar a página.</p>'}
                                 </div>
                             `;
                         }
                     } catch (e) {
-                        statusHtml = `<p style="color:var(--danger);font-size:0.85rem;">Erro ao verificar instância (${instanceName}).</p>`;
+                        console.error('Error checking instance status in dashboard:', e);
+                        statusHtml = `
+                            <div style="background: rgba(245, 158, 11, 0.1); padding: 1rem; border-radius: 8px; border-left: 4px solid var(--warning); margin-bottom: 1rem;">
+                                <p style="margin: 0; font-weight: 600; color: var(--warning);"><i class="fa-solid fa-circle-exclamation"></i> Erro de Comunicação</p>
+                                <p style="margin: 0.25rem 0 0 0; font-size: 0.85rem; color: var(--text-muted);">Não foi possível verificar a instância: <strong>${instanceName}</strong>. Verifique sua conexão.</p>
+                            </div>
+                        `;
                     }
                 }
 
