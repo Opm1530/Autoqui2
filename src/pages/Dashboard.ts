@@ -4,9 +4,9 @@ import { evolutionApi } from '../services/evolutionApi';
 import { toast } from '../services/toast';
 
 // @ts-ignore
-window.copyToClipboard = (text: string) => {
+window.copyToClipboard = (text: string, successMsg: string = 'Link copiado!') => {
     navigator.clipboard.writeText(text).then(() => {
-        toast.success('Link do catálogo copiado!');
+        toast.success(successMsg);
     }).catch(err => {
         console.error('Erro ao copiar link:', err);
         toast.error('Erro ao copiar link.');
@@ -323,12 +323,17 @@ export const Dashboard = async () => {
                                     <span class="badge ${freteAtivo ? 'success' : 'warning'}">${freteAtivo ? 'Frete Ativo' : 'Retirada Apenas'}</span>
                                 </div>
                             </div>
-                            <div style="display: flex; gap: 10px;">
-                                <a href="/catalog/${store.id}" target="_blank" class="btn-secondary btn-sm" style="text-decoration: none; display: flex; align-items: center; gap: 6px; padding: 6px 12px; font-size: 0.8rem; border-radius: 6px;">
-                                    <i class="fa-solid fa-up-right-from-square" style="font-size: 0.75rem;"></i> Abrir Catálogo
+                            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                                ${instanceName ? `
+                                <button class="btn-secondary btn-sm" onclick="copyToClipboard('${window.location.origin}/qr/${instanceName}', 'Link de conexão copiado!')" title="Link para conectar WhatsApp" style="display: flex; align-items: center; gap: 6px; padding: 6px 10px; font-size: 0.75rem; border-radius: 6px; border-color: rgba(245, 158, 11, 0.3);">
+                                    <i class="fa-solid fa-qrcode" style="font-size: 0.75rem; color: var(--warning);"></i> Link QR
+                                </button>
+                                ` : ''}
+                                <a href="/catalog/${store.id}" target="_blank" class="btn-secondary btn-sm" style="text-decoration: none; display: flex; align-items: center; gap: 6px; padding: 6px 10px; font-size: 0.75rem; border-radius: 6px;">
+                                    <i class="fa-solid fa-up-right-from-square" style="font-size: 0.75rem;"></i> Catálogo
                                 </a>
-                                <button class="btn-secondary btn-sm" onclick="copyToClipboard('${window.location.origin}/catalog/${store.id}')" style="display: flex; align-items: center; gap: 6px; padding: 6px 12px; font-size: 0.8rem; border-radius: 6px;">
-                                    <i class="fa-solid fa-copy" style="font-size: 0.75rem;"></i> Copiar Link
+                                <button class="btn-secondary btn-sm" onclick="copyToClipboard('${window.location.origin}/catalog/${store.id}', 'Link do catálogo copiado!')" title="Copiar link do catálogo" style="display: flex; align-items: center; gap: 6px; padding: 6px 10px; font-size: 0.75rem; border-radius: 6px;">
+                                    <i class="fa-solid fa-copy" style="font-size: 0.75rem;"></i> Link
                                 </button>
                             </div>
                         </div>
