@@ -27,6 +27,7 @@ import { MercadoPago } from './pages/MercadoPago';
 
 import { Catalog } from './pages/Catalog';
 import { QRPage } from './pages/QRPage';
+import { CatalogSettings } from './pages/CatalogSettings';
 
 // Core Application Logic
 class App {
@@ -217,6 +218,7 @@ class App {
       case '/schedule': return 'Agenda';
       case '/admin/webhooks': return 'Configuração de Webhooks';
       case '/mercado-pago': return 'Mercado Pago';
+      case '/catalog-settings': return 'Config. do Catálogo';
       default: return 'Página não encontrada';
     }
   }
@@ -268,6 +270,8 @@ class App {
         return await Webhooks();
       case '/mercado-pago':
         return await MercadoPago();
+      case '/catalog-settings':
+        return await CatalogSettings();
       default:
         return `<h1>404</h1><p>Página não encontrada.</p>`;
     }

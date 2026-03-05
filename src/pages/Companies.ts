@@ -27,7 +27,8 @@ export const Companies = async () => {
         { value: 'atendimento', label: 'IA de Atendimento' },
         { value: 'venda', label: 'IA de Venda' },
         { value: 'agendamento', label: 'IA de Agendamento' },
-        { value: 'disparo', label: 'Disparo em Massa' }
+        { value: 'disparo', label: 'Disparo em Massa' },
+        { value: 'venda_catalogo', label: 'Venda pelo Catálogo' }
     ];
 
     const renderRows = () => {
@@ -242,13 +243,29 @@ export const Companies = async () => {
             moduleOptions,
             ['atendimento'],
             (selected) => {
-                const exclusiveModules = ['atendimento', 'venda', 'agendamento'];
-                // Find what was just added
+                const aiModules = ['atendimento', 'venda', 'agendamento'];
                 const added = selected.find(m => !lastSelectedModules.includes(m));
 
-                if (added && exclusiveModules.includes(added)) {
-                    // If an exclusive module was added, remove others of the same group
-                    const filtered = selected.filter(m => !exclusiveModules.includes(m) || m === added);
+                if (added === 'venda_catalogo') {
+                    // venda_catalogo selected: keep only venda_catalogo + disparo (if present)
+                    const filtered = selected.filter(m => m === 'venda_catalogo' || m === 'disparo');
+                    if (filtered.length !== selected.length) {
+                        modulesMS?.setValues(filtered);
+                        lastSelectedModules = filtered;
+                        return;
+                    }
+                } else if (added && (aiModules.includes(added) || added === 'disparo')) {
+                    // An AI/disparo module added: if venda_catalogo is present, remove it
+                    const filtered = selected.filter(m => m !== 'venda_catalogo');
+                    // Also enforce normal AI exclusivity among atendimento/venda/agendamento
+                    if (aiModules.includes(added)) {
+                        const deduped = filtered.filter(m => !aiModules.includes(m) || m === added);
+                        if (deduped.length !== filtered.length || filtered.length !== selected.length) {
+                            modulesMS?.setValues(deduped);
+                            lastSelectedModules = deduped;
+                            return;
+                        }
+                    }
                     if (filtered.length !== selected.length) {
                         modulesMS?.setValues(filtered);
                         lastSelectedModules = filtered;
@@ -304,6 +321,15 @@ export const Companies = async () => {
                 const instancesLimit = parseInt((document.getElementById('company-instances-limit') as HTMLInputElement).value) || 1;
 
                 const modulos_ativos = modulesMS ? modulesMS.getValues() : ['atendimento'];
+
+                // Validate venda_catalogo exclusivity
+                if (modulos_ativos.includes('venda_catalogo')) {
+                    const forbidden = modulos_ativos.filter(m => m !== 'venda_catalogo' && m !== 'disparo');
+                    if (forbidden.length > 0) {
+                        toast.error('O módulo "Venda pelo Catálogo" só pode ser combinado com "Disparo em Massa".');
+                        return;
+                    }
+                }
 
                 const storeRows = document.querySelectorAll('.store-row');
                 const stores: any[] = [];

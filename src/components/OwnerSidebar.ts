@@ -6,23 +6,90 @@ export const OwnerSidebar = async () => {
     let showVenda = false;
     let showAgendamento = false;
     let showDisparo = false;
+    let showVendaCatalogo = false;
 
     if (user && user.companyId) {
         try {
             const companyDoc = await dbService.get('companies', user.companyId);
             const company = companyDoc as any;
-            const modulos = company?.modulos_ativos || ['atendimento']; // Default fallback
+            const modulos = company?.modulos_ativos || ['atendimento'];
 
-            if (modulos.includes('venda')) {
-                showVenda = true;
-            }
+            if (modulos.includes('venda')) showVenda = true;
             if (modulos.includes('agendamento')) showAgendamento = true;
             if (modulos.includes('disparo')) showDisparo = true;
+            if (modulos.includes('venda_catalogo')) showVendaCatalogo = true;
         } catch (error) {
             console.error('Error fetching company for sidebar:', error);
         }
     }
 
+    // ── Venda Catálogo mode: sidebar exclusiva ──
+    if (showVendaCatalogo) {
+        return `
+        <div class="sidebar">
+            <div class="sidebar-logo">
+                <div class="logo-icon"><img style="width: 100%;" src="/logo.png" alt="Logo"></div>
+                <span class="logo-text">Painel do Dono</span>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="/dashboard" class="nav-item">
+                    <span class="icon"><i class="fa-solid fa-chart-line"></i></span>
+                    <span>Dashboard</span>
+                </a>
+                <a href="/orders" class="nav-item">
+                    <span class="icon"><i class="fa-solid fa-clipboard-list"></i></span>
+                    <span>Pedidos</span>
+                    <span id="orders-count-badge" class="count-badge hidden">0</span>
+                </a>
+                <a href="/products" class="nav-item">
+                    <span class="icon"><i class="fa-solid fa-box"></i></span>
+                    <span>Produtos</span>
+                </a>
+                <a href="/leads" class="nav-item">
+                    <span class="icon"><i class="fa-solid fa-people-group"></i></span>
+                    <span>Leads</span>
+                </a>
+
+                ${showDisparo ? `
+                <a href="/campaigns" class="nav-item">
+                    <span class="icon"><i class="fa-solid fa-bullhorn"></i></span>
+                    <span>Campanhas</span>
+                </a>
+                ` : ''}
+
+                <div class="nav-divider"></div>
+
+                <a href="/stores" class="nav-item">
+                    <span class="icon"><i class="fa-solid fa-store"></i></span>
+                    <span>Lojas</span>
+                </a>
+                <a href="/users" class="nav-item">
+                    <span class="icon"><i class="fa-solid fa-user"></i></span>
+                    <span>Equipe</span>
+                </a>
+                <a href="/catalog-settings" class="nav-item">
+                    <span class="icon"><i class="fa-solid fa-palette"></i></span>
+                    <span>Config. Catálogo</span>
+                </a>
+                <a href="/mercado-pago" class="nav-item">
+                    <span class="icon"><i class="fa-solid fa-credit-card"></i></span>
+                    <span>Mercado Pago</span>
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="user-profile">
+                    <div class="avatar">DO</div>
+                    <div class="user-info">
+                        <span class="name">Dono da Empresa</span><br>
+                        <span class="role">Owner</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        `;
+    }
+
+    // ── Sidebar padrão (atendimento / venda / agendamento) ──
     return `
         <div class="sidebar">
             <div class="sidebar-logo">
