@@ -1,6 +1,7 @@
 import { dbService } from '../services/db';
 import { authService } from '../services/auth';
 import { toast } from '../services/toast';
+import { confirm } from '../services/confirm';
 
 export const MercadoPago = async () => {
     const user = authService.getCurrentUser();
@@ -10,6 +11,30 @@ export const MercadoPago = async () => {
     const company = companyDoc as any;
     const currentToken = company?.mercadoPagoToken || '';
     const currentUserId = company?.userIdMercadoPago || '';
+
+    // Global function for disconnecting
+    (window as any).disconnectMercadoPago = async () => {
+        const ok = await confirm.danger('Desativar Integração', 'Tem certeza que deseja desativar o Mercado Pago? Isso removerá seu token de acesso.');
+        if (!ok) return;
+
+        const disconnectBtn = document.getElementById('btn-disconnect-mp') as HTMLButtonElement;
+        disconnectBtn.disabled = true;
+        disconnectBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+
+        try {
+            await dbService.update('companies', user.companyId!, {
+                mercadoPagoToken: null,
+                userIdMercadoPago: null
+            });
+
+            toast.success('Integração desativada.');
+            setTimeout(() => window.location.reload(), 1000);
+        } catch (error: any) {
+            toast.error('Erro ao desativar: ' + error.message);
+            disconnectBtn.disabled = false;
+            disconnectBtn.innerHTML = '<i class="fa-solid fa-plug-circle-xmark"></i> <span>Desativar</span>';
+        }
+    };
 
     // Global function for connecting via Webhook
     (window as any).connectMercadoPago = async () => {
@@ -103,9 +128,16 @@ export const MercadoPago = async () => {
                            value="${currentUserId}" 
                            disabled
                            style="flex: 1; padding: 14px 16px; background: rgba(0,0,0,0.1); border: 1px solid var(--border-color); color: var(--text-muted); border-radius: 10px; font-family: monospace;">
-                    <button id="btn-connect-mp" class="btn-primary" onclick="window.connectMercadoPago()" style="display: flex; align-items: center; gap: 8px; padding: 0 25px; height: 48px; border-radius: 10px; font-weight: 600; background: #009ee3;">
-                        <i class="fa-solid fa-plug"></i> <span>Conectar</span>
-                    </button>
+                    
+                    ${currentToken ? `
+                        <button id="btn-disconnect-mp" class="btn-danger" onclick="window.disconnectMercadoPago()" style="display: flex; align-items: center; gap: 8px; padding: 0 25px; height: 48px; border-radius: 10px; font-weight: 600; background: #ef4444; color: white; border: none; cursor: pointer;">
+                            <i class="fa-solid fa-plug-circle-xmark"></i> <span>Desativar</span>
+                        </button>
+                    ` : `
+                        <button id="btn-connect-mp" class="btn-primary" onclick="window.connectMercadoPago()" style="display: flex; align-items: center; gap: 8px; padding: 0 25px; height: 48px; border-radius: 10px; font-weight: 600; background: #009ee3;">
+                            <i class="fa-solid fa-plug"></i> <span>Conectar</span>
+                        </button>
+                    `}
                 </div>
             </div>
             

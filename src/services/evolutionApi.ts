@@ -206,15 +206,18 @@ export const evolutionApi = {
      */
     async sendText(instanceName: string, number: string, text: string): Promise<boolean> {
         try {
-            // Ensure number is in correct format (remove special characters, add @s.whatsapp.net)
-            const cleanNumber = number;
-            const remoteJid = cleanNumber;
+            // Ensure number is in correct format (remove special characters, add 55 prefix if missing, add @s.whatsapp.net)
+            let cleanNumber = number.replace(/\D/g, '');
+            if (cleanNumber.length <= 11 && !cleanNumber.startsWith('55')) {
+                cleanNumber = '55' + cleanNumber;
+            }
+            const remoteJid = cleanNumber.includes('@') ? cleanNumber : `${cleanNumber}@s.whatsapp.net`;
 
             const response = await fetch(`${EVOLUTION_API_URL}/message/sendText/${instanceName}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'apikey': '1120d381afc6900754fc87d8264ed6335aeab3223b4d24810a17145399c16e46'
+                    'apikey': EVOLUTION_API_KEY
                 },
                 body: JSON.stringify({
                     number: remoteJid,

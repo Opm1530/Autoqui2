@@ -59,12 +59,18 @@ export const Leads = async () => {
         leads = leads.filter(l => l.lojaId && userStoreIds.includes(l.lojaId));
     }
 
+    // Check modules to hide atendimento status if only catalog is active
+    const company = await dbService.get('companies', currentUser.companyId) as any;
+    const modulos = company?.modulos_ativos || [];
+    const isOnlyCatalog = modulos.includes('venda_catalogo') && !modulos.includes('atendimento');
+
     // ── active filter state ──
     let activeFilter = 'todos';
 
     const renderTable = (list: any[]) => {
         if (list.length === 0) {
-            return `<tr><td colspan="6" style="text-align:center;padding:2.5rem;color:var(--text-muted);">Nenhum lead encontrado.</td></tr>`;
+            const colspan = isOnlyCatalog ? 4 : 5;
+            return `<tr><td colspan="${colspan}" style="text-align:center;padding:2.5rem;color:var(--text-muted);">Nenhum lead encontrado.</td></tr>`;
         }
         return list.map((lead: any) => {
             const statusLead = (lead.statusLead || 'novo').toLowerCase();
@@ -83,7 +89,7 @@ export const Leads = async () => {
                     </div>
                 </td>
                 <td>${getLeadStatusBadge(statusLead)}</td>
-                <td>${getAtendimentoBadge(statusAtend)}</td>
+                ${!isOnlyCatalog ? `<td>${getAtendimentoBadge(statusAtend)}</td>` : ''}
                 <td style="color:var(--text-muted);font-size:0.85rem;">${formatDate(lead.updatedAt || lead.criadoEm || lead.createdAt)}</td>
                 <td>
                     <div class="actions">
@@ -113,11 +119,13 @@ export const Leads = async () => {
         <div class="leads-page-header">
             <div class="leads-filter-bar">
                 <button class="filter-btn active" data-filter="todos">Todos <span class="filter-count" id="count-lead-todos">${leads.length}</span></button>
+                ${!isOnlyCatalog ? `
                 <button class="filter-btn" data-filter="bot"><i class="fa-solid fa-robot"></i> Bot <span class="filter-count" id="count-lead-bot">${leads.filter(l => (l.statusAtendimento || 'bot').toLowerCase() === 'bot').length}</span></button>
                 <button class="filter-btn" data-filter="humano"><i class="fa-solid fa-user"></i> Atendimento Humano <span class="filter-count" id="count-lead-humano">${leads.filter(l => {
         const s = (l.statusAtendimento || '').toLowerCase();
         return s === 'em_atendimento_humano' || s === 'atendimento_humano';
     }).length}</span></button>
+                ` : ''}
                 <button class="filter-btn" data-filter="bloqueado"><i class="fa-solid fa-ban"></i> Bloqueados <span class="filter-count" id="count-lead-bloqueado">${leads.filter(l => (l.statusLead || '').toLowerCase() === 'bloqueado').length}</span></button>
             </div>
         </div>
@@ -129,7 +137,7 @@ export const Leads = async () => {
                         <tr>
                             <th>Lead</th>
                             <th>Status do Lead</th>
-                            <th>Status do Atendimento</th>
+                            ${!isOnlyCatalog ? `<th>Status do Atendimento</th>` : ''}
                             <th>Última Atividade</th>
                             <th>Ações</th>
                         </tr>
@@ -244,7 +252,7 @@ export const Leads = async () => {
 
         // ── Dynamic action button ──
         let actionBtn = '';
-        if (!isBloqueado) {
+        if (!isBloqueado && !isOnlyCatalog) {
             if (statusAtend === 'bot') {
                 actionBtn = `<button id="lead-action-primary" class="btn-lead-action" data-action="assumir">
                     <i class="fa-solid fa-user"></i> Assumir Atendimento
@@ -291,15 +299,15 @@ export const Leads = async () => {
                 </div>
             </div>
 
-            <div class="lead-modal-badges">
                 <div class="lead-badge-group">
                     <span class="badge-label">Status do Lead</span>
                     ${getLeadStatusBadge(statusLead)}
                 </div>
+                ${!isOnlyCatalog ? `
                 <div class="lead-badge-group">
                     <span class="badge-label">Status do Atendimento</span>
                     ${getAtendimentoBadge(statusAtend)}
-                </div>
+                </div>` : ''}
             </div>
 
             <div class="lead-modal-body">

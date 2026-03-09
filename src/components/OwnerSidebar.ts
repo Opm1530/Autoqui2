@@ -67,9 +67,13 @@ export const OwnerSidebar = async () => {
                     <span class="icon"><i class="fa-solid fa-user"></i></span>
                     <span>Equipe</span>
                 </a>
+                <a href="/instances" class="nav-item">
+                    <span class="icon"><i class="fa-brands fa-whatsapp"></i></span>
+                    <span>Instâncias</span>
+                </a>
                 <a href="/catalog-settings" class="nav-item">
-                    <span class="icon"><i class="fa-solid fa-palette"></i></span>
-                    <span>Config. Catálogo</span>
+                    <span class="icon"><i class="fa-solid fa-sliders"></i></span>
+                    <span>Configuração</span>
                 </a>
                 <a href="/mercado-pago" class="nav-item">
                     <span class="icon"><i class="fa-solid fa-credit-card"></i></span>

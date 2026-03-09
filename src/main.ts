@@ -28,6 +28,8 @@ import { MercadoPago } from './pages/MercadoPago';
 import { Catalog } from './pages/Catalog';
 import { QRPage } from './pages/QRPage';
 import { CatalogSettings } from './pages/CatalogSettings';
+import { LandingPage } from './pages/LandingPage';
+import { AdminMigration } from './pages/AdminMigration';
 
 // Core Application Logic
 class App {
@@ -96,6 +98,7 @@ class App {
     document.addEventListener('click', async (e) => {
       const target = e.target as HTMLElement;
       if (target.closest('#logout-btn')) {
+        history.replaceState(null, '', '/');
         await authService.logout();
       }
     });
@@ -105,7 +108,18 @@ class App {
     const path = window.location.pathname;
     const user = authService.getCurrentUser();
 
-    // 1. Unauthenticated -> Login or Public Route
+    // 1. Landing Page (Root)
+    if (path === '/') {
+      this.appElement.innerHTML = LandingPage();
+      const loginBtn = this.appElement.querySelector('.lp-btn-login') || this.appElement.querySelector('.lp-btn-primary');
+      if (user && loginBtn) {
+        loginBtn.textContent = 'Dashboard';
+        loginBtn.setAttribute('href', user.role === 'admin' ? '/admin/dashboard' : '/dashboard');
+      }
+      return;
+    }
+
+    // 2. Unauthenticated -> Login or Public Route
     if (!user) {
       if (path.startsWith('/catalog/')) {
         const storeId = path.split('/').pop() || '';
@@ -126,11 +140,11 @@ class App {
       return;
     }
 
-    // 2. Authenticated but on Login page -> Redirect to Dashboard
-    if (path === '/login' || path === '/') {
+    // 3. Authenticated but on Login page -> Redirect to Dashboard
+    if (path === '/login') {
       const dashboardPath = user.role === 'admin' ? '/admin/dashboard' : '/dashboard';
       history.replaceState(null, '', dashboardPath);
-      this.render(); // Re-render to show dashboard
+      this.render();
       return;
     }
 
@@ -217,8 +231,9 @@ class App {
       case '/campaigns': return 'Campanhas';
       case '/schedule': return 'Agenda';
       case '/admin/webhooks': return 'Configuração de Webhooks';
+      case '/admin/migration': return 'Migração de Produtos';
       case '/mercado-pago': return 'Mercado Pago';
-      case '/catalog-settings': return 'Config. do Catálogo';
+      case '/catalog-settings': return 'Configuração';
       default: return 'Página não encontrada';
     }
   }
@@ -234,11 +249,11 @@ class App {
       case '/orders':
         return Orders();
       case '/products':
-        return Products();
+        return await Products();
       case '/stores':
-        return Stores();
+        return await Stores();
       case '/leads':
-        return Leads();
+        return await Leads();
       // Imports update (implicit in this tool call context, but I need to be careful about line numbers)
       // I will split this into two calls or use multi_replace if I could, but I'll update imports separate from this chunk if needed. 
       // Actually, let's just update the getPageContent first.
@@ -268,6 +283,8 @@ class App {
         return Schedule();
       case '/admin/webhooks':
         return await Webhooks();
+      case '/admin/migration':
+        return await AdminMigration();
       case '/mercado-pago':
         return await MercadoPago();
       case '/catalog-settings':

@@ -24,17 +24,22 @@ function substituirVariaveis(template: string, vars: Record<string, string>): st
 }
 
 function buildVars(order: any, lead: any): Record<string, string> {
-    const itens = Array.isArray(order.itens)
-        ? order.itens.map((i: any) => `${i.quantidade}x ${i.item}`).join(', ')
-        : '';
+    // Normalize: catalog orders use `items` with {name, qty, price} while legacy uses `itens` with {item, quantidade, preco}
+    const rawItems = Array.isArray(order.itens) ? order.itens : Array.isArray(order.items) ? order.items : [];
+    const itens = rawItems.map((i: any) => ({
+        item: i.item || i.name || '',
+        quantidade: i.quantidade || i.qty || 1,
+        preco: i.preco || i.price || 0,
+    }));
+    const lista = itens.map((i: any) => `${i.quantidade}x ${i.item}`).join(', ');
     return {
-        nome_lead: lead?.nome || lead?.name || 'Cliente',
-        telefone_lead: (lead?.telefone || '').split('@')[0],
+        nome_lead: lead?.nome || lead?.name || order.clientName || order.nome || 'Cliente',
+        telefone_lead: (lead?.telefone || '').split('@')[0] || order.clientPhone || '',
         numero_pedido: order.id?.slice(-6).toUpperCase() || '',
-        lista_produtos: itens,
+        lista_produtos: lista,
         valor_total: `R$ ${(order.value || order.total || 0).toFixed(2)}`,
-        endereco_entrega: order.endereco || 'Não informado',
-        forma_pagamento: order.formaPagamento || 'Não informado',
+        endereco_entrega: order.endereco || order.clientAddress || 'Não informado',
+        forma_pagamento: order.formaPagamento || order.paymentMethod || order.pagamento || 'Não informado',
     };
 }
 
@@ -120,22 +125,54 @@ export const orderService = {
                 Object.assign(order, extraUpdates);
             }
 
-            // 1. Get instance name
-            let instanceName = order.instancia;
+            // 1. Get instance name — try order.instancia, then loja_config, then company stores, then company fallback
+            let instanceName = order.instancia || null;
+            if (!instanceName) {
+                const sid = order.storeId || order.lojaId;
+                if (sid) {
+                    try {
+                        // a. Check loja_config
+                        const lojaConfigs = await dbService.getAll('loja_config', { field: 'lojaId', operator: '==', value: sid }) as any[];
+                        const lojaConf = lojaConfigs[0];
+                        let targetInstId = lojaConf?.instancia_id;
+
+                        // b. Check company stores array if not found in loja_config
+                        const company = await dbService.get('companies', companyId) as any;
+                        if (!targetInstId && company?.stores) {
+                            const storeInfo = company.stores.find((s: any) => s.id === sid);
+                            targetInstId = storeInfo?.instancia_id;
+                        }
+
+                        if (targetInstId) {
+                            const instDoc = await dbService.get('instancias', targetInstId) as any;
+                            instanceName = instDoc?.nome || null;
+                        }
+
+                        // c. Fallback to global if still not found
+                        if (!instanceName && company?.whatsappInstance?.instanceName) {
+                            instanceName = company.whatsappInstance.instanceName;
+                        }
+                    } catch (err) { console.error('Error fetching instance for store:', err); }
+                }
+            }
+
             if (!instanceName) {
                 const company = await dbService.get('companies', companyId) as any;
                 instanceName = company?.whatsappInstance?.instanceName || null;
             }
 
-            // 2. Get lead data
-            const lead = await dbService.get('leads', order.leadId) as any;
-            const phone = lead?.telefone || lead?.whatsapp || order.leadId;
+            // 2. Get lead data (catalog orders have no leadId — guard this)
+            const lead = order.leadId ? await dbService.get('leads', order.leadId) as any : null;
+            // Phone: prefer lead, fallback to clientPhone (catalog orders)
+            const phone = lead?.telefone || lead?.whatsapp ||
+                (order.clientPhone ? order.clientPhone.replace(/\D/g, '') : null) ||
+                order.leadId || null;
 
             // 3. Build variables map
             const vars = buildVars(order, lead);
 
             // 4. Fetch custom messages (prioritizing specific store config)
-            const customMsgs = await fetchMensagensConfig(companyId, order.lojaId);
+            const customMsgs = await fetchMensagensConfig(companyId, order.lojaId || order.storeId);
 
             // 5. Build message
             let message = '';
@@ -173,11 +210,11 @@ export const orderService = {
                 });
             }
 
-            // 8. Send WhatsApp message
+            // 8. Send WhatsApp message (only if we have both instance and phone)
             let sent = false;
-            if (message && instanceName) {
+            if (message && instanceName && phone) {
                 sent = await evolutionApi.sendText(instanceName, phone, message);
-                await this.saveMessageLog(companyId, order.leadId, message);
+                if (order.leadId) await this.saveMessageLog(companyId, order.leadId, message);
             }
 
             return sent;

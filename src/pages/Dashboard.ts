@@ -54,6 +54,7 @@ export const Dashboard = async () => {
     };
 
     let modulos: string[] = ['atendimento']; // Default
+    let catalogMetrics: any = null;
 
     if (user?.role === 'admin') {
         modulos = ['atendimento', 'venda', 'agendamento', 'disparo']; // Admin sees all
@@ -104,16 +105,17 @@ export const Dashboard = async () => {
                 }).length;
             }
 
+
             // Compute total sales and orders metrics
-            if (modulos.includes('venda')) {
+            if (modulos.includes('venda') || modulos.includes('venda_catalogo')) {
                 const orders = await dbService.getAll('pedidos', {
                     field: 'empresaId',
                     operator: '==',
                     value: user.companyId
-                });
-                const userStoreIds = user.storeIds || (user.storeId ? [user.storeId] : []);
+                }) as any[];
+                const userStoreIds = (user as any).storeIds || ((user as any).storeId ? [(user as any).storeId] : []);
 
-                const filteredOrders = user.role === 'owner'
+                const filteredOrders = (user as any).role === 'owner'
                     ? orders
                     : orders.filter((o: any) => o.lojaId && userStoreIds.includes(o.lojaId));
 
@@ -136,6 +138,47 @@ export const Dashboard = async () => {
                 });
                 metrics.payments = totalSales;
                 metrics.today = ordersToday;
+
+                if (modulos.includes('venda_catalogo')) {
+                    // ── Low stock products ──────────────────────────────────
+                    const products = await dbService.getAll('products', {
+                        field: 'companyId', operator: '==', value: user.companyId
+                    }) as any[];
+                    const lowStockProducts = products.filter((p: any) => p.stock != null && p.stock <= 5 && p.active !== false)
+                        .sort((a: any, b: any) => (a.stock ?? 0) - (b.stock ?? 0))
+                        .slice(0, 10);
+
+                    // ── Top selling products (count items in catalog orders) ──
+                    const salesMap: Map<string, { name: string; qty: number; revenue: number }> = new Map();
+                    filteredOrders.forEach((o: any) => {
+                        const items = Array.isArray(o.items) ? o.items : (Array.isArray(o.itens) ? o.itens : []);
+                        items.forEach((i: any) => {
+                            const name = i.name || i.item || 'Produto';
+                            const qty = i.qty || i.quantidade || 1;
+                            const price = i.price || i.preco || 0;
+                            const cur = salesMap.get(name) || { name, qty: 0, revenue: 0 };
+                            salesMap.set(name, { name, qty: cur.qty + qty, revenue: cur.revenue + (qty * price) });
+                        });
+                    });
+                    const topProducts = Array.from(salesMap.values())
+                        .sort((a, b) => b.qty - a.qty)
+                        .slice(0, 5);
+
+                    // ── Best hours (by count of orders) ──────────────────────
+                    const hourMap: Map<number, number> = new Map();
+                    filteredOrders.forEach((o: any) => {
+                        const d = o.criadoEm?.toDate ? o.criadoEm.toDate() : new Date(o.criadoEm || 0);
+                        const h = d.getHours();
+                        hourMap.set(h, (hourMap.get(h) || 0) + 1);
+                    });
+                    const bestHours = Array.from(hourMap.entries())
+                        .sort((a, b) => b[1] - a[1])
+                        .slice(0, 3);
+
+                    const avgTicket = metrics.orders_paid > 0 ? totalSales / metrics.orders_paid : 0;
+
+                    catalogMetrics = { lowStockProducts, topProducts, bestHours, avgTicket, totalOrders: filteredOrders.length };
+                }
             }
 
         } catch (error) {
@@ -171,19 +214,20 @@ export const Dashboard = async () => {
                     </div>
                 </div>
             ` : ''}
+            ${modulos.includes('atendimento') ? `
             <div class="stats-card card">
                 <div class="stats-icon primary"><i style="color: #ffffff8f;" class="fa-solid fa-message"></i></div>
                 <div class="stats-info">
                     <span class="label">Mensagens pela IA</span><br>
                     <span class="value">${metrics.messages}</span>
                 </div>
-            </div>
-            ${modulos.includes('venda') ? `
+            </div>` : ''}
+            ${modulos.includes('venda') || modulos.includes('venda_catalogo') ? `
             <div class="stats-card card">
                 <div class="stats-icon success"><i style="color: #ffffff8f;" class="fa-solid fa-money-bill"></i></div>
                 <div class="stats-info">
                     <span class="label">Total em Vendas</span><br>
-                    <span class="value">R$ ${metrics.payments.toFixed(2)}</span>
+                    <span class="value">R\$ ${metrics.payments.toFixed(2)}</span>
                 </div>
             </div>
             <div class="stats-card card">
@@ -200,8 +244,82 @@ export const Dashboard = async () => {
                     <span class="value">${(metrics as any).today || 0}</span>
                 </div>
             </div>
+            ${catalogMetrics ? `
+            <div class="stats-card card">
+                <div class="stats-icon primary"><i style="color: #ffffff8f;" class="fa-solid fa-receipt"></i></div>
+                <div class="stats-info">
+                    <span class="label">Ticket Médio</span><br>
+                    <span class="value">R\$ ${catalogMetrics.avgTicket.toFixed(2)}</span>
+                </div>
+            </div>
+            ` : ''}
             ` : ''}
         </div>
+
+        ${catalogMetrics ? `
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1.25rem;margin-top:1.5rem;">
+
+            <!-- Low Stock Alert -->
+            <div class="card" style="border:1px solid rgba(239,68,68,0.3);background:rgba(239,68,68,0.03);">
+                <h4 style="margin:0 0 1rem;display:flex;align-items:center;gap:8px;font-size:0.95rem;">
+                    <i class="fa-solid fa-triangle-exclamation" style="color:#ef4444;"></i> Estoque Baixo
+                </h4>
+                ${catalogMetrics.lowStockProducts.length === 0
+                ? `<p style="color:var(--text-muted);font-size:0.85rem;">Todos os produtos estão com estoque adequado.</p>`
+                : catalogMetrics.lowStockProducts.map((p: any) => `
+                        <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05);">
+                            <span style="font-size:0.85rem;font-weight:500;">${p.name}</span>
+                            <span class="badge ${p.stock === 0 ? 'danger' : 'warning'}">${p.stock === 0 ? 'Esgotado' : p.stock + ' un.'}</span>
+                        </div>
+                    `).join('')
+            }
+            </div>
+
+            <!-- Top Selling Products -->
+            <div class="card">
+                <h4 style="margin:0 0 1rem;display:flex;align-items:center;gap:8px;font-size:0.95rem;">
+                    <i class="fa-solid fa-trophy" style="color:#f59e0b;"></i> Top 5 Produtos
+                </h4>
+                ${catalogMetrics.topProducts.length === 0
+                ? `<p style="color:var(--text-muted);font-size:0.85rem;">Nenhum pedido com itens ainda.</p>`
+                : catalogMetrics.topProducts.map((p: any, i: number) => `
+                        <div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05);">
+                            <span style="font-size:1rem;font-weight:900;color:${i === 0 ? '#f59e0b' : i === 1 ? '#94a3b8' : i === 2 ? '#b45309' : 'var(--text-dim)'};min-width:20px;">${i + 1}</span>
+                            <span style="flex:1;font-size:0.85rem;font-weight:500;">${p.name}</span>
+                            <span style="font-size:0.8rem;color:var(--text-muted);">${p.qty} un.</span>
+                            <span style="font-size:0.8rem;color:var(--success);">R\$ ${p.revenue.toFixed(2)}</span>
+                        </div>
+                    `).join('')
+            }
+            </div>
+
+            <!-- Best Sales Hours -->
+            <div class="card">
+                <h4 style="margin:0 0 1rem;display:flex;align-items:center;gap:8px;font-size:0.95rem;">
+                    <i class="fa-solid fa-chart-bar" style="color:var(--primary);"></i> Melhores Horários
+                </h4>
+                ${catalogMetrics.bestHours.length === 0
+                ? `<p style="color:var(--text-muted);font-size:0.85rem;">Nenhum pedido registrado ainda.</p>`
+                : catalogMetrics.bestHours.map(([h, count]: [number, number], i: number) => {
+                    const maxCount = catalogMetrics.bestHours[0][1];
+                    const pct = Math.round((count / maxCount) * 100);
+                    return `
+                            <div style="margin-bottom:10px;">
+                                <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+                                    <span style="font-size:0.85rem;font-weight:600;">${String(h).padStart(2, '0')}h – ${String(h + 1).padStart(2, '0')}h</span>
+                                    <span style="font-size:0.8rem;color:var(--text-muted);">${count} pedido${count !== 1 ? 's' : ''}</span>
+                                </div>
+                                <div style="height:6px;background:rgba(255,255,255,0.08);border-radius:3px;overflow:hidden;">
+                                    <div style="width:${pct}%;height:100%;background:${i === 0 ? 'var(--primary)' : 'rgba(99,102,241,0.4)'};border-radius:3px;"></div>
+                                </div>
+                            </div>
+                        `;
+                }).join('')
+            }
+            </div>
+
+        </div>
+        ` : ''}
 
         <div id="store-statuses-container"></div>
     `;

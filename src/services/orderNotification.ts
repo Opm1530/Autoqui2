@@ -102,27 +102,38 @@ class OrderNotificationService {
     }
 
     async showNewOrder(order: OrderData) {
-        // Pull prices from catalog if missing or zero
+        // ── Normalize items format (catalog uses 'items' with {name,qty,price}, legacy uses 'itens' with {item,quantidade,preco})
+        const isCatalogOrder = (order as any).source === 'catalog';
+        if (!Array.isArray((order as any).itens)) {
+            if (Array.isArray((order as any).items)) {
+                (order as any).itens = (order as any).items.map((i: any) => ({
+                    item: i.name || i.item || '',
+                    quantidade: i.qty || i.quantidade || 1,
+                    preco: i.price || i.preco || 0,
+                    subtotal: i.subtotal || 0,
+                }));
+            } else {
+                (order as any).itens = [];
+            }
+        }
+
+        // Pull prices from catalog if missing or zero (legacy orders only)
         const companyId = order.empresaId || authService.getCurrentUser()?.companyId;
-        if (companyId && Array.isArray(order.itens)) {
+        if (companyId && Array.isArray(order.itens) && !isCatalogOrder) {
             try {
                 const products = await dbService.getAll('products', { field: 'companyId', operator: '==', value: companyId }) as any[];
                 let changed = false;
                 order.itens.forEach(item => {
-                    // Try to match by name (case insensitive)
                     const itemName = (item.item || '').toLowerCase().trim();
                     const product = products.find(p => (p.name || '').toLowerCase().trim() === itemName);
-
                     if (product) {
                         const catalogPrice = product.promotionalActive ? (product.promotionalPrice || product.price) : product.price;
-                        // If price is missing, zero, or different, we update it
                         if (!item.preco || item.preco === 0) {
                             item.preco = catalogPrice;
                             changed = true;
                         }
                     }
                 });
-
                 if (changed) {
                     let sum = 0;
                     order.itens.forEach(i => {
@@ -146,20 +157,23 @@ class OrderNotificationService {
         modal.className = 'order-modal';
         modal.id = `modal-${order.id}`;
 
-        const itensHtml = Array.isArray(order.itens)
+        const itensHtml = Array.isArray(order.itens) && order.itens.length > 0
             ? order.itens.map((i: any, idx: number) => `
                 <div class="order-item-row" style="display:flex; justify-content:space-between; align-items:center; padding: 0.6rem 0; border-bottom: 1px solid rgba(255,255,255,0.05);">
                     <span style="flex:1; font-weight:500;">${i.quantidade}x ${i.item}</span>
                     <div style="display:flex;align-items:center;gap:0.5rem; flex-shrink:0;">
                         <span style="color:var(--text-dim);font-size:0.75rem;">R$</span>
-                        <input type="number" class="notif-item-price-input" data-index="${idx}" value="${i.preco || 0}"
-                            step="0.01" style="width:90px;background:var(--bg-color);border:1px solid var(--border-color);color:white;padding:0.4rem 0.6rem;border-radius:6px;text-align:right;font-size:0.9rem; font-family: monospace; outline:none;">
+                        ${isCatalogOrder
+                    ? `<span style="font-family:monospace;font-size:0.9rem;min-width:90px;text-align:right;padding:0.4rem 0.6rem;">${Number(i.preco || 0).toFixed(2)}</span>`
+                    : `<input type="number" class="notif-item-price-input" data-index="${idx}" value="${i.preco || 0}" step="0.01" style="width:90px;background:var(--bg-color);border:1px solid var(--border-color);color:white;padding:0.4rem 0.6rem;border-radius:6px;text-align:right;font-size:0.9rem; font-family: monospace; outline:none;">`
+                }
                     </div>
                 </div>
             `).join('')
             : '<p style="color:var(--text-muted); padding: 1rem; text-align:center;">Sem itens listados.</p>';
 
-        const addValuesHtml = `
+        // For catalog orders: payment is already confirmed, no tax field needed
+        const addValuesHtml = isCatalogOrder ? '' : `
             <div class="order-item-row" style="margin-top:0.5rem; padding: 0.8rem 0; display:flex; justify-content:space-between; align-items:center;">
                 <div style="display:flex; flex-direction:column;">
                     <span style="font-size:0.85rem; font-weight:600;">Taxas / Adicionais</span>
@@ -187,6 +201,32 @@ class OrderNotificationService {
                 
                 <div class="order-body" style="gap: 1.25rem; display: flex; flex-direction: column;">
                     <!-- Customer and Delivery Info -->
+                    ${isCatalogOrder ? `
+                    <div style="padding: 1rem; background: rgba(255,255,255,0.02); border-radius: 12px; border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 0.75rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <label style="font-size: 0.75rem; color: var(--text-dim); font-weight: 700; text-transform: uppercase;">Cliente</label>
+                            <span style="font-weight: 600; color: var(--text-main);">${order.customerName}</span>
+                        </div>
+                        <div style="height: 1px; background: var(--border-color); width: 100%;"></div>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <label style="font-size: 0.75rem; color: var(--text-dim); font-weight: 700; text-transform: uppercase;">Modo de Envio</label>
+                            <span style="font-size: 0.85rem; color: var(--text-muted); text-align: right; max-width: 60%;">
+                                ${(order as any).entrega === 'retirada' ? '<i class="fa-solid fa-store"></i> Retirada' : '<i class="fa-solid fa-truck"></i> Entrega'}
+                            </span>
+                        </div>
+                        ${(order as any).entrega !== 'retirada' ? `
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <label style="font-size: 0.75rem; color: var(--text-dim); font-weight: 700; text-transform: uppercase;">Endereço</label>
+                            <span style="font-size: 0.85rem; color: var(--text-muted); text-align: right; max-width: 60%;">${order.endereco || 'Não informado'}</span>
+                        </div>` : ''}
+                        <div style="height: 1px; background: var(--border-color); width: 100%;"></div>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <label style="font-size: 0.75rem; color: var(--text-dim); font-weight: 700; text-transform: uppercase;">Pagamento</label>
+                            <span style="font-size: 0.85rem; color: var(--text-main); font-weight: 600;">
+                                ${((order as any).pagamento === 'na_entrega' || (order as any).paymentMethod === 'na_entrega') ? '🤝 Na Entrega' : '⚡ PIX'}
+                            </span>
+                        </div>
+                    </div>` : `
                     <div style="padding: 1rem; background: rgba(255,255,255,0.02); border-radius: 12px; border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 0.75rem;">
                         <div style="display: flex; justify-content: space-between; align-items: center;">
                             <label style="font-size: 0.75rem; color: var(--text-dim); font-weight: 700; text-transform: uppercase;">Cliente</label>
@@ -197,7 +237,7 @@ class OrderNotificationService {
                             <label style="font-size: 0.75rem; color: var(--text-dim); font-weight: 700; text-transform: uppercase;">Entrega</label>
                             <span style="font-size: 0.85rem; color: var(--text-muted); text-align: right; max-width: 60%;">${order.endereco || 'Retirada'}</span>
                         </div>
-                    </div>
+                    </div>`}
                     
                     <!-- Items Section -->
                     <div style="display: flex; flex-direction: column; gap: 0.75rem;">
@@ -290,36 +330,45 @@ class OrderNotificationService {
             acceptBtn.textContent = '⌛ Processando...';
 
             try {
-                // Apply calculations
                 let sum = 0;
-                const updatedItens = Array.isArray(order.itens) ? [...order.itens] : [];
-                document.querySelectorAll('.notif-item-price-input').forEach((inp: any) => {
-                    const idx = parseInt(inp.dataset.index);
-                    const q = updatedItens[idx]?.quantidade || 1;
-                    const preco = getParsed(inp.value);
-                    if (updatedItens[idx]) {
-                        updatedItens[idx].preco = preco;
-                    }
-                    sum += q * preco;
-                });
+                let updatedItens = Array.isArray(order.itens) ? [...order.itens] : [];
 
-                const valoresAdicionais = getParsed((document.getElementById('notif-additional-value') as HTMLInputElement)?.value);
-                sum += valoresAdicionais;
+                if (isCatalogOrder) {
+                    // Catalog orders: prices are fixed, just sum them
+                    updatedItens.forEach((i: any) => {
+                        sum += (i.quantidade || 1) * (i.preco || 0);
+                    });
+                } else {
+                    // Legacy orders: apply edited prices
+                    const getParsed = (val: any) => { const p = parseFloat(val); return isNaN(p) ? 0 : p; };
+                    document.querySelectorAll('.notif-item-price-input').forEach((inp: any) => {
+                        const idx = parseInt(inp.dataset.index);
+                        const q = updatedItens[idx]?.quantidade || 1;
+                        const preco = getParsed(inp.value);
+                        if (updatedItens[idx]) updatedItens[idx].preco = preco;
+                        sum += q * preco;
+                    });
+                    const valoresAdicionais = getParsed((document.getElementById('notif-additional-value') as HTMLInputElement)?.value);
+                    sum += valoresAdicionais;
+                }
 
                 const extraUpdates = {
                     value: sum,
                     total: sum,
                     itens: updatedItens,
-                    valoresAdicionais: valoresAdicionais
+                    valoresAdicionais: isCatalogOrder ? 0 : (parseFloat((document.getElementById('notif-additional-value') as HTMLInputElement)?.value) || 0)
                 };
 
                 const isWithdrawal = (order as any).entrega === 'retirada';
-                const paymentMethod = (order as any).pagamento || (order as any).formaPagamento || '';
-                const isPayOnDelivery = paymentMethod.includes('entrega') || paymentMethod.includes('dinheiro') || paymentMethod.includes('maquininha');
-                const targetStatus = (isWithdrawal && isPayOnDelivery) ? 'em_preparo' : 'aguardando_pagamento';
+                const paymentMethod = (order as any).pagamento || (order as any).formaPagamento || (order as any).paymentMethod || '';
+                const isPayOnDelivery = paymentMethod.includes('entrega') || paymentMethod.includes('dinheiro') || paymentMethod.includes('maquininha') || paymentMethod === 'na_entrega';
+
+                // If it's a catalog order and pay on delivery, it's always em_preparo
+                let targetStatus = (isWithdrawal && isPayOnDelivery) ? 'em_preparo' : 'aguardando_pagamento';
+                if (isCatalogOrder && isPayOnDelivery) targetStatus = 'em_preparo';
 
                 await orderService.updateOrderStatus(order, companyId, targetStatus as any, undefined, extraUpdates);
-                toast.success('Pedido aceito e WhatsApp enviado!');
+                toast.success('Pedido aceito!');
                 modal.remove();
             } catch (error) {
                 toast.error('Erro ao aceitar pedido: ' + error);

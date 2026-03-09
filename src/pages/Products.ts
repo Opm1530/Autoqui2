@@ -52,7 +52,7 @@ export const Products = async () => {
     const labelPlural = isAgendamento ? 'Serviços' : 'Produtos';
     let stores = company?.stores || [];
 
-    const isOwner = currentUser.role === 'owner';
+    const isOwner = (currentUser.role?.toLowerCase() === 'owner');
     const userStoreIds = (currentUser as any).storeIds || ((currentUser as any).storeId ? [(currentUser as any).storeId] : []);
 
     if (!isOwner) {
@@ -456,6 +456,7 @@ export const Products = async () => {
         document.getElementById('product-modal')?.classList.add('hidden');
         document.getElementById('category-modal')?.classList.add('hidden');
         document.getElementById('edit-cat-name-modal')?.classList.add('hidden');
+        document.getElementById('migration-modal')?.classList.add('hidden');
     };
 
     (window as any).handleBulkFileSelection = (input: HTMLInputElement) => {

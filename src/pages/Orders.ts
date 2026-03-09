@@ -139,6 +139,12 @@ export const Orders = async () => {
         value: currentUser!.companyId
     }) as Lead[];
 
+    const lojaConfigs = await dbService.getAll('loja_config', {
+        field: 'empresaId',
+        operator: '==',
+        value: currentUser!.companyId
+    }) as any[];
+
     const getStoreName = (lojaId: string) => {
         const store = stores.find((s: Store) => s.id === lojaId);
         return store ? store.name : lojaId || '-';
@@ -146,7 +152,11 @@ export const Orders = async () => {
 
     const isStoreOperable = (lojaId: string) => {
         const store = stores.find((s: any) => s.id === lojaId) as any;
-        return store ? (store.active !== false && store.instancia_id) : false;
+        if (store && store.active !== false && store.instancia_id) return true;
+
+        // Fallback or check catalog-specific config
+        const lConf = lojaConfigs.find((c: any) => c.lojaId === lojaId);
+        return lConf ? !!lConf.instancia_id : false;
     };
 
     const getLeadName = (leadId: string, orderNome?: string) => {
@@ -500,7 +510,7 @@ export const Orders = async () => {
                     <span class="badge secondary" style="font-size:0.78rem;">${formatDate(order.criadoEm || order.createdAt)}</span>
                 </div>
                 <div class="lead-badge-group">
-                    <span class="badge-label">Tipo</span>
+                    <span class="badge-label">${order.source === 'catalog' ? 'Modo de Envio' : 'Tipo'}</span>
                     ${getDeliveryBadge(order.entrega || 'entrega')}
                 </div>
             </div>
@@ -528,11 +538,22 @@ export const Orders = async () => {
                         <span class="lead-info-label">Pagamento</span>
                         <span class="lead-info-value">${getPaymentBadge(order.pagamento || order.formaPagamento, order.comprovanteUrl, order.empresaId)}</span>
                     </div>
-                    ${order.endereco ? `
-                    <div class="lead-info-item" style="grid-column:1/-1;">
-                        <span class="lead-info-label">Endereço de Entrega</span>
-                        <span class="lead-info-value">${order.endereco}</span>
-                    </div>` : ''}
+                    ${order.source === 'catalog' ? (
+                order.entrega === 'retirada' ? `
+                        <div class="lead-info-item" style="grid-column:1/-1;">
+                            <span class="lead-info-label">Informação de Coleta</span>
+                            <span class="lead-info-value" style="color:var(--primary);font-weight:600;"><i class="fa-solid fa-store"></i> Retirada na Loja</span>
+                        </div>` : `
+                        <div class="lead-info-item" style="grid-column:1/-1;">
+                            <span class="lead-info-label">Endereço de Entrega</span>
+                            <span class="lead-info-value">${order.endereco || 'Não informado'}</span>
+                        </div>`
+            ) : `
+                        <div class="lead-info-item" style="grid-column:1/-1;">
+                            <span class="lead-info-label">Endereço de Entrega</span>
+                            <span class="lead-info-value">${order.endereco || '-'}</span>
+                        </div>
+                    `}
                 </div>
 
                 <!-- Items -->

@@ -22,6 +22,10 @@ export const AdminSidebar = () => {
                     <span class="icon"><i class="fa-solid fa-link"></i></span>
                     <span>Webhooks</span>
                 </a>
+                <a href="/admin/migration" class="nav-item">
+                    <span class="icon"><i class="fa-solid fa-clone"></i></span>
+                    <span>Migração</span>
+                </a>
             </nav>
             <div class="sidebar-footer">
                 <div class="user-profile">
