@@ -1270,7 +1270,7 @@ export const Catalog = async (storeId: string) => {
                         <div class="cat-search-bar-top-container">
                             <div class="cat-search-bar-wrap">
                                 <i class="fa-solid fa-magnifying-glass"></i>
-                                <input type="search" id="cat-search-bar-top" placeholder="Buscar no cardápio" aria-label="Buscar produto" oninput="window.catSearch(this.value)">
+                                <input type="search" id="cat-search-bar-top" placeholder="Buscar no catálogo" aria-label="Buscar produto" oninput="window.catSearch(this.value)">
                             </div>
                         </div>
                         
