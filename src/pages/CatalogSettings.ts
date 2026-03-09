@@ -578,34 +578,40 @@ export const CatalogSettings = async () => {
 
                 <div style="border-top:1px solid var(--border-color);padding-top:1.25rem;margin-bottom:1.25rem;">
                     <p style="font-size:0.9rem;font-weight:700;margin:0 0 1rem;display:flex;align-items:center;gap:8px;">
-                        <i class="fa-solid fa-truck" style="color:var(--primary);"></i> Taxa de Entrega
+                        <i class="fa-solid fa-truck" style="color:var(--primary);"></i> Taxas de Entrega por Bairro
                     </p>
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:12px;">
+                    <p style="font-size:0.8rem;color:var(--text-dim);margin-bottom:12px;">Defina o preço da entrega para cada bairro. Para aplicar o mesmo valor a múltiplos bairros, separe-os por vírgula (Ex: Centro, Vila Nova).</p>
+                    <div style="display:grid;grid-template-columns:1fr 100px;gap:16px;margin-bottom:16px;align-items:end;">
                         <div class="field">
-                            <label class="config-label">Nome da Taxa</label>
-                            <input type="text" id="cat-taxa-nome" value="${design.taxaFixaNome || ''}" class="time-input" style="width:100%;" placeholder="Ex: Taxa de entrega">
+                            <label class="config-label">Bairro(s)</label>
+                            <input type="text" id="new-bairro-nomes" class="config-input" placeholder="Ex: Centro, Jardim Floral">
                         </div>
                         <div class="field">
-                            <label class="config-label">Valor</label>
-                            <input type="number" id="cat-taxa-valor" value="${design.taxaFixaValor || '0'}" class="time-input" style="width:100%;" placeholder="0.00" min="0" step="0.01">
+                            <label class="config-label">Valor (R$)</label>
+                            <input type="number" id="new-bairro-preco" class="config-input" placeholder="0.00" min="0" step="0.01">
                         </div>
                     </div>
-                    <div style="display:flex;gap:8px;margin-bottom:8px;">
-                        <button id="btn-taxa-fixo" onclick="window.catSetTaxaTipo('fixo')" style="
-                            flex:1;padding:0.5rem;border-radius:8px;cursor:pointer;font-weight:600;font-size:0.85rem;
-                            background:${(design.taxaTipo || 'fixo') === 'fixo' ? 'var(--primary)' : 'var(--surface-hover)'};
-                            color:${(design.taxaTipo || 'fixo') === 'fixo' ? 'white' : 'var(--text-main)'};
-                            border:1px solid ${(design.taxaTipo || 'fixo') === 'fixo' ? 'var(--primary)' : 'var(--border-color)'};
-                        "><i class="fa-solid fa-dollar-sign"></i> Fixa (R$)</button>
-                        <button id="btn-taxa-percent" onclick="window.catSetTaxaTipo('percent')" style="
-                            flex:1;padding:0.5rem;border-radius:8px;cursor:pointer;font-weight:600;font-size:0.85rem;
-                            background:${design.taxaTipo === 'percent' ? 'var(--primary)' : 'var(--surface-hover)'};
-                            color:${design.taxaTipo === 'percent' ? 'white' : 'var(--text-main)'};
-                            border:1px solid ${design.taxaTipo === 'percent' ? 'var(--primary)' : 'var(--border-color)'};
-                        "><i class="fa-solid fa-percent"></i> Percentual (%)</button>
+                    <div style="text-align:right;margin-bottom:12px;">
+                        <button class="btn-save-msg" id="btn-add-bairro">
+                            <i class="fa-solid fa-plus"></i> Adicionar Bairro
+                        </button>
                     </div>
-                    <input type="hidden" id="cat-taxa-tipo" value="${design.taxaTipo || 'fixo'}">
-                    <p style="font-size:0.75rem;color:var(--text-dim);margin-top:5px;">Deixe 0 para entrega grátis. "Fixa" adiciona valor fixo; "Percentual" aplica % sobre o subtotal.</p>
+                    <div id="bairros-list">
+                        ${(config?.bairrosEntrega || []).length === 0
+                ? `<p style="font-size:0.85rem;color:var(--text-dim);">Nenhum bairro com entrega configurado.</p>`
+                : (config?.bairrosEntrega || []).map((b: any, idx: number) => `
+                                <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:rgba(255,255,255,0.03);border:1px solid var(--border-color);border-radius:8px;margin-bottom:6px;">
+                                    <div style="display:flex;align-items:center;gap:12px;flex:1;">
+                                        <span style="font-weight:600;color:var(--text-main);">${b.bairros}</span>
+                                        <span style="font-size:0.85rem;color:var(--primary);font-weight:700;">R$ ${Number(b.preco).toFixed(2)}</span>
+                                    </div>
+                                    <button class="btn-danger btn-sm" onclick="window.catDeleteBairro(${idx})" style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);color:#ef4444;border-radius:6px;padding:4px 10px;cursor:pointer;">
+                                        <i class="fa-solid fa-trash"></i>
+                                    </button>
+                                </div>
+                            `).join('')
+            }
+                    </div>
                 </div>
 
                 <div style="border-top:1px solid var(--border-color);padding-top:1.25rem;margin-bottom:1.5rem;">
@@ -957,12 +963,12 @@ export const CatalogSettings = async () => {
                 const lojaConf = getLojaConfig(activeStoreId);
                 const whatsapp = (document.getElementById('cat-whatsapp') as HTMLInputElement).value.replace(/\D/g, '');
                 const pixKey = (document.getElementById('cat-pix-key') as HTMLInputElement).value.trim();
-                const taxaFixaNome = (document.getElementById('cat-taxa-nome') as HTMLInputElement).value.trim();
-                const taxaFixaValor = parseFloat((document.getElementById('cat-taxa-valor') as HTMLInputElement).value || '0') || 0;
-                const taxaTipo = (document.getElementById('cat-taxa-tipo') as HTMLInputElement).value || 'fixo';
                 const mercadoPagoActive = (document.getElementById('mp-active-toggle') as HTMLInputElement)?.checked;
 
-                const newDesign = { ...(lojaConf?.design || {}), whatsapp, pixKey, taxaFixaNome, taxaFixaValor, taxaTipo };
+                const newDesign = { ...(lojaConf?.design || {}), whatsapp, pixKey };
+                delete newDesign.taxaFixaNome;
+                delete newDesign.taxaFixaValor;
+                delete newDesign.taxaTipo;
                 await saveToLojaConfig({ design: newDesign, mercadoPagoActive });
                 toast.success('Configurações de pagamento salvas!');
                 btn.innerHTML = '<i class="fa-solid fa-check"></i> Salvo!';
@@ -974,23 +980,7 @@ export const CatalogSettings = async () => {
             }
         });
 
-        // ── Taxa tipo toggle (global function) ─────────────────────────────
-        (window as any).catSetTaxaTipo = (tipo: 'fixo' | 'percent') => {
-            const hidden = document.getElementById('cat-taxa-tipo') as HTMLInputElement;
-            if (hidden) hidden.value = tipo;
-            const btnFixo = document.getElementById('btn-taxa-fixo');
-            const btnPct = document.getElementById('btn-taxa-percent');
-            if (btnFixo) {
-                btnFixo.style.background = tipo === 'fixo' ? 'var(--primary)' : 'var(--surface-hover)';
-                btnFixo.style.color = tipo === 'fixo' ? 'white' : 'var(--text-main)';
-                btnFixo.style.borderColor = tipo === 'fixo' ? 'var(--primary)' : 'var(--border-color)';
-            }
-            if (btnPct) {
-                btnPct.style.background = tipo === 'percent' ? 'var(--primary)' : 'var(--surface-hover)';
-                btnPct.style.color = tipo === 'percent' ? 'white' : 'var(--text-main)';
-                btnPct.style.borderColor = tipo === 'percent' ? 'var(--primary)' : 'var(--border-color)';
-            }
-        };
+
 
         // ── Add cupom ──────────────────────────────────────────────────────
         document.getElementById('btn-add-cupom')?.addEventListener('click', async () => {
@@ -1012,6 +1002,28 @@ export const CatalogSettings = async () => {
             const cupons = [...(lojaConf?.cupons || [])].filter((_: any, i: number) => i !== idx);
             await saveToLojaConfig({ cupons });
             toast.success('Cupom removido.');
+            renderContent();
+        };
+
+        // ── Add/Delete Bairro ──────────────────────────────────────────────
+        document.getElementById('btn-add-bairro')?.addEventListener('click', async () => {
+            const nomes = ((document.getElementById('new-bairro-nomes') as HTMLInputElement).value || '').trim();
+            const precoStr = (document.getElementById('new-bairro-preco') as HTMLInputElement).value;
+            const preco = parseFloat(precoStr || '0');
+            if (!nomes) { toast.error('Preencha os bairros.'); return; }
+            if (!precoStr) { toast.error('Preencha o valor da taxa para estes bairros.'); return; }
+            const lojaConf = getLojaConfig(activeStoreId);
+            const bairrosEntrega = [...(lojaConf?.bairrosEntrega || []), { bairros: nomes, preco }];
+            await saveToLojaConfig({ bairrosEntrega });
+            toast.success('Bairro(s) adicionado(s)!');
+            renderContent();
+        });
+
+        (window as any).catDeleteBairro = async (idx: number) => {
+            const lojaConf = getLojaConfig(activeStoreId);
+            const bairrosEntrega = [...(lojaConf?.bairrosEntrega || [])].filter((_: any, i: number) => i !== idx);
+            await saveToLojaConfig({ bairrosEntrega });
+            toast.success('Bairro(s) removido(s).');
             renderContent();
         };
 

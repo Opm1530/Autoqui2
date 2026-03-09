@@ -107,10 +107,22 @@ export const Catalog = async (storeId: string) => {
 
         // ── Cart state ───────────────────────────────────────────────────────
         let cart: Map<string, { product: any; qty: number }> = new Map();
+        try {
+            const savedCart = localStorage.getItem(`cat_cart_${storeId}`);
+            if (savedCart) {
+                cart = new Map(JSON.parse(savedCart));
+            }
+        } catch (e) { }
 
-        const taxaFixaNome = design.taxaFixaNome || '';
-        const taxaFixaValor = parseFloat(design.taxaFixaValor) || 0;
-        const taxaTipo: 'fixo' | 'percent' = design.taxaTipo || 'fixo';
+        const bairrosEntrega: any[] = config?.bairrosEntrega || [];
+        const flatBairros: { nome: string, preco: number }[] = [];
+        if (bairrosEntrega && Array.isArray(bairrosEntrega)) {
+            bairrosEntrega.forEach((b: any) => {
+                const nomes = (b.bairros || '').split(',').map((s: string) => s.trim()).filter(Boolean);
+                nomes.forEach((n: string) => flatBairros.push({ nome: n, preco: parseFloat(b.preco) || 0 }));
+            });
+            flatBairros.sort((a, b) => a.nome.localeCompare(b.nome));
+        }
         const cuponsList: any[] = config?.cupons || [];
 
         // Local Storage persistence
@@ -129,9 +141,13 @@ export const Catalog = async (storeId: string) => {
             return t;
         };
 
-        const getTaxaValue = (subtotal: number) => {
-            if (!taxaFixaValor) return 0;
-            return taxaTipo === 'percent' ? (subtotal * taxaFixaValor / 100) : taxaFixaValor;
+        const getTaxaValue = () => {
+            if ((window as any).catDeliveryType === 'retirada') return 0;
+            return (window as any).catTaxaBairro || 0;
+        };
+        const getTaxaNome = () => {
+            if ((window as any).catDeliveryType === 'retirada') return 'Retirada';
+            return (window as any).catSelectedBairro ? `Entrega (${(window as any).catSelectedBairro})` : 'Taxa de Entrega';
         };
 
         const getDescontoValue = (subtotal: number) => {
@@ -143,7 +159,7 @@ export const Catalog = async (storeId: string) => {
 
         const getCartTotal = () => {
             const subtotal = getSubtotal();
-            return subtotal + getTaxaValue(subtotal) - getDescontoValue(subtotal);
+            return subtotal + getTaxaValue() - getDescontoValue(subtotal);
         };
 
         const renderCartItems = () => {
@@ -170,7 +186,7 @@ export const Catalog = async (storeId: string) => {
 
         const renderOrderSummary = () => {
             const subtotal = getSubtotal();
-            const taxa = getTaxaValue(subtotal);
+            const taxa = getTaxaValue();
             const desconto = getDescontoValue(subtotal);
             const total = subtotal + taxa - desconto;
             let html = '';
@@ -179,7 +195,7 @@ export const Catalog = async (storeId: string) => {
                 html += `<div style="display:flex;justify-content:space-between;font-size:0.88rem;padding:4px 0;"><span>${qty}x ${product.name}</span><span>R$ ${(price * qty).toFixed(2)}</span></div>`;
             });
             if (taxa > 0) {
-                html += `<div style="display:flex;justify-content:space-between;font-size:0.85rem;padding:4px 0;color:#94a3b8;"><span><i class="fa-solid fa-truck" style="margin-right:4px;"></i>${taxaFixaNome || 'Taxa'}</span><span>+ R$ ${taxa.toFixed(2)}</span></div>`;
+                html += `<div style="display:flex;justify-content:space-between;font-size:0.85rem;padding:4px 0;color:#94a3b8;"><span><i class="fa-solid fa-truck" style="margin-right:4px;"></i>${getTaxaNome()}</span><span>+ R$ ${taxa.toFixed(2)}</span></div>`;
             }
             if (desconto > 0 && appliedCoupon) {
                 html += `<div style="display:flex;justify-content:space-between;font-size:0.85rem;padding:4px 0;color:#10b981;"><span><i class="fa-solid fa-tag" style="margin-right:4px;"></i>Cupom ${appliedCoupon.codigo}</span><span>- R$ ${desconto.toFixed(2)}</span></div>`;
@@ -309,6 +325,8 @@ export const Catalog = async (storeId: string) => {
             const floatTotalEl = document.getElementById('cart-total-float');
             const floatBadge = document.getElementById('cart-badge-float');
 
+            try { localStorage.setItem(`cat_cart_${storeId}`, JSON.stringify(Array.from(cart.entries()))); } catch (e) { }
+
             let totalQty = 0;
             cart.forEach(({ qty }) => totalQty += qty);
 
@@ -403,12 +421,34 @@ export const Catalog = async (storeId: string) => {
             (window as any).closeCart = () => closeModal('cart-modal');
 
             // Cart → Step 2: Delivery type
-            (window as any).goToDelivery = () => {
+            (window as any).goToDelivery = async () => {
                 if (cart.size === 0) return;
                 if (!storeIsOpen) {
                     (window as any).showClosedAlert('store');
                     return;
                 }
+
+                const btn = document.getElementById('btn-go-delivery');
+                if (btn) btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Verificando...';
+
+                let outOfStock = false;
+                for (const [id, { product, qty }] of Array.from(cart.entries())) {
+                    try {
+                        const freshProduct = await dbService.get('products', id) as any;
+                        if (!freshProduct || freshProduct.active === false || (freshProduct.stock != null && freshProduct.stock < qty)) {
+                            outOfStock = true;
+                            alert(`O produto "${product.name}" não possui quantidade suficiente em estoque ou está indisponível.`);
+                            break;
+                        }
+                    } catch (e) {
+                        // ignore db fails
+                    }
+                }
+
+                if (btn) btn.innerHTML = '<i class="fa-solid fa-arrow-right"></i> Finalizar Pedido';
+
+                if (outOfStock) return;
+
                 closeModal('cart-modal');
                 openModal('delivery-modal');
             };
@@ -451,16 +491,70 @@ export const Catalog = async (storeId: string) => {
 
             (window as any).closeCustomer = () => closeModal('customer-modal');
 
+            (window as any).catFilterBairros = (val: string) => {
+                const list = document.getElementById('checkout-bairro-dropdown');
+                if (!list) return;
+                const filtered = val ? flatBairros.filter(b => b.nome.toLowerCase().includes(val.toLowerCase())) : flatBairros;
+                if (filtered.length === 0) {
+                    list.innerHTML = '<div style="padding:12px;color:#ef4444;font-size:0.85rem;">Nenhum bairro encontrado</div>';
+                } else {
+                    list.innerHTML = filtered.map(b => `<div onclick="window.catSelectBairro('${b.nome.replace(/'/g, "\\'")}', ${b.preco})" style="padding:12px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.05);color:white;font-size:0.9rem;">${b.nome} - R$ ${b.preco.toFixed(2)}</div>`).join('');
+                }
+                list.style.display = 'block';
+            };
+            (window as any).catSelectBairro = (nome: string, preco: number) => {
+                const input = document.getElementById('checkout-bairro') as HTMLInputElement;
+                if (input) {
+                    input.value = nome;
+                    input.dataset.preco = preco.toString();
+                }
+                const list = document.getElementById('checkout-bairro-dropdown');
+                if (list) list.style.display = 'none';
+            };
+
+            // Document click to close custom dropdown
+            document.addEventListener('click', (e) => {
+                if (!(e.target as HTMLElement).closest('#bairro-input-wrapper')) {
+                    const list = document.getElementById('checkout-bairro-dropdown');
+                    if (list) list.style.display = 'none';
+                }
+            });
+
             (window as any).goToPayment = () => {
                 const name = (document.getElementById('checkout-name') as HTMLInputElement)?.value.trim();
                 const phone = (document.getElementById('checkout-phone') as HTMLInputElement)?.value.trim();
                 const address = (document.getElementById('checkout-address') as HTMLInputElement)?.value.trim();
                 const deliveryType = (window as any).catDeliveryType;
+
+                let bairroNome = '';
+                let bairroPreco = 0;
+
+                if (deliveryType === 'entrega') {
+                    if (flatBairros.length > 0) {
+                        const bairroInput = document.getElementById('checkout-bairro') as HTMLInputElement;
+                        if (!bairroInput || !bairroInput.value.trim()) {
+                            alert('Selecione ou digite seu bairro para entrega.');
+                            return;
+                        }
+                        bairroNome = bairroInput.value.trim();
+                        const validBairro = flatBairros.find(b => b.nome.toLowerCase() === bairroNome.toLowerCase());
+                        if (!validBairro) {
+                            alert('Bairro selecionado não encontrado na lista. Por favor, escolha uma opção listada.');
+                            return;
+                        }
+                        bairroNome = validBairro.nome;
+                        bairroPreco = validBairro.preco;
+                    }
+                }
+
                 if (!name || !phone) { alert('Preencha nome e telefone.'); return; }
                 if (phone.length < 10) { alert('Telefone inválido. Use o formato DD000000000'); return; }
-                if (deliveryType === 'entrega' && !address) { alert('Preencha o endereço de entrega.'); return; }
+                if (deliveryType === 'entrega' && !address) { alert('Preencha o endereço de entrega completo.'); return; }
 
-                const userData = { name, phone, address: address || '' };
+                (window as any).catSelectedBairro = bairroNome;
+                (window as any).catTaxaBairro = bairroPreco;
+
+                const userData = { name, phone, address: address || '', bairro: bairroNome };
                 (window as any).catCustomer = userData;
                 localStorage.setItem(storageKey, JSON.stringify(userData));
 
@@ -610,7 +704,7 @@ export const Catalog = async (storeId: string) => {
                         if (product && product.stock != null) await dbService.update('products', id, { stock: Math.max(0, product.stock - qty) });
                     }
                     const subtotal = getSubtotal();
-                    const taxaAplicada = getTaxaValue(subtotal);
+                    const taxaAplicada = getTaxaValue();
                     const desconto = getDescontoValue(subtotal);
                     const total = subtotal + taxaAplicada - desconto;
                     const leadId = await findOrCreateLead(name, phone);
@@ -619,7 +713,7 @@ export const Catalog = async (storeId: string) => {
                         clientName: name, clientPhone: phone,
                         endereco: address, entrega: deliveryType,
                         leadId, nome: name, items, total,
-                        taxaAplicada, taxaNome: taxaFixaNome,
+                        taxaAplicada, taxaNome: getTaxaNome(),
                         desconto, codigoCupom: appliedCoupon?.codigo || null,
                         paymentMethod: 'na_entrega', pagamento: 'na_entrega',
                         status: 'em_preparo', source: 'catalog',
@@ -631,7 +725,7 @@ export const Catalog = async (storeId: string) => {
                         console.log('Order created silently, waiting for operator approval.', orderId);
                     } catch (err) { console.error('Error in order creation log:', err); }
 
-                    cart.clear(); appliedCoupon = null; closeModal('payment-modal');
+                    cart.clear(); appliedCoupon = null; closeModal('payment-modal'); updateCartUI();
                     const confirmModal = document.getElementById('confirmation-modal');
                     const orderIdEl = document.getElementById('order-id-display');
                     const pixSec = document.getElementById('pix-info-section');
@@ -693,7 +787,7 @@ export const Catalog = async (storeId: string) => {
                     }
 
                     const subtotal = getSubtotal();
-                    const taxaAplicada = getTaxaValue(subtotal);
+                    const taxaAplicada = getTaxaValue();
                     const desconto = getDescontoValue(subtotal);
                     const total = subtotal + taxaAplicada - desconto;
                     const leadId = await findOrCreateLead(name, phone);
@@ -702,7 +796,7 @@ export const Catalog = async (storeId: string) => {
                         clientName: name, clientPhone: phone,
                         endereco: address, entrega: deliveryType,
                         leadId, nome: name, items, total,
-                        taxaAplicada, taxaNome: taxaFixaNome,
+                        taxaAplicada, taxaNome: getTaxaNome(),
                         desconto, codigoCupom: appliedCoupon?.codigo || null,
                         paymentMethod: 'pix_manual', pagamento: 'pagamento_no_pix',
                         comprovanteUrl,
@@ -710,7 +804,7 @@ export const Catalog = async (storeId: string) => {
                         criadoEm: new Date().toISOString()
                     });
 
-                    cart.clear(); appliedCoupon = null; closeModal('pix-manual-modal');
+                    cart.clear(); appliedCoupon = null; closeModal('pix-manual-modal'); updateCartUI(); // Update UI to trigger persistence
                     const confirmModal = document.getElementById('confirmation-modal');
                     const orderIdEl = document.getElementById('order-id-display');
                     if (confirmModal) confirmModal.style.display = 'flex';
@@ -736,7 +830,7 @@ export const Catalog = async (storeId: string) => {
                         return { productId: id, name: product.name, qty, price, subtotal: price * qty };
                     });
                     const subtotal = getSubtotal();
-                    const taxaAplicada = getTaxaValue(subtotal);
+                    const taxaAplicada = getTaxaValue();
                     const desconto = getDescontoValue(subtotal);
                     const total = subtotal + taxaAplicada - desconto;
 
@@ -769,7 +863,7 @@ export const Catalog = async (storeId: string) => {
                         clientName: name, clientPhone: phone,
                         endereco: address, entrega: deliveryType,
                         leadId, nome: name, items, total,
-                        taxaAplicada, taxaNome: taxaFixaNome,
+                        taxaAplicada, taxaNome: getTaxaNome(),
                         desconto, codigoCupom: appliedCoupon?.codigo || null,
                         paymentMethod: 'pix_mercadopago', pagamento: 'pagamento_no_pix',
                         mpPaymentId: mpData?.payment_id || '',
@@ -777,7 +871,7 @@ export const Catalog = async (storeId: string) => {
                         criadoEm: new Date().toISOString()
                     });
 
-                    cart.clear(); appliedCoupon = null; closeModal('payment-modal');
+                    cart.clear(); appliedCoupon = null; closeModal('payment-modal'); updateCartUI();
 
                     if (mpData?.qr_code_base64 || mpData?.qr_code_text) {
                         const qrImg = document.getElementById('mp-qr-img') as HTMLImageElement;
@@ -901,13 +995,13 @@ export const Catalog = async (storeId: string) => {
                 <div style="${MODAL_CARD}">
                     ${MODAL_HEADER('<i class="fa-solid fa-box"></i> Como deseja receber?', 'window.closeDelivery()')}
                     <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:20px;">
-                        <div id="delivery-card-entrega" class="delivery-card" onclick="window.selectDelivery('entrega')" style="padding:18px;border-radius:16px;border:2px solid rgba(255,255,255,0.1);cursor:pointer;display:flex;align-items:center;gap:16px;transition:all 0.2s;">
+                        <div id="delivery-card-entrega" class="delivery-card" ${permitirEntrega !== false && flatBairros.length > 0 ? `onclick="window.selectDelivery('entrega')"` : ''} style="padding:18px;border-radius:16px;border:2px solid rgba(255,255,255,0.1);${permitirEntrega !== false && flatBairros.length > 0 ? 'cursor:pointer;' : 'opacity:0.5;cursor:not-allowed;'}display:flex;align-items:center;gap:16px;transition:all 0.2s;">
                             <div style="width:48px;height:48px;border-radius:12px;background:rgba(99,102,241,0.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
                                 <i class="fa-solid fa-truck" style="font-size:1.3rem;color:#6366f1;"></i>
                             </div>
                             <div>
                                 <p style="margin:0;font-weight:700;font-size:1rem;">Entrega</p>
-                                <p style="margin:4px 0 0;color:#94a3b8;font-size:0.85rem;">Receber no endereço informado</p>
+                                <p style="margin:4px 0 0;color:${permitirEntrega !== false && flatBairros.length > 0 ? '#94a3b8' : '#ef4444'};font-size:0.85rem;">${permitirEntrega !== false && flatBairros.length > 0 ? 'Receber no endereço informado' : 'Entrega indisponível no momento'}</p>
                             </div>
                         </div>
                         <div id="delivery-card-retirada" class="delivery-card" onclick="window.selectDelivery('retirada')" style="padding:18px;border-radius:16px;border:2px solid rgba(255,255,255,0.1);cursor:pointer;display:flex;align-items:center;gap:16px;transition:all 0.2s;">
@@ -937,8 +1031,15 @@ export const Catalog = async (storeId: string) => {
                         <input id="checkout-phone" type="tel" placeholder="(11) 99999-9999" style="width:100%;padding:12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:10px;color:white;font-size:0.95rem;box-sizing:border-box;">
                     </div>
                     <div id="address-group" style="display:none;margin-bottom:16px;">
-                        <label style="display:block;font-size:0.8rem;color:#94a3b8;text-transform:uppercase;font-weight:700;margin-bottom:6px;">Endereço de Entrega</label>
-                        <input id="checkout-address" type="text" placeholder="Rua, número, bairro, CEP" style="width:100%;padding:12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:10px;color:white;font-size:0.95rem;box-sizing:border-box;">
+                        ${flatBairros.length > 0 ? `
+                        <label style="display:block;font-size:0.8rem;color:#94a3b8;text-transform:uppercase;font-weight:700;margin-bottom:6px;">Bairro</label>
+                        <div id="bairro-input-wrapper" style="position:relative;margin-bottom:12px;">
+                            <input type="text" id="checkout-bairro" placeholder="Digite ou selecione seu bairro..." autocomplete="off" oninput="window.catFilterBairros(this.value)" onfocus="window.catFilterBairros(this.value)" style="width:100%;padding:12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:10px;color:white;font-size:0.95rem;box-sizing:border-box;outline:none;">
+                            <div id="checkout-bairro-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;max-height:160px;overflow-y:auto;background:#1e293b;border:1px solid rgba(255,255,255,0.1);border-radius:10px;z-index:9999;box-shadow:0 4px 15px rgba(0,0,0,0.5);margin-top:4px;"></div>
+                        </div>
+                        ` : ''}
+                        <label style="display:block;font-size:0.8rem;color:#94a3b8;text-transform:uppercase;font-weight:700;margin-bottom:6px;">Endereço Completo</label>
+                        <input id="checkout-address" type="text" placeholder="Rua, número, complemento" style="width:100%;padding:12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:10px;color:white;font-size:0.95rem;box-sizing:border-box;">
                     </div>
                     ${BTN_PRIMARY('btn-go-payment', 'window.goToPayment()', 'Escolher Pagamento →', 'margin-top:8px;')}
                 </div>
@@ -1089,6 +1190,7 @@ export const Catalog = async (storeId: string) => {
                 <div class="cart-float-right" id="cart-total-float">R$ 0,00</div>
             </button>
         ` : '';
+        setTimeout(() => { if (cart.size > 0 && typeof updateCartUI === 'function') updateCartUI(); }, 100);
 
         return `
             <style>
