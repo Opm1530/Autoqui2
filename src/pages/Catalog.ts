@@ -160,7 +160,7 @@ export const Catalog = async (storeId: string) => {
                     <div style="display:flex;align-items:center;gap:10px;">
                         <button onclick="window.catQtyChange('${id}',-1)" style="width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,0.1);color:white;border:none;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;">-</button>
                         <span style="min-width:24px;text-align:center;font-weight:700;">${qty}</span>
-                        <button onclick="window.catQtyChange('${id}',1)" style="width:28px;height:28px;border-radius:50%;background:var(--primary-cat);color:white;border:none;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;">+</button>
+                        <button onclick="window.catQtyChange('${id}',1)" style="width:28px;height:28px;border-radius:50%;background:#6366f1;color:white;border:none;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;">+</button>
                         <button onclick="window.catRemoveItem('${id}')" style="color:#ef4444;background:none;border:none;cursor:pointer;padding:4px;"><i class="fa-solid fa-trash" style="font-size:0.85rem;"></i></button>
                     </div>
                 </div>`;
@@ -184,7 +184,7 @@ export const Catalog = async (storeId: string) => {
             if (desconto > 0 && appliedCoupon) {
                 html += `<div style="display:flex;justify-content:space-between;font-size:0.85rem;padding:4px 0;color:#10b981;"><span><i class="fa-solid fa-tag" style="margin-right:4px;"></i>Cupom ${appliedCoupon.codigo}</span><span>- R$ ${desconto.toFixed(2)}</span></div>`;
             }
-            html += `<div style="display:flex;justify-content:space-between;font-weight:800;font-size:1rem;border-top:1px solid rgba(255,255,255,0.1);margin-top:8px;padding-top:8px;"><span>Total</span><span style="color:var(--primary-cat);">R$ ${total.toFixed(2)}</span></div>`;
+            html += `<div style="display:flex;justify-content:space-between;font-weight:800;font-size:1rem;border-top:1px solid rgba(255,255,255,0.1);margin-top:8px;padding-top:8px;"><span>Total</span><span style="color:#6366f1;">R$ ${total.toFixed(2)}</span></div>`;
             return html;
         };
 
@@ -424,7 +424,7 @@ export const Catalog = async (storeId: string) => {
                 });
                 const card = document.getElementById(`delivery-card-${type}`);
                 if (card) {
-                    card.style.borderColor = 'var(--primary-cat)';
+                    card.style.borderColor = '#6366f1';
                     card.style.background = 'rgba(99,102,241,0.08)';
                 }
                 const btn = document.getElementById('btn-go-customer') as HTMLButtonElement;
@@ -871,14 +871,14 @@ export const Catalog = async (storeId: string) => {
         };
 
         // ── Modal styles ─────────────────────────────────────────────────────
-        const MODAL_BASE = 'display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,0.75);align-items:center;justify-content:center;backdrop-filter:blur(4px);';
+        const MODAL_BASE = 'display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,0.75);align-items:center;justify-content:center;backdrop-filter:blur(4px);color:white;';
         const MODAL_CARD = 'background:#1e293b;border-radius:24px;width:92%;max-width:460px;padding:28px;';
         const MODAL_HEADER = (title: string, closeCall: string) => `
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
                 <h3 style="margin:0;font-size:1.1rem;font-weight:700;display:flex;align-items:center;gap:10px;">${title}</h3>
                 <button onclick="${closeCall}" style="background:rgba(255,255,255,0.1);border:none;color:white;width:32px;height:32px;border-radius:50%;cursor:pointer;"><i class="fa-solid fa-xmark"></i></button>
             </div>`;
-        const BTN_PRIMARY = (id: string, onclick: string, label: string, extra = '') => `<button id="${id}" onclick="${onclick}" style="width:100%;padding:14px;border-radius:14px;background:var(--primary-cat);color:white;border:none;cursor:pointer;font-weight:700;font-size:1rem;${extra}">${label}</button>`;
+        const BTN_PRIMARY = (id: string, onclick: string, label: string, extra = '') => `<button id="${id}" onclick="${onclick}" style="width:100%;padding:14px;border-radius:14px;background:#6366f1;color:white;border:none;cursor:pointer;font-weight:700;font-size:1rem;${extra}">${label}</button>`;
 
         const modalsHtml = hasVendaCatalogo ? `
             <!-- CART MODAL -->
@@ -889,7 +889,7 @@ export const Catalog = async (storeId: string) => {
                     <div style="border-top:1px solid rgba(255,255,255,0.1);padding-top:16px;margin-top:16px;">
                         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
                             <span style="font-weight:700;">Total</span>
-                            <span id="cart-total" style="font-size:1.3rem;font-weight:800;color:var(--primary-cat);">R$ 0,00</span>
+                            <span id="cart-total" style="font-size:1.3rem;font-weight:800;color:#6366f1;">R$ 0,00</span>
                         </div>
                         ${BTN_PRIMARY('btn-go-delivery', 'window.goToDelivery()', '<i class="fa-solid fa-arrow-right"></i> Finalizar Pedido')}
                     </div>
@@ -903,7 +903,7 @@ export const Catalog = async (storeId: string) => {
                     <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:20px;">
                         <div id="delivery-card-entrega" class="delivery-card" onclick="window.selectDelivery('entrega')" style="padding:18px;border-radius:16px;border:2px solid rgba(255,255,255,0.1);cursor:pointer;display:flex;align-items:center;gap:16px;transition:all 0.2s;">
                             <div style="width:48px;height:48px;border-radius:12px;background:rgba(99,102,241,0.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                                <i class="fa-solid fa-truck" style="font-size:1.3rem;color:var(--primary-cat);"></i>
+                                <i class="fa-solid fa-truck" style="font-size:1.3rem;color:#6366f1;"></i>
                             </div>
                             <div>
                                 <p style="margin:0;font-weight:700;font-size:1rem;">Entrega</p>
@@ -912,7 +912,7 @@ export const Catalog = async (storeId: string) => {
                         </div>
                         <div id="delivery-card-retirada" class="delivery-card" onclick="window.selectDelivery('retirada')" style="padding:18px;border-radius:16px;border:2px solid rgba(255,255,255,0.1);cursor:pointer;display:flex;align-items:center;gap:16px;transition:all 0.2s;">
                             <div style="width:48px;height:48px;border-radius:12px;background:rgba(99,102,241,0.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                                <i class="fa-solid fa-store" style="font-size:1.3rem;color:var(--primary-cat);"></i>
+                                <i class="fa-solid fa-store" style="font-size:1.3rem;color:#6366f1;"></i>
                             </div>
                             <div>
                                 <p style="margin:0;font-weight:700;font-size:1rem;">Retirada na Loja</p>
@@ -950,14 +950,14 @@ export const Catalog = async (storeId: string) => {
                     ${MODAL_HEADER('<i class="fa-solid fa-credit-card"></i> Forma de Pagamento', 'window.closePayment()')}
                     <div id="payment-order-summary" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:14px;margin-bottom:14px;font-size:0.9rem;"></div>
                     <div id="cat-coupon-section" style="display:none;margin-bottom:16px;">
-                        <button onclick="window.catToggleCoupon()" style="background:none;border:none;color:var(--primary-cat);font-size:0.85rem;font-weight:600;cursor:pointer;padding:4px 0;display:flex;align-items:center;gap:6px;margin-bottom:8px;">
+                        <button onclick="window.catToggleCoupon()" style="background:none;border:none;color:#6366f1;font-size:0.85rem;font-weight:600;cursor:pointer;padding:4px 0;display:flex;align-items:center;gap:6px;margin-bottom:8px;">
                             <i class="fa-solid fa-tag" aria-hidden="true"></i>
                             <span id="cat-coupon-toggle-label">Tenho um cupom de desconto</span>
                         </button>
                         <div id="cat-coupon-input-wrapper" style="display:none;">
                             <div style="display:flex;gap:8px;">
                                 <input id="cat-coupon-input" type="text" placeholder="Código do cupom" aria-label="Código do cupom" style="flex:1;padding:10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:10px;color:white;font-size:0.9rem;text-transform:uppercase;">
-                                <button onclick="window.catApplyCoupon()" style="padding:10px 16px;background:rgba(99,102,241,0.2);color:var(--primary-cat);border:1px solid rgba(99,102,241,0.3);border-radius:10px;cursor:pointer;font-weight:700;white-space:nowrap;" aria-label="Aplicar cupom"><i class="fa-solid fa-check" aria-hidden="true"></i> Aplicar</button>
+                                <button onclick="window.catApplyCoupon()" style="padding:10px 16px;background:rgba(99,102,241,0.2);color:#6366f1;border:1px solid rgba(99,102,241,0.3);border-radius:10px;cursor:pointer;font-weight:700;white-space:nowrap;" aria-label="Aplicar cupom"><i class="fa-solid fa-check" aria-hidden="true"></i> Aplicar</button>
                             </div>
                             <p id="cat-coupon-msg" style="font-size:0.8rem;margin:4px 0 0;min-height:16px;" aria-live="polite"></p>
                         </div>
@@ -992,10 +992,10 @@ export const Catalog = async (storeId: string) => {
                     <div style="margin-bottom:16px;">
                         <label style="display:block;font-size:0.8rem;color:#94a3b8;text-transform:uppercase;font-weight:700;margin-bottom:8px;"><i class="fa-solid fa-receipt"></i> Comprovante de Pagamento <span style="color:#94a3b8;font-weight:400;">(opcional)</span></label>
                         <div onclick="document.getElementById('pix-comprovante-input').click()" style="border:2px dashed rgba(255,255,255,0.15);border-radius:12px;padding:18px;text-align:center;cursor:pointer;transition:all 0.2s;" 
-                             onmouseover="this.style.borderColor='var(--primary-cat)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.15)'">
+                             onmouseover="this.style.borderColor='#6366f1'" onmouseout="this.style.borderColor='rgba(255,255,255,0.15)'">
                             <input type="file" id="pix-comprovante-input" accept="image/*,application/pdf" style="display:none;" onchange="window.previewComprovante(this)">
                             <img id="comprovante-preview" style="max-width:100%;max-height:140px;border-radius:8px;display:none;margin:0 auto 8px;">
-                            <i class="fa-solid fa-cloud-arrow-up" style="font-size:1.5rem;color:var(--primary-cat);display:block;margin-bottom:6px;"></i>
+                            <i class="fa-solid fa-cloud-arrow-up" style="font-size:1.5rem;color:#6366f1;display:block;margin-bottom:6px;"></i>
                             <p id="comprovante-label" style="margin:0;font-size:0.85rem;color:#94a3b8;">Clique para anexar o comprovante</p>
                         </div>
                     </div>
@@ -1030,13 +1030,13 @@ export const Catalog = async (storeId: string) => {
                     <p style="color:#94a3b8;margin-bottom:20px;">Seu pedido foi recebido com sucesso.</p>
                     <div style="background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.2);border-radius:12px;padding:16px;margin-bottom:20px;">
                         <span style="font-size:0.8rem;color:#94a3b8;text-transform:uppercase;font-weight:700;">Número do Pedido</span>
-                        <p id="order-id-display" style="margin:6px 0 0;font-size:1.5rem;font-weight:800;letter-spacing:3px;color:var(--primary-cat);">#000000</p>
+                        <p id="order-id-display" style="margin:6px 0 0;font-size:1.5rem;font-weight:800;letter-spacing:3px;color:#6366f1;">#000000</p>
                     </div>
                     <div id="pix-info-section" style="display:none;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);border-radius:12px;padding:16px;margin-bottom:20px;text-align:left;">
                         <p style="margin:0 0 8px;font-weight:700;">⚡ Chave PIX para pagamento:</p>
                         <p id="pix-key-display" style="margin:0;font-family:monospace;font-size:1rem;color:#10b981;word-break:break-all;"></p>
                     </div>
-                    <button onclick="document.getElementById('confirmation-modal').style.display='none'" style="width:100%;padding:14px;border-radius:14px;background:var(--primary-cat);color:white;border:none;cursor:pointer;font-weight:700;">
+                    <button onclick="document.getElementById('confirmation-modal').style.display='none'" style="width:100%;padding:14px;border-radius:14px;background:#6366f1;color:white;border:none;cursor:pointer;font-weight:700;">
                         Continuar Comprando
                     </button>
                 </div>
@@ -1047,11 +1047,11 @@ export const Catalog = async (storeId: string) => {
                 <div style="${MODAL_CARD}max-width:500px;">
                     ${MODAL_HEADER('<i class="fa-solid fa-circle-info"></i> Informações da Loja', 'window.closeStoreInfo()')}
                     <div style="padding:10px 0;">
-                        <h4 style="margin:0 0 10px;color:var(--primary-cat);"><i class="fa-regular fa-clock"></i> Horário de Funcionamento</h4>
+                        <h4 style="margin:0 0 10px;color:#6366f1;"><i class="fa-regular fa-clock"></i> Horário de Funcionamento</h4>
                         <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.05);border-radius:12px;padding:8px 16px;margin-bottom:20px;font-size:0.9rem;">
                             ${renderHorarios()}
                         </div>
-                        <h4 style="margin:0 0 10px;color:var(--primary-cat);"><i class="fa-solid fa-credit-card"></i> Formas de Pagamento</h4>
+                        <h4 style="margin:0 0 10px;color:#6366f1;"><i class="fa-solid fa-credit-card"></i> Formas de Pagamento</h4>
                         <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.05);border-radius:12px;padding:12px;font-size:0.9rem;display:flex;flex-wrap:wrap;gap:8px;">
                             <span class="badge info" style="background:rgba(59,130,246,0.1);color:#60a5fa;border:1px solid rgba(59,130,246,0.2);padding:4px 8px;border-radius:6px;font-size:0.8rem;"><i class="fa-solid fa-money-bill"></i> Na Entrega/Retirada</span>
                             ${pixKey ? `<span class="badge success" style="background:rgba(16,185,129,0.1);color:#4ade80;border:1px solid rgba(16,185,129,0.2);padding:4px 8px;border-radius:6px;font-size:0.8rem;"><i class="fa-brands fa-pix"></i> PIX</span>` : ''}
@@ -1067,11 +1067,11 @@ export const Catalog = async (storeId: string) => {
                     <div style="width:72px;height:72px;border-radius:50%;background:rgba(239,68,68,0.15);border:2px solid rgba(239,68,68,0.3);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;">
                         <i class="fa-solid fa-store-slash" id="closed-alert-icon" style="font-size:2.5rem;color:#ef4444;"></i>
                     </div>
-                    <h2 id="closed-alert-title" style="margin:0 0 10px;font-size:1.4rem;font-weight:800;color:var(--text);">Loja Fechada</h2>
+                    <h2 id="closed-alert-title" style="margin:0 0 10px;font-size:1.4rem;font-weight:800;color:white;">Loja Fechada</h2>
                     <p id="closed-alert-desc" style="color:#94a3b8;margin-bottom:20px;">No momento não estamos aceitando pedidos.</p>
                     <div id="closed-alert-time-section" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:16px;margin-bottom:20px;">
                         <span style="font-size:0.8rem;color:#94a3b8;text-transform:uppercase;font-weight:700;"><i class="fa-regular fa-clock"></i> Voltamos</span>
-                        <p id="next-open-time" style="margin:6px 0 0;font-size:1.2rem;font-weight:800;color:var(--primary-cat);"></p>
+                        <p id="next-open-time" style="margin:6px 0 0;font-size:1.2rem;font-weight:800;color:#6366f1;"></p>
                     </div>
                     <button onclick="document.getElementById('closed-alert-modal').style.display='none'" style="width:100%;padding:14px;border-radius:14px;background:rgba(255,255,255,0.1);color:white;border:none;cursor:pointer;font-weight:700;transition:background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.15)'" onmouseout="this.style.background='rgba(255,255,255,0.1)'">
                         Entendi
