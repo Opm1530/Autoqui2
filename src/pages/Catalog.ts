@@ -51,6 +51,19 @@ export const Catalog = async (storeId: string) => {
         const logoUrl = design.logoUrl || '';
         const pixKey = design.pixKey || '';
 
+        if (typeof document !== 'undefined') {
+            document.title = store.name || 'Catálogo';
+            if (logoUrl) {
+                let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
+                if (!link) {
+                    link = document.createElement('link');
+                    link.rel = 'icon';
+                    document.head.appendChild(link);
+                }
+                link.href = logoUrl;
+            }
+        }
+
         let whatsappNumber = design.whatsapp || '';
         if (!whatsappNumber) {
             try {
