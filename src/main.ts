@@ -172,8 +172,7 @@ class App {
     else if (user.role === 'employee') SidebarComponent = EmployeeSidebar;
     else SidebarComponent = OwnerSidebar;
 
-    // Layout structure
-    const content = await this.getPageContent(path);
+    // Layout structure: Render a loading state first
     const sidebarHtml = await SidebarComponent();
 
     this.appElement.innerHTML = `
@@ -182,11 +181,34 @@ class App {
                 <main class="main-content">
                     ${Topbar(pageTitle)}
                     <div id="page-content" class="page-container">
-                        ${content}
+                        <div style="display: flex; justify-content: center; align-items: center; width: 100%; height: 50vh; flex-direction: column; gap: 1rem;">
+                            <i class="fa-solid fa-spinner fa-spin fa-2x" style="color: var(--primary);"></i>
+                            <span style="color: var(--text-muted);">Carregando página...</span>
+                        </div>
                     </div>
                 </main>
             </div>
         `;
+
+    try {
+        const content = await this.getPageContent(path);
+        const pageContainer = document.getElementById('page-content');
+        if (pageContainer) {
+            pageContainer.innerHTML = content;
+        }
+    } catch (e) {
+        console.error('Error loading page content:', e);
+        const pageContainer = document.getElementById('page-content');
+        if (pageContainer) {
+            pageContainer.innerHTML = `
+                <div style="padding: 2rem; text-align: center;">
+                    <i class="fa-solid fa-triangle-exclamation fa-2x" style="color: var(--danger);"></i>
+                    <h3 style="margin-top: 1rem; color: var(--text-main);">Falha ao carregar</h3>
+                    <p style="color: var(--text-muted); margin-top: 0.5rem;">Não foi possível carregar o conteúdo da página.</p>
+                </div>
+            `;
+        }
+    }
 
     this.updateActiveLinks();
     this.updateOrderCounter();

@@ -376,6 +376,15 @@ export const Orders = async () => {
         const inner = document.getElementById('order-modal-inner');
         if (!modal || !inner) return;
 
+        // Show modal immediately with loading state
+        modal.classList.remove('hidden');
+        inner.innerHTML = `
+            <div style="padding: 4rem 2rem; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 200px;">
+                <i class="fa-solid fa-spinner fa-spin fa-2x" style="color: var(--primary); margin-bottom: 1rem;"></i>
+                <p style="color: var(--text-muted); font-size: 0.95rem;">Carregando detalhes do pedido...</p>
+            </div>
+        `;
+
         // Pull prices from catalog if missing or zero
         const companyId = order.empresaId || authService.getCurrentUser()?.companyId;
         if (companyId && Array.isArray(order.itens)) {
@@ -617,7 +626,7 @@ export const Orders = async () => {
             </div>` : ''}
         `;
 
-        modal.classList.remove('hidden');
+        // The modal is already visible, but its content is updated now.
 
         // ── Bind all listeners ──
         bindModalListeners(modal, order, status);
