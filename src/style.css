@@ -1028,6 +1028,8 @@ ul {
   width: 90%;
   box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.3);
   animation: slide-up 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  max-height: 90vh;
+  overflow-y: auto;
 }
 
 @keyframes slide-up {
@@ -1182,6 +1184,8 @@ ul {
   width: 90%;
   box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.3);
   animation: slide-up 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  max-height: 90vh;
+  overflow-y: auto;
 }
 
 .confirm-header {
