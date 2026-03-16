@@ -206,12 +206,12 @@ export const evolutionApi = {
      */
     async sendText(instanceName: string, number: string, text: string): Promise<boolean> {
         try {
-            // Ensure number is in correct format (remove special characters, add 55 prefix if missing, add @s.whatsapp.net)
+            // Ensure number is in correct format (remove special characters, add 55 prefix if missing)
             let cleanNumber = number.replace(/\D/g, '');
             if (cleanNumber.length <= 11 && !cleanNumber.startsWith('55')) {
                 cleanNumber = '55' + cleanNumber;
             }
-            const remoteJid = cleanNumber.includes('@') ? cleanNumber : `${cleanNumber}@s.whatsapp.net`;
+            const remoteJid = cleanNumber;
 
             const response = await fetch(`${EVOLUTION_API_URL}/message/sendText/${instanceName}`, {
                 method: 'POST',
