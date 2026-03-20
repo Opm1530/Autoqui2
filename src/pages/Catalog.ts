@@ -81,7 +81,7 @@ export const Catalog = async (storeId: string) => {
         const products = productsRaw.filter((p: any) =>
             p.active !== false &&
             (p.storeIds?.includes(storeId) || p.storeId === storeId)
-        );
+        ).sort((a: any, b: any) => (a.name || '').localeCompare(b.name || ''));
 
         const promoProducts = products.filter((p: any) => p.promotionalActive);
         const themeId: string = design.themeId || 'classico';

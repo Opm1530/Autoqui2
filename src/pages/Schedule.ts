@@ -72,6 +72,10 @@ export const Schedule = async () => {
     const allProducts = await dbService.getAll('products', { field: 'companyId', operator: '==', value: companyId }) as Service[];
     const services = allProducts.filter((p: any) => p.active !== false);
 
+    // Load clients
+    const clientes: any[] = await dbService.getAll('clientes', { field: 'companyId', operator: '==', value: companyId }) as any[];
+    clientes.sort((a, b) => (a.nome || '').localeCompare(b.nome || ''));
+
     // Load appointments
     let appointments = await dbService.getAll('agendamentos', { field: 'companyId', operator: '==', value: companyId }) as Appointment[];
 
@@ -275,12 +279,12 @@ export const Schedule = async () => {
 
             <div style="display:grid; gap:1rem;">
                 <div class="form-group">
-                    <label class="form-label">Cliente</label>
-                    <input type="text" id="sched-client-name" class="form-input" placeholder="Nome do cliente" required>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">WhatsApp do Cliente</label>
-                    <input type="tel" id="sched-client-phone" class="form-input" placeholder="Ex: 11999999999">
+                    <label class="form-label">Cliente <span style="color:#ef4444;">*</span></label>
+                    <select id="sched-client-select" class="form-input">
+                        <option value="">Selecione um cliente...</option>
+                        ${clientes.map(c => `<option value="${c.id}" data-nome="${c.nome}" data-phone="${c.telefone || ''}">${c.nome}${c.telefone ? ' — ' + c.telefone : ''}</option>`).join('')}
+                    </select>
+                    ${clientes.length === 0 ? `<p style="font-size:0.8rem;color:#f59e0b;margin-top:4px;"><i class="fa-solid fa-triangle-exclamation"></i> Nenhum cliente cadastrado. <a href="/schedule-clients" style="color:#6366f1;">Cadastrar clientes</a></p>` : ''}
                 </div>
                 <div class="form-group">
                     <label class="form-label">Serviço</label>
@@ -380,8 +384,7 @@ export const Schedule = async () => {
         if (!modal) return;
 
         const titleEl = document.getElementById('sched-modal-title');
-        const nameEl = document.getElementById('sched-client-name') as HTMLInputElement;
-        const phoneEl = document.getElementById('sched-client-phone') as HTMLInputElement;
+        const clientSel = document.getElementById('sched-client-select') as HTMLSelectElement;
         const serviceEl = document.getElementById('sched-service') as HTMLSelectElement;
         const dateEl = document.getElementById('sched-date') as HTMLInputElement;
         const timeEl = document.getElementById('sched-time') as HTMLSelectElement;
@@ -392,8 +395,15 @@ export const Schedule = async () => {
 
         if (appointment) {
             titleEl!.innerText = 'Editar Agendamento';
-            nameEl.value = appointment.clientName;
-            phoneEl.value = appointment.clientPhone;
+            const clienteId = (appointment as any).clienteId || '';
+            if (clientSel) {
+                if (clienteId) {
+                    clientSel.value = clienteId;
+                } else {
+                    const opt = Array.from(clientSel.options).find(o => o.dataset.nome === appointment.clientName);
+                    clientSel.value = opt ? opt.value : '';
+                }
+            }
             serviceEl.value = appointment.serviceId;
             dateEl.value = appointment.date;
             timeEl.value = appointment.time;
@@ -403,8 +413,7 @@ export const Schedule = async () => {
             saveBtn!.setAttribute('data-edit-id', appointment.id);
         } else {
             titleEl!.innerText = 'Novo Agendamento';
-            nameEl.value = '';
-            phoneEl.value = '';
+            if (clientSel) clientSel.value = '';
             serviceEl.value = '';
             dateEl.value = selectedDate;
             timeEl.value = '09:00';
@@ -441,8 +450,7 @@ export const Schedule = async () => {
 
         // Save
         document.getElementById('save-sched-btn')?.addEventListener('click', async () => {
-            const nameEl = document.getElementById('sched-client-name') as HTMLInputElement;
-            const phoneEl = document.getElementById('sched-client-phone') as HTMLInputElement;
+            const clientSel = document.getElementById('sched-client-select') as HTMLSelectElement;
             const serviceEl = document.getElementById('sched-service') as HTMLSelectElement;
             const dateEl = document.getElementById('sched-date') as HTMLInputElement;
             const timeEl = document.getElementById('sched-time') as HTMLSelectElement;
@@ -451,9 +459,14 @@ export const Schedule = async () => {
             const notesEl = document.getElementById('sched-notes') as HTMLTextAreaElement;
             const saveBtn = document.getElementById('save-sched-btn') as HTMLButtonElement;
 
-            if (!nameEl.value.trim()) { toast.warning('Informe o nome do cliente.'); return; }
+            if (!clientSel.value) { toast.warning('Selecione um cliente.'); return; }
             if (!serviceEl.value) { toast.warning('Selecione um serviço.'); return; }
             if (!dateEl.value) { toast.warning('Informe a data.'); return; }
+
+            const clientOpt = clientSel.options[clientSel.selectedIndex];
+            const clienteId = clientSel.value;
+            const clientName = clientOpt.dataset.nome || clientOpt.text.split(' — ')[0];
+            const clientPhone = clientOpt.dataset.phone || '';
 
             const selectedOpt = serviceEl.options[serviceEl.selectedIndex];
             const serviceData = {
@@ -462,10 +475,11 @@ export const Schedule = async () => {
                 servicePrice: parseFloat(selectedOpt.dataset.price || '0'),
             };
 
-            const data: Omit<Appointment, 'id'> = {
+            const data: any = {
                 companyId,
-                clientName: nameEl.value.trim(),
-                clientPhone: phoneEl.value.trim(),
+                clienteId,
+                clientName,
+                clientPhone,
                 ...serviceData,
                 date: dateEl.value,
                 time: timeEl.value,

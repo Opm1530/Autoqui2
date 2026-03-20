@@ -22,6 +22,7 @@ import { Leads } from './pages/Leads';
 import { orderService } from './services/orderService';
 import { Campaigns } from './pages/Campaigns';
 import { Schedule } from './pages/Schedule';
+import { ScheduleClients } from './pages/ScheduleClients';
 import { Webhooks } from './pages/Webhooks';
 import { MercadoPago } from './pages/MercadoPago';
 
@@ -252,6 +253,7 @@ class App {
       case '/configuration': return 'Configurações';
       case '/campaigns': return 'Campanhas';
       case '/schedule': return 'Agenda';
+      case '/schedule-clients': return 'Clientes';
       case '/admin/webhooks': return 'Configuração de Webhooks';
       case '/admin/migration': return 'Migração de Produtos';
       case '/mercado-pago': return 'Mercado Pago';
@@ -303,6 +305,8 @@ class App {
         return Campaigns();
       case '/schedule':
         return Schedule();
+      case '/schedule-clients':
+        return ScheduleClients();
       case '/admin/webhooks':
         return await Webhooks();
       case '/admin/migration':

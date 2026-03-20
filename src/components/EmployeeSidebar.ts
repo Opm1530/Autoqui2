@@ -91,6 +91,10 @@ export const EmployeeSidebar = async () => {
                     <span class="icon"><i class="fa-solid fa-list-check"></i></span>
                     <span>Serviços</span>
                 </a>
+                <a href="/schedule-clients" class="nav-item">
+                    <span class="icon"><i class="fa-solid fa-users"></i></span>
+                    <span>Clientes</span>
+                </a>
                 <a href="/schedule" class="nav-item">
                     <span class="icon"><i class="fa-solid fa-calendar-alt"></i></span>
                     <span>Agenda</span>
