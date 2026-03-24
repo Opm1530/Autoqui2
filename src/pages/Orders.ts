@@ -376,6 +376,16 @@ export const Orders = async () => {
         const inner = document.getElementById('order-modal-inner');
         if (!modal || !inner) return;
 
+        // Normalize items/itens (support both Portuguese and English keys)
+        if (!order.itens && Array.isArray(order.items)) {
+            order.itens = order.items.map((i: any) => ({
+                item: i.item || i.name || '',
+                quantidade: i.quantidade || i.qty || 1,
+                preco: i.preco || i.price || 0,
+                observacao: i.observacao || ''
+            }));
+        }
+
         // Show modal immediately with loading state
         modal.classList.remove('hidden');
         inner.innerHTML = `
@@ -412,7 +422,8 @@ export const Orders = async () => {
                         sum += q * p;
                     });
                     const addVal = parseFloat(order.valoresAdicionais) || 0;
-                    order.value = sum + addVal;
+                    const taxaVal = parseFloat(order.taxaAplicada || order.taxaEntrega) || 0;
+                    order.value = sum + addVal + taxaVal;
                     // Note: We don't save to DB here yet, we let the user confirm when they change status or save the modal
                 }
             } catch (err) {
@@ -447,11 +458,29 @@ export const Orders = async () => {
             `).join('')
             : '<p style="color:var(--text-muted); padding: 1.5rem; text-align: center;">Sem itens listados.</p>';
 
+        const taxaEntregaHtml = (status === 'em_montagem' || order.taxaAplicada || order.taxaEntrega) ? `
+            <div class="order-item-row" style="margin-top:0.5rem; border-top: 1px solid var(--border-color); padding: 1.25rem; ${status === 'em_montagem' ? 'background: rgba(99, 102, 241, 0.03);' : ''}">
+                <div style="flex: 1;">
+                    <span class="lead-info-label" style="font-size:0.85rem; color: var(--text-main);">Taxa de Entrega</span>
+                    ${status === 'em_montagem' ? '<small style="display:block; color: var(--text-dim); font-size: 0.75rem;">Frete / Entrega</small>' : ''}
+                </div>
+                ${status === 'em_montagem' ? `
+                    <div style="display:flex;align-items:center;gap:0.75rem; flex-shrink: 0;">
+                        <span style="color:var(--text-dim);font-size:0.8rem; font-weight: 600;">R$</span>
+                        <input type="number" id="detail-taxa-entrega" value="${order.taxaAplicada || order.taxaEntrega || 0}"
+                            step="0.01" style="width:100px;background:var(--bg-color);border:1px solid var(--border-color);color:white;padding:0.5rem 0.75rem;border-radius:8px;text-align:right;font-size:0.95rem; font-family: monospace; outline: none;">
+                    </div>
+                ` : `
+                    <span style="color:var(--primary);font-weight:700;">R$ ${(order.taxaAplicada || order.taxaEntrega || 0).toFixed(2)}</span>
+                `}
+            </div>
+        ` : '';
+
         const addValuesHtml = status === 'em_montagem' ? `
             <div class="order-item-row" style="margin-top:0.5rem; border-top: 1px solid var(--border-color); padding: 1.25rem; background: rgba(99, 102, 241, 0.03);">
                 <div style="flex: 1;">
-                    <span class="lead-info-label" style="font-size:0.85rem; color: var(--text-main);">Taxas / Adicionais</span>
-                    <small style="display:block; color: var(--text-dim); font-size: 0.75rem;">Frete, acréscimos, etc.</small>
+                    <span class="lead-info-label" style="font-size:0.85rem; color: var(--text-main);">Outros Adicionais</span>
+                    <small style="display:block; color: var(--text-dim); font-size: 0.75rem;">Descontos (use valor negativo), acréscimos, etc.</small>
                 </div>
                 <div style="display:flex;align-items:center;gap:0.75rem; flex-shrink: 0;">
                     <span style="color:var(--text-dim);font-size:0.8rem; font-weight: 600;">R$</span>
@@ -469,12 +498,18 @@ export const Orders = async () => {
         // ── Stage action buttons ──
         const stageButtons = buildStageButtons(order, status);
 
-        // ── Intervir button (only when not terminal) ──
-        const intervirBtn = !isTerminal ? `
-            <button id="btn-intervir" class="btn-lead-action" style="background: rgba(139,92,246,0.15); border-color: rgba(139,92,246,0.4); color: #a78bfa;"
-                title="Enviar mensagem diretamente ao cliente sem alterar o status">
-                <i class="fa-solid fa-comment-dots"></i> Intervir
-            </button>` : '';
+        // ── Intervir or WhatsApp button (only when not terminal) ──
+        const actionBtn = (!isTerminal) ? (
+            order.source === 'catalog' ? `
+                <a href="https://wa.me/${clientPhone.replace(/\D/g, '')}" target="_blank" class="btn-lead-action" 
+                    style="background: rgba(37,211,102,0.15); border-color: rgba(37,211,102,0.4); color: #25d366; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                    <i class="fa-brands fa-whatsapp" style="font-size: 1.1rem;"></i> WhatsApp
+                </a>` : `
+                <button id="btn-intervir" class="btn-lead-action" style="background: rgba(139,92,246,0.15); border-color: rgba(139,92,246,0.4); color: #a78bfa;"
+                    title="Enviar mensagem diretamente ao cliente sem alterar o status">
+                    <i class="fa-solid fa-comment-dots"></i> Intervir
+                </button>`
+        ) : '';
 
         inner.innerHTML = `
             <!-- Header -->
@@ -570,6 +605,7 @@ export const Orders = async () => {
                     <h4 class="lead-section-title"><i class="fa-solid fa-basket-shopping"></i> Itens do Pedido</h4>
                     <div class="order-items-block">
                         ${itensHtml}
+                        ${taxaEntregaHtml}
                         ${addValuesHtml}
                         <div class="order-total-row">
                             <span>Total</span>
@@ -588,7 +624,8 @@ export const Orders = async () => {
                     <strong>Motivo do Cancelamento:</strong> ${order.rejectionReason}
                 </div>` : ''}
 
-                <!-- Intervention area (hidden by default) -->
+                <!-- Intervention area (hidden by default) - Only for non-catalog orders -->
+                ${order.source !== 'catalog' ? `
                 <div id="intervir-area" style="display:none;">
                     <div class="lead-section">
                         <h4 class="lead-section-title"><i class="fa-solid fa-comment-dots" style="color:#a78bfa;"></i> Enviar Mensagem ao Cliente</h4>
@@ -605,6 +642,7 @@ export const Orders = async () => {
                         </div>
                     </div>
                 </div>
+                ` : ''}
 
                 <!-- Cancelation reason (shown on cancel click) -->
                 <div id="cancel-container" style="display:none;">
@@ -620,7 +658,7 @@ export const Orders = async () => {
             ${!isTerminal ? `
             <div class="lead-modal-footer" id="modal-footer">
                 <div style="display:flex;gap:0.75rem;flex-wrap:wrap;">
-                    ${intervirBtn}
+                    ${actionBtn}
                     ${stageButtons}
                 </div>
             </div>` : ''}
@@ -700,7 +738,8 @@ export const Orders = async () => {
                     sum += q * getParsed(inp.value);
                 });
                 const addVal = getParsed((document.getElementById('detail-additional-value') as HTMLInputElement)?.value);
-                sum += addVal;
+                const taxaVal = getParsed((document.getElementById('detail-taxa-entrega') as HTMLInputElement)?.value);
+                sum += addVal + taxaVal;
                 const totalEl = document.getElementById('detail-order-total');
                 if (totalEl) totalEl.innerText = `R$ ${sum.toFixed(2)}`;
             };
@@ -709,6 +748,7 @@ export const Orders = async () => {
                 inp.addEventListener('input', updateCalc);
             });
             document.getElementById('detail-additional-value')?.addEventListener('input', updateCalc);
+            document.getElementById('detail-taxa-entrega')?.addEventListener('input', updateCalc);
 
             // initial recalc
             updateCalc();
@@ -849,13 +889,16 @@ export const Orders = async () => {
                     });
 
                     const valoresAdicionais = getParsed((document.getElementById('detail-additional-value') as HTMLInputElement)?.value);
-                    sum += valoresAdicionais;
+                    const taxaEntrega = getParsed((document.getElementById('detail-taxa-entrega') as HTMLInputElement)?.value);
+                    sum += valoresAdicionais + taxaEntrega;
 
                     extraUpdates = {
                         value: sum,
                         total: sum,
                         itens: updatedItens,
-                        valoresAdicionais: valoresAdicionais
+                        valoresAdicionais: valoresAdicionais,
+                        taxaEntrega: taxaEntrega,
+                        taxaAplicada: taxaEntrega
                     };
                 }
 

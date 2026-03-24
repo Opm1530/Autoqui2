@@ -20,6 +20,7 @@ interface Product {
     promotionalPrice?: number;
     categoryId?: string;
     stock?: number | null;
+    duration?: number | null;
 }
 
 interface Category {
@@ -115,13 +116,15 @@ export const Products = async () => {
                 <td><div style="max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${getStoreNames(p)}">${getStoreNames(p)}</div></td>
                 <td>R$ ${p.price?.toFixed(2)}</td>
                 <td>
-                    ${p.stock === null || p.stock === undefined
-                ? `<span class="badge info" title="Sem controle">&#8734; Ilimitado</span>`
-                : p.stock > 10
-                    ? `<span class="badge success">${p.stock} un.</span>`
-                    : p.stock > 0
-                        ? `<span class="badge" style="background:rgba(234,179,8,0.15);color:#eab308;border:1px solid rgba(234,179,8,0.3);">${p.stock} un.</span>`
-                        : `<span class="badge danger">Esgotado</span>`
+                    ${isAgendamento
+                ? (p.duration ? `<span class="badge info">${p.duration} min</span>` : `<span class="badge" style="background:rgba(100,116,139,0.15);color:#94a3b8;">—</span>`)
+                : (p.stock === null || p.stock === undefined
+                    ? `<span class="badge info" title="Sem controle">&#8734; Ilimitado</span>`
+                    : p.stock > 10
+                        ? `<span class="badge success">${p.stock} un.</span>`
+                        : p.stock > 0
+                            ? `<span class="badge" style="background:rgba(234,179,8,0.15);color:#eab308;border:1px solid rgba(234,179,8,0.3);">${p.stock} un.</span>`
+                            : `<span class="badge danger">Esgotado</span>`)
             }
                 </td>
                 <td><span class="badge ${p.active ? 'success' : 'danger'}">${p.active ? 'Ativo' : 'Inativo'}</span></td>
@@ -226,7 +229,8 @@ export const Products = async () => {
         promotionalName: string = '',
         promotionalPrice: number | string = '',
         categoryId: string = '',
-        stock: number | null | undefined = null
+        stock: number | null | undefined = null,
+        duration: number | null | undefined = null
     ) => {
         const categoryOptions = categories.map((c: Category) => `<option value="${c.id}" ${c.id === categoryId ? 'selected' : ''}>${c.name}</option>`).join('');
         return `
@@ -270,11 +274,16 @@ export const Products = async () => {
                             </select>
                         </div>
                         <div class="field price-field">
-                            <label>Estoque <span style="color:var(--text-dim);font-weight:400;">(vazio = ilimitado)</span></label>
-                            <input type="number" name="stock-${tempId}" value="${stock !== null && stock !== undefined ? stock : ''}" class="item-stock" placeholder="Ilimitado" min="0" step="1">
+                            ${isAgendamento
+                                ? `<label>Duração <span style="color:var(--text-dim);font-weight:400;">(minutos)</span></label>
+                                   <input type="number" name="duration-${tempId}" value="${duration !== null && duration !== undefined ? duration : ''}" class="item-duration" placeholder="Ex: 30" min="5" step="5">`
+                                : `<label>Estoque <span style="color:var(--text-dim);font-weight:400;">(vazio = ilimitado)</span></label>
+                                   <input type="number" name="stock-${tempId}" value="${stock !== null && stock !== undefined ? stock : ''}" class="item-stock" placeholder="Ilimitado" min="0" step="1">`
+                            }
                         </div>
                     </div>
                     
+                    ${!isAgendamento ? `
                     <div class="promotional-section" style="margin-top: 15px; padding-top: 10px; border-top: 1px dashed var(--border-color);">
                         <label class="promotional-toggle" style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--primary); font-weight: 600; font-size: 0.85rem;">
                             <input type="checkbox" name="promotional-active-${tempId}" class="promotional-checkbox" ${promotionalActive ? 'checked' : ''} style="width: 16px; height: 16px;">
@@ -293,7 +302,7 @@ export const Products = async () => {
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    </div>` : ''}
                  </div>
 
                  <button type="button" class="btn-remove-item" onclick="window.removeProductItem('${tempId}')" title="Remover item">
@@ -384,7 +393,7 @@ export const Products = async () => {
                 listContainer.innerHTML = createProductItemHtml(
                     'edit-item', product.name, product.price, imgUrl,
                     product.promotionalActive, product.promotionalName, product.promotionalPrice,
-                    product.categoryId, product.stock
+                    product.categoryId, product.stock, product.duration
                 );
                 setTimeout(() => attachItemListeners('edit-item'), 0);
             }
@@ -528,11 +537,23 @@ export const Products = async () => {
                 const name = (item.querySelector('.item-name') as HTMLInputElement).value;
                 const price = parseFloat((item.querySelector('.item-price') as HTMLInputElement).value);
                 const categoryId = (item.querySelector('.item-category') as HTMLSelectElement).value;
-                const promoActive = (item.querySelector('.promotional-checkbox') as HTMLInputElement).checked;
-                const promoName = (item.querySelector('.promotional-name-input') as HTMLInputElement).value;
-                const promoPrice = parseFloat((item.querySelector('.promotional-price-input') as HTMLInputElement).value) || 0;
-                const stockInput = (item.querySelector('.item-stock') as HTMLInputElement).value;
-                const stock = stockInput !== '' ? parseInt(stockInput) : null;
+
+                let promoActive = false;
+                let promoName = '';
+                let promoPrice = 0;
+                let stock: number | null = null;
+                let duration: number | null = null;
+
+                if (isAgendamento) {
+                    const durationInput = (item.querySelector('.item-duration') as HTMLInputElement)?.value;
+                    duration = durationInput !== '' && durationInput != null ? parseInt(durationInput) : null;
+                } else {
+                    promoActive = (item.querySelector('.promotional-checkbox') as HTMLInputElement)?.checked || false;
+                    promoName = (item.querySelector('.promotional-name-input') as HTMLInputElement)?.value || '';
+                    promoPrice = parseFloat((item.querySelector('.promotional-price-input') as HTMLInputElement)?.value) || 0;
+                    const stockInput = (item.querySelector('.item-stock') as HTMLInputElement)?.value;
+                    stock = stockInput !== '' && stockInput != null ? parseInt(stockInput) : null;
+                }
 
                 const progressOverlay = document.getElementById(`progress-${tempId}`);
                 if (progressOverlay) progressOverlay.classList.remove('hidden');
@@ -546,7 +567,7 @@ export const Products = async () => {
                     name, price: price || 0, categoryId, storeIds,
                     companyId: currentUser.companyId, active: true,
                     promotionalActive: promoActive, promotionalName: promoName,
-                    promotionalPrice: promoPrice, stock, ...imageData
+                    promotionalPrice: promoPrice, stock, duration, ...imageData
                 };
 
                 if (editModeProductId && tempId === 'edit-item') {
@@ -1080,7 +1101,7 @@ export const Products = async () => {
                             <th>${labelSingular}</th>
                             <th>Loja</th>
                             <th>Preço</th>
-                            <th>Estoque</th>
+                            <th>${isAgendamento ? 'Duração' : 'Estoque'}</th>
                             <th>Status</th>
                             <th>Ações</th>
                         </tr>

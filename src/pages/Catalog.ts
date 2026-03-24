@@ -91,7 +91,8 @@ export const Catalog = async (storeId: string) => {
         const categorizedData = categories.map((cat: any) => ({
             ...cat,
             products: products.filter((p: any) => p.categoryId === cat.id)
-        })).filter((cat: any) => cat.products.length > 0);
+        })).filter((cat: any) => cat.products.length > 0)
+        .sort((a: any, b: any) => (a.name || '').localeCompare(b.name || ''));
 
         const uncategorizedProducts = products.filter((p: any) =>
             !p.categoryId || !categories.find((c: any) => c.id === p.categoryId)
