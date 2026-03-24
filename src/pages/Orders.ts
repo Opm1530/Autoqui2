@@ -721,13 +721,14 @@ export const Orders = async () => {
 
     function bindModalListeners(modal: HTMLElement, order: any, status: string) {
         const isTerminal = status === 'finalizado' || status === 'cancelado';
+        const isCatalog = order.source === 'catalog' || !!order.taxaNome;
 
         // Close button
         document.getElementById('close-order-modal')?.addEventListener('click', () => {
             modal.classList.add('hidden');
         });
 
-        if (status === 'em_montagem') {
+        if (status === 'em_montagem' && !isCatalog) {
             const getParsed = (val: any) => {
                 const p = parseFloat(val);
                 return isNaN(p) ? 0 : p;
