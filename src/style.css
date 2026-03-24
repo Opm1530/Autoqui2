@@ -726,11 +726,13 @@ ul {
   height: 100vh;
   background: rgba(0, 0, 0, 0.7);
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   z-index: 1000;
   opacity: 1;
   visibility: visible;
+  padding: 2rem 1rem;
+  overflow-y: auto;
   transition: opacity 0.3s ease, visibility 0.3s ease;
 }
 
@@ -1599,6 +1601,14 @@ ul {
   padding: 1.5rem;
   flex: 1;
   overflow-y: auto;
+}
+
+#order-modal-inner {
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
 }
 
 .lead-info-grid {
