@@ -395,6 +395,9 @@ export const Orders = async () => {
             </div>
         `;
 
+        const clientPhone = order.clientPhone ? order.clientPhone.replace(/\D/g, '') : (getLeadPhone(order.leadId) || order.leadId);
+        const isCatalog = order.source === 'catalog' || !!order.taxaNome;
+
         // Pull prices from catalog if missing or zero
         const companyId = order.empresaId || authService.getCurrentUser()?.companyId;
         if (companyId && Array.isArray(order.itens)) {
@@ -434,7 +437,6 @@ export const Orders = async () => {
         const status = (order.status || 'em_montagem').toLowerCase();
         const isTerminal = status === 'finalizado' || status === 'cancelado';
         const clientName = getLeadName(order.leadId, order.nome || order.leadName);
-        const clientPhone = getLeadPhone(order.leadId);
         const storeOperable = isStoreOperable(order.lojaId);
 
         // ── Items HTML ──
@@ -445,7 +447,7 @@ export const Orders = async () => {
                         <span style="font-weight: 600; color: var(--text-main); display: block;">${i.quantidade}x ${i.item}</span>
                         ${i.observacao ? `<small style="color: var(--text-dim); display: block; margin-top: 2px;">Obs: ${i.observacao}</small>` : ''}
                     </div>
-                    ${status === 'em_montagem' ? `
+                    ${status === 'em_montagem' && !isCatalog ? `
                         <div style="display:flex;align-items:center;gap:0.75rem; flex-shrink: 0;">
                             <span style="color:var(--text-dim);font-size:0.8rem; font-weight: 600;">R$</span>
                             <input type="number" class="item-price-input" data-index="${idx}" value="${i.preco || 0}"
@@ -464,7 +466,7 @@ export const Orders = async () => {
                     <span class="lead-info-label" style="font-size:0.85rem; color: var(--text-main);">Taxa de Entrega</span>
                     ${status === 'em_montagem' ? '<small style="display:block; color: var(--text-dim); font-size: 0.75rem;">Frete / Entrega</small>' : ''}
                 </div>
-                ${status === 'em_montagem' ? `
+                ${status === 'em_montagem' && !isCatalog ? `
                     <div style="display:flex;align-items:center;gap:0.75rem; flex-shrink: 0;">
                         <span style="color:var(--text-dim);font-size:0.8rem; font-weight: 600;">R$</span>
                         <input type="number" id="detail-taxa-entrega" value="${order.taxaAplicada || order.taxaEntrega || 0}"
@@ -476,7 +478,7 @@ export const Orders = async () => {
             </div>
         ` : '';
 
-        const addValuesHtml = status === 'em_montagem' ? `
+        const addValuesHtml = (status === 'em_montagem' && !isCatalog) ? `
             <div class="order-item-row" style="margin-top:0.5rem; border-top: 1px solid var(--border-color); padding: 1.25rem; background: rgba(99, 102, 241, 0.03);">
                 <div style="flex: 1;">
                     <span class="lead-info-label" style="font-size:0.85rem; color: var(--text-main);">Outros Adicionais</span>
@@ -488,7 +490,7 @@ export const Orders = async () => {
                         step="0.01" style="width:100px;background:var(--bg-color);border:1px solid var(--border-color);color:white;padding:0.5rem 0.75rem;border-radius:8px;text-align:right;font-size:0.95rem; font-family: monospace; outline: none;">
                 </div>
             </div>
-        ` : (order.valoresAdicionais ? `
+        ` : (order.valoresAdicionais && !isCatalog ? `
             <div class="order-item-row" style="margin-top:0.5rem; border-top: 1px solid var(--border-color); padding: 1rem 1.25rem;">
                 <span class="lead-info-label" style="font-size:0.85rem;">Valores adicionais</span>
                 <span style="color:var(--primary);font-weight:700;">R$ ${(order.valoresAdicionais || 0).toFixed(2)}</span>
@@ -500,7 +502,7 @@ export const Orders = async () => {
 
         // ── Intervir or WhatsApp button (only when not terminal) ──
         const actionBtn = (!isTerminal) ? (
-            order.source === 'catalog' ? `
+            isCatalog ? `
                 <a href="https://wa.me/${clientPhone.replace(/\D/g, '')}" target="_blank" class="btn-lead-action" 
                     style="background: rgba(37,211,102,0.15); border-color: rgba(37,211,102,0.4); color: #25d366; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 8px;">
                     <i class="fa-brands fa-whatsapp" style="font-size: 1.1rem;"></i> WhatsApp
@@ -582,7 +584,7 @@ export const Orders = async () => {
                         <span class="lead-info-label">Pagamento</span>
                         <span class="lead-info-value">${getPaymentBadge(order.pagamento || order.formaPagamento, order.comprovanteUrl, order.empresaId)}</span>
                     </div>
-                    ${order.source === 'catalog' ? (
+                    ${isCatalog ? (
                 order.entrega === 'retirada' ? `
                         <div class="lead-info-item" style="grid-column:1/-1;">
                             <span class="lead-info-label">Informação de Coleta</span>

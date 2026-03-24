@@ -178,9 +178,14 @@ export const orderService = {
             let message = '';
             let msgKey = getMsgKey(newStatus);
 
-            // ESPECIAL: Se estivermos indo de 'em_montagem' diretamente para 'em_preparo' (retirada sem pagamento antecipado)
-            if (newStatus === 'em_preparo' && (order.status === 'em_montagem' || !order.status)) {
-                msgKey = 'pedido_aceito_retirada';
+            // Differentiate between Delivery and Pickup messages during acceptance
+            const isWithdrawal = order.entrega === 'retirada' || order.deliveryType === 'retirada' || order.entrega === 'retirada';
+            
+            // If it's a withdrawal and we're accepting it (moving to wait payment or prep)
+            if (isWithdrawal && (newStatus === 'aguardando_pagamento' || newStatus === 'em_preparo')) {
+                if (order.status === 'em_montagem' || !order.status) {
+                    msgKey = 'pedido_aceito_retirada';
+                }
             }
 
             if (msgKey) {

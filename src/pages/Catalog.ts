@@ -566,9 +566,26 @@ export const Catalog = async (storeId: string) => {
                 // Coupon field
                 const couponSection = document.getElementById('cat-coupon-section');
                 if (couponSection) couponSection.style.display = cuponsList.length > 0 ? 'block' : 'none';
-                // Show/hide PIX options
+                // Show/hide payment buttons based on config and delivery type
+                const payDeliveryBtn = document.getElementById('btn-pay-delivery');
                 const pixManualBtn = document.getElementById('btn-pay-pix-manual');
                 const pixMpBtn = document.getElementById('btn-pay-pix-mp');
+                const mandatoryPayMsg = document.getElementById('mandatory-pay-msg');
+
+                const isMandatoryPickupPay = config?.pagamentoObrigatorioRetirada === true;
+
+                if (payDeliveryBtn) {
+                    if (deliveryType === 'retirada' && isMandatoryPickupPay) {
+                        payDeliveryBtn.style.display = 'none';
+                    } else {
+                        payDeliveryBtn.style.display = 'flex';
+                    }
+                }
+
+                if (mandatoryPayMsg) {
+                    mandatoryPayMsg.style.display = (deliveryType === 'retirada' && isMandatoryPickupPay) ? 'block' : 'none';
+                }
+
                 if (pixManualBtn) pixManualBtn.style.display = pixKey ? 'flex' : 'none';
                 if (pixMpBtn) pixMpBtn.style.display = isMpActive ? 'flex' : 'none';
                 openModal('payment-modal');
@@ -1051,6 +1068,11 @@ export const Catalog = async (storeId: string) => {
                 <div style="${MODAL_CARD}">
                     ${MODAL_HEADER('<i class="fa-solid fa-credit-card"></i> Forma de Pagamento', 'window.closePayment()')}
                     <div id="payment-order-summary" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:14px;margin-bottom:14px;font-size:0.9rem;"></div>
+                    
+                    <div id="mandatory-pay-msg" style="display:none;padding:12px;background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.2);border-radius:12px;margin-bottom:14px;color:#fbbf24;font-size:0.85rem;line-height:1.4;">
+                        <i class="fa-solid fa-circle-info"></i> Atenção: Para pedidos para retirada é obrigatório o pagamento adiantado pois o produto vai ser reservado.
+                    </div>
+
                     <div id="cat-coupon-section" style="display:none;margin-bottom:16px;">
                         <button onclick="window.catToggleCoupon()" style="background:none;border:none;color:#6366f1;font-size:0.85rem;font-weight:600;cursor:pointer;padding:4px 0;display:flex;align-items:center;gap:6px;margin-bottom:8px;">
                             <i class="fa-solid fa-tag" aria-hidden="true"></i>

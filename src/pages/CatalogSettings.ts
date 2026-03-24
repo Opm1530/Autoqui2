@@ -629,6 +629,21 @@ export const CatalogSettings = async () => {
                     </div>
                 </div>
 
+                <div style="border-top:1px solid var(--border-color);padding-top:1.25rem;margin-bottom:1.5rem;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;">
+                        <div>
+                            <p style="font-size:0.9rem;font-weight:700;margin:0 0 0.4rem;display:flex;align-items:center;gap:8px;">
+                                <i class="fa-solid fa-store" style="color:var(--primary);"></i> Pagamento Antecipado (Retirada)
+                            </p>
+                            <p style="margin:0;font-size:0.8rem;color:var(--text-dim);">Obrigar pagamento adiantado para pedidos de retirada.</p>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="cat-mandatory-pickup-pay" ${config?.pagamentoObrigatorioRetirada ? 'checked' : ''}>
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+                </div>
+
                 <!-- Cupons de Desconto -->
                 <div style="border-top:1px solid var(--border-color);padding-top:1.25rem;margin-bottom:1.5rem;">
                     <p style="font-size:0.9rem;font-weight:700;margin:0 0 1rem;display:flex;align-items:center;gap:8px;">
@@ -964,12 +979,13 @@ export const CatalogSettings = async () => {
                 const whatsapp = (document.getElementById('cat-whatsapp') as HTMLInputElement).value.replace(/\D/g, '');
                 const pixKey = (document.getElementById('cat-pix-key') as HTMLInputElement).value.trim();
                 const mercadoPagoActive = (document.getElementById('mp-active-toggle') as HTMLInputElement)?.checked;
+                const pagamentoObrigatorioRetirada = (document.getElementById('cat-mandatory-pickup-pay') as HTMLInputElement)?.checked;
 
                 const newDesign = { ...(lojaConf?.design || {}), whatsapp, pixKey };
                 delete newDesign.taxaFixaNome;
                 delete newDesign.taxaFixaValor;
                 delete newDesign.taxaTipo;
-                await saveToLojaConfig({ design: newDesign, mercadoPagoActive });
+                await saveToLojaConfig({ design: newDesign, mercadoPagoActive, pagamentoObrigatorioRetirada });
                 toast.success('Configurações de pagamento salvas!');
                 btn.innerHTML = '<i class="fa-solid fa-check"></i> Salvo!';
                 btn.classList.add('saved');

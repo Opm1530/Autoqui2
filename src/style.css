@@ -1520,6 +1520,9 @@ ul {
 
 .lead-modal-content {
   max-width: 560px !important;
+  max-height: 92vh !important;
+  display: flex !important;
+  flex-direction: column !important;
   padding: 0 !important;
   overflow: hidden !important;
 }
@@ -1531,6 +1534,7 @@ ul {
   padding: 1.5rem 1.5rem 1.25rem;
   border-bottom: 1px solid var(--border-color);
   background: rgba(255, 255, 255, 0.02);
+  flex-shrink: 0;
 }
 
 .lead-modal-avatar {
@@ -1574,6 +1578,7 @@ ul {
   padding: 1rem 1.5rem;
   background: rgba(255, 255, 255, 0.015);
   border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
 }
 
 .lead-badge-group {
@@ -1592,7 +1597,7 @@ ul {
 
 .lead-modal-body {
   padding: 1.5rem;
-  max-height: 50vh;
+  flex: 1;
   overflow-y: auto;
 }
 
@@ -1662,6 +1667,7 @@ ul {
   padding: 1.25rem 1.5rem;
   border-top: 1px solid var(--border-color);
   background: rgba(255, 255, 255, 0.015);
+  flex-shrink: 0;
 }
 
 .btn-lead-action {

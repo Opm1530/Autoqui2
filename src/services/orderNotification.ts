@@ -103,7 +103,7 @@ class OrderNotificationService {
 
     async showNewOrder(order: OrderData) {
         // ── Normalize items format (catalog uses 'items' with {name,qty,price}, legacy uses 'itens' with {item,quantidade,preco})
-        const isCatalogOrder = (order as any).source === 'catalog';
+        const isCatalogOrder = (order as any).source === 'catalog' || !!(order as any).taxaNome;
         if (!Array.isArray((order as any).itens)) {
             if (Array.isArray((order as any).items)) {
                 (order as any).itens = (order as any).items.map((i: any) => ({
@@ -172,17 +172,24 @@ class OrderNotificationService {
             `).join('')
             : '<p style="color:var(--text-muted); padding: 1rem; text-align:center;">Sem itens listados.</p>';
 
-        // For catalog orders: payment is already confirmed, no tax field needed
-        const addValuesHtml = isCatalogOrder ? '' : `
+        const taxaInicial = (order as any).taxaAplicada || order.valoresAdicionais || 0;
+        const labelTaxa = (order as any).entrega === 'retirada' ? 'Taxas / Adicionais' : 'Taxa de Entrega';
+        
+        const addValuesHtml = `
             <div class="order-item-row" style="margin-top:0.5rem; padding: 0.8rem 0; display:flex; justify-content:space-between; align-items:center;">
                 <div style="display:flex; flex-direction:column;">
-                    <span style="font-size:0.85rem; font-weight:600;">Taxas / Adicionais</span>
+                    <span style="font-size:0.85rem; font-weight:600;">${labelTaxa}</span>
                     <small style="font-size:0.7rem; color:var(--text-dim);">Entrega, extras, etc.</small>
                 </div>
                 <div style="display:flex;align-items:center;gap:0.5rem; flex-shrink:0;">
                     <span style="color:var(--text-dim);font-size:0.75rem;">R$</span>
-                    <input type="number" id="notif-additional-value" value="${order.valoresAdicionais || 0}"
-                        step="0.01" style="width:90px;background:var(--bg-color);border:1px solid var(--border-color);color:white;padding:0.4rem 0.6rem;border-radius:6px;text-align:right;font-size:0.9rem; font-family: monospace; outline:none;">
+                    ${isCatalogOrder ? `
+                        <span style="font-family:monospace;font-size:0.9rem;min-width:90px;text-align:right;padding:0.4rem 0.6rem; color: var(--primary); font-weight: 700;">${Number(taxaInicial || 0).toFixed(2)}</span>
+                        <input type="hidden" id="notif-additional-value" value="${taxaInicial || 0}">
+                    ` : `
+                        <input type="number" id="notif-additional-value" value="${taxaInicial || 0}"
+                            step="0.01" style="width:90px;background:var(--bg-color);border:1px solid var(--border-color);color:white;padding:0.4rem 0.6rem;border-radius:6px;text-align:right;font-size:0.9rem; font-family: monospace; outline:none;">
+                    `}
                 </div>
             </div>
         `;
@@ -294,11 +301,17 @@ class OrderNotificationService {
 
         const updateCalc = () => {
             let sum = 0;
-            document.querySelectorAll('.notif-item-price-input').forEach((inp: any) => {
-                const idx = parseInt(inp.dataset.index);
-                const q = (order.itens || [])[idx]?.quantidade || 1;
-                sum += q * getParsed(inp.value);
-            });
+            if (isCatalogOrder) {
+                (order.itens || []).forEach((item: any) => {
+                    sum += (item.quantidade || 1) * (item.preco || 0);
+                });
+            } else {
+                document.querySelectorAll('.notif-item-price-input').forEach((inp: any) => {
+                    const idx = parseInt(inp.dataset.index);
+                    const q = (order.itens || [])[idx]?.quantidade || 1;
+                    sum += q * getParsed(inp.value);
+                });
+            }
             const addVal = getParsed((document.getElementById('notif-additional-value') as HTMLInputElement)?.value);
             sum += addVal;
             const totalEl = document.getElementById('notif-order-total');
@@ -338,6 +351,8 @@ class OrderNotificationService {
                     updatedItens.forEach((i: any) => {
                         sum += (i.quantidade || 1) * (i.preco || 0);
                     });
+                    const additionalVal = parseFloat((document.getElementById('notif-additional-value') as HTMLInputElement)?.value) || 0;
+                    sum += additionalVal;
                 } else {
                     // Legacy orders: apply edited prices
                     const getParsed = (val: any) => { const p = parseFloat(val); return isNaN(p) ? 0 : p; };
@@ -356,7 +371,7 @@ class OrderNotificationService {
                     value: sum,
                     total: sum,
                     itens: updatedItens,
-                    valoresAdicionais: isCatalogOrder ? 0 : (parseFloat((document.getElementById('notif-additional-value') as HTMLInputElement)?.value) || 0)
+                    valoresAdicionais: parseFloat((document.getElementById('notif-additional-value') as HTMLInputElement)?.value) || 0
                 };
 
                 const isWithdrawal = (order as any).entrega === 'retirada';
