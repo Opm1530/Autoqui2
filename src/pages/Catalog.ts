@@ -717,7 +717,7 @@ export const Catalog = async (storeId: string) => {
                         taxaAplicada, taxaNome: getTaxaNome(),
                         desconto, codigoCupom: appliedCoupon?.codigo || null,
                         paymentMethod: 'na_entrega', pagamento: 'na_entrega',
-                        status: 'em_preparo', source: 'catalog',
+                        status: 'em_montagem', source: 'catalog',
                         criadoEm: new Date().toISOString()
                     });
 
@@ -801,7 +801,7 @@ export const Catalog = async (storeId: string) => {
                         desconto, codigoCupom: appliedCoupon?.codigo || null,
                         paymentMethod: 'pix_manual', pagamento: 'pagamento_no_pix',
                         comprovanteUrl,
-                        status: 'aguardando_pagamento', source: 'catalog',
+                        status: 'em_montagem', source: 'catalog',
                         criadoEm: new Date().toISOString()
                     });
 
@@ -868,7 +868,7 @@ export const Catalog = async (storeId: string) => {
                         desconto, codigoCupom: appliedCoupon?.codigo || null,
                         paymentMethod: 'pix_mercadopago', pagamento: 'pagamento_no_pix',
                         mpPaymentId: mpData?.payment_id || '',
-                        status: 'aguardando_pagamento', source: 'catalog',
+                        status: 'em_montagem', source: 'catalog',
                         criadoEm: new Date().toISOString()
                     });
 
