@@ -713,14 +713,23 @@ export const Catalog = async (storeId: string) => {
             // ── Lead management helper ──
             const findOrCreateLead = async (name: string, phone: string): Promise<string> => {
                 const normalizedPhone = phone.replace(/\D/g, '');
-                // Search by phone in this company
-                const existingLeads = await dbService.getAll('leads', {
-                    field: 'empresaId', operator: '==', value: company.id
-                }) as any[];
-                const existing = existingLeads.find((l: any) => {
-                    const lPhone = (l.telefone || l.whatsapp || '').replace(/\D/g, '').replace('@c.us', '');
-                    return lPhone && lPhone === normalizedPhone;
-                });
+                
+                // Tenta buscar diretamente pelo WhatsApp primeiro (altamente performático)
+                const leadsByWa = await dbService.getAll('leads', [
+                    { field: 'empresaId', operator: '==', value: company.id },
+                    { field: 'whatsapp', operator: '==', value: normalizedPhone }
+                ]) as any[];
+
+                let existing = leadsByWa[0];
+
+                if (!existing) {
+                    // Tenta pelo campo telefone
+                    const leadsByPh = await dbService.getAll('leads', [
+                        { field: 'empresaId', operator: '==', value: company.id },
+                        { field: 'telefone', operator: '==', value: normalizedPhone }
+                    ]) as any[];
+                    existing = leadsByPh[0];
+                }
 
                 if (existing) {
                     if (existing.statusLead !== 'cliente_ativo') {
@@ -748,7 +757,16 @@ export const Catalog = async (storeId: string) => {
                 const btn = document.getElementById('btn-pay-delivery') as HTMLButtonElement;
                 if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Processando...'; }
                 try {
-                    const { name, phone, address } = (window as any).catCustomer;
+                    const customer = (window as any).catCustomer;
+                    if (!customer || !customer.phone) {
+                        alert('Seus dados de contato não foram salvos ou foram perdidos. Por favor, preencha novamente.');
+                        closeModal('payment-modal');
+                        closeModal('pix-manual-modal');
+                        openModal('customer-modal');
+                        return;
+                    }
+
+                    const { name, phone, address } = customer;
                     const deliveryType = (window as any).catDeliveryType;
                     const items = Array.from(cart.entries()).map(([id, { product, qty }]) => {
                         const price = product.promotionalActive ? (product.promotionalPrice || product.price) : product.price;
@@ -788,8 +806,9 @@ export const Catalog = async (storeId: string) => {
                     if (orderIdEl) orderIdEl.textContent = orderId.slice(0, 8).toUpperCase();
                     if (pixSec) pixSec.style.display = 'none';
                     updateCartUI();
-                } catch (err) {
-                    console.error(err); alert('Erro ao processar pedido. Tente novamente.');
+                } catch (err: any) {
+                    console.error('Confirm Order Delivery Error:', err);
+                    alert('Erro ao processar pedido: ' + (err.message || 'Erro desconhecido') + '. Por favor, tente novamente ou fale com a loja.');
                     if (btn) { btn.disabled = false; btn.innerHTML = '🤝 Pagar na Entrega / Retirada'; }
                 }
             };
@@ -817,7 +836,16 @@ export const Catalog = async (storeId: string) => {
                 const btn = document.getElementById('btn-confirm-pix-manual') as HTMLButtonElement;
                 if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Confirmando...'; }
                 try {
-                    const { name, phone, address } = (window as any).catCustomer;
+                    const customer = (window as any).catCustomer;
+                    if (!customer || !customer.phone) {
+                        alert('Seus dados de contato não foram salvos ou foram perdidos. Por favor, preencha novamente.');
+                        closeModal('payment-modal');
+                        closeModal('pix-manual-modal');
+                        openModal('customer-modal');
+                        return;
+                    }
+
+                    const { name, phone, address } = customer;
                     const deliveryType = (window as any).catDeliveryType;
                     const items = Array.from(cart.entries()).map(([id, { product, qty }]) => {
                         const price = product.promotionalActive ? (product.promotionalPrice || product.price) : product.price;

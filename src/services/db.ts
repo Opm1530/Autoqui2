@@ -34,13 +34,18 @@ export const dbService = {
         });
     },
 
-    // Read All (with optional filter)
-    async getAll(collectionName: string, filter?: { field: string, operator: '==' | '!=', value: any }) {
+    // Read All (with optional filters)
+    async getAll(collectionName: string, filters?: { field: string, operator: any, value: any } | { field: string, operator: any, value: any }[]) {
         const colRef = collection(db, collectionName);
         let q = query(colRef);
 
-        if (filter) {
-            q = query(colRef, where(filter.field, filter.operator, filter.value));
+        if (filters) {
+            if (Array.isArray(filters)) {
+                const wheres = filters.map(f => where(f.field, f.operator, f.value));
+                q = query(colRef, ...wheres);
+            } else {
+                q = query(colRef, where(filters.field, filters.operator, filters.value));
+            }
         }
 
         const snapshot = await getDocs(q);
