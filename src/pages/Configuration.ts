@@ -41,10 +41,16 @@ const VARIAVEIS = [
 // ─── Message event fields ─────────────────────────────────────────────────────
 const MSG_FIELDS = [
     {
-        key: 'pedido_aceito',
-        label: 'Pedido Aceito',
+        key: 'pedido_aceito_entrega_pago',
+        label: 'Pedido aceito (Entrega pagamento adiantado)',
         icon: 'fa-check-circle',
-        default: 'Olá {{nome_lead}}! Seu pedido #{{numero_pedido}} foi aceito. \n\n📦 Itens: {{lista_produtos}}\n💰 Total: R$ {{valor_total}}\n\nPode me informar a forma de pagamento?',
+        default: 'Olá {{nome_lead}}! Seu pedido #{{numero_pedido}} foi aceito e já está sendo preparado (Pagamento Adiantado). \n\n📦 Itens: {{lista_produtos}}\n💰 Total: R$ {{valor_total}}',
+    },
+    {
+        key: 'pedido_aceito_entrega_pendente',
+        label: 'Pedido aceito (Entrega pagamento na entrega)',
+        icon: 'fa-motorcycle',
+        default: 'Olá {{nome_lead}}! Seu pedido #{{numero_pedido}} foi aceito e já está sendo preparado. O pagamento será feito na entrega. \n\n📦 Itens: {{lista_produtos}}\n💰 Total: R$ {{valor_total}}',
     },
     {
         key: 'pedido_aceito_retirada',

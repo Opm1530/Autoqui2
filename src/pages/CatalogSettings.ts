@@ -6,7 +6,8 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 // ─── Message event fields ─────────────────────────────────────────────────────
 const MSG_FIELDS = [
-    { key: 'pedido_aceito', label: 'Pedido Aceito (Entrega)', icon: 'fa-check-circle', default: 'Olá {{nome_lead}}! Seu pedido #{{numero_pedido}} foi aceito! Itens: {{lista_produtos}}. Total: R$ {{valor_total}}' },
+    { key: 'pedido_aceito_entrega_pago', label: 'Pedido aceito (Entrega pagamento adiantado)', icon: 'fa-check-circle', default: 'Olá {{nome_lead}}! Seu pedido #{{numero_pedido}} foi aceito e já está sendo preparado (Pagamento Adiantado). \n\n📦 Itens: {{lista_produtos}}\n💰 Total: R$ {{valor_total}}' },
+    { key: 'pedido_aceito_entrega_pendente', label: 'Pedido aceito (Entrega pagamento na entrega)', icon: 'fa-motorcycle', default: 'Olá {{nome_lead}}! Seu pedido #{{numero_pedido}} foi aceito e já está sendo preparado. O pagamento será feito na entrega. \n\n📦 Itens: {{lista_produtos}}\n💰 Total: R$ {{valor_total}}' },
     { key: 'pedido_aceito_retirada', label: 'Pedido Aceito (Retirada)', icon: 'fa-store', default: 'Olá {{nome_lead}}! Pedido #{{numero_pedido}} aceito para retirada. Valor: R$ {{valor_total}}. Aguardamos você!' },
     { key: 'pagamento_confirmado', label: 'Pagamento Confirmado', icon: 'fa-credit-card', default: 'Olá {{nome_lead}}! Pagamento do pedido #{{numero_pedido}} confirmado. Já estamos preparando!' },
     { key: 'pedido_pronto', label: 'Pedido Pronto (Retirada)', icon: 'fa-box', default: 'Olá {{nome_lead}}! Seu pedido #{{numero_pedido}} está pronto para retirada!' },

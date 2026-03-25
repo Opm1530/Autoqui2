@@ -46,7 +46,8 @@ function buildVars(order: any, lead: any): Record<string, string> {
 // ─── Default messages (fallback) ──────────────────────────────────────────────
 
 const DEFAULT_MESSAGES: Record<string, string> = {
-    pedido_aceito: '✅ Pedido confirmado! Pode me informar a forma de pagamento?',
+    pedido_aceito_entrega_pago: '✅ Pedido aceito e em preparo! (Pagamento Adiantado)',
+    pedido_aceito_entrega_pendente: '✅ Pedido aceito e em preparo! Pagamento na entrega.',
     pedido_aceito_retirada: '✅ Pedido confirmado para retirada! Já está sendo preparado.',
     pagamento_confirmado: '💳 Pagamento confirmado! Seu pedido já está sendo preparado.',
     pedido_pronto: '📦 Seu pedido já está pronto para retirada!',
@@ -59,7 +60,7 @@ const DEFAULT_MESSAGES: Record<string, string> = {
 
 function getMsgKey(newStatus: OrderStatus): string | null {
     switch (newStatus) {
-        case 'aguardando_pagamento': return 'pedido_aceito';
+        case 'aguardando_pagamento': return 'pedido_aceito_entrega_pago'; // Fallback generic case
         case 'em_preparo': return 'pagamento_confirmado';
         case 'pedido_pronto': return 'pedido_pronto';
         case 'saiu_para_entrega': return 'saiu_para_entrega';
@@ -179,12 +180,22 @@ export const orderService = {
             let msgKey = getMsgKey(newStatus);
 
             // Differentiate between Delivery and Pickup messages during acceptance
-            const isWithdrawal = order.entrega === 'retirada' || order.deliveryType === 'retirada' || order.entrega === 'retirada';
-            
-            // If it's a withdrawal and we're accepting it (moving to wait payment or prep)
-            if (isWithdrawal && (newStatus === 'aguardando_pagamento' || newStatus === 'em_preparo')) {
+            const isWithdrawal = order.entrega === 'retirada' || order.deliveryType === 'retirada';
+            const paymentMethod = order.formaPagamento || order.paymentMethod || order.pagamento || '';
+            const isPayOnDelivery = paymentMethod.includes('entrega') || paymentMethod.includes('dinheiro') || paymentMethod.includes('maquininha') || paymentMethod === 'na_entrega';
+
+            // If we're accepting it (moving from wait payment or prep)
+            if (newStatus === 'aguardando_pagamento' || newStatus === 'em_preparo') {
                 if (order.status === 'em_montagem' || !order.status) {
-                    msgKey = 'pedido_aceito_retirada';
+                    if (isWithdrawal) {
+                        msgKey = 'pedido_aceito_retirada';
+                    } else {
+                        if (isPayOnDelivery) {
+                            msgKey = 'pedido_aceito_entrega_pendente';
+                        } else {
+                            msgKey = 'pedido_aceito_entrega_pago';
+                        }
+                    }
                 }
             }
 
