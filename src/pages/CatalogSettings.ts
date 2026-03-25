@@ -358,7 +358,14 @@ export const CatalogSettings = async () => {
             <!-- ── Aparência ── -->
             <div class="card" style="margin-bottom:1.5rem;">
                 <div class="config-section-title">
-                    <i class="fa-solid fa-palette" style="color:var(--primary);"></i> Aparência do Catálogo
+                    <i class="fa-solid fa-palette" style="color:var(--primary);"></i> Aparência e Redes Sociais
+                </div>
+
+                <!-- Meta Description -->
+                <div class="cat-field">
+                    <label class="config-label">Descrição para Compartilhamento</label>
+                    <input type="text" id="cat-meta-description" value="${design.metaDescription || ''}" class="config-input" placeholder="Ex: Melhores lanches da região. Peça agora!">
+                    <p class="cat-field-hint">Texto que aparece quando você compartilha o link no WhatsApp/FB/Insta.</p>
                 </div>
 
                 <!-- Logo -->
@@ -844,6 +851,7 @@ export const CatalogSettings = async () => {
                 const priceColor = (document.getElementById('cat-price-color-hex') as HTMLInputElement).value;
                 const productBgColor = (document.getElementById('cat-product-bg-color-hex') as HTMLInputElement).value;
                 const themeId = (document.getElementById('cat-theme-id') as HTMLInputElement)?.value || 'classico';
+                const metaDescription = (document.getElementById('cat-meta-description') as HTMLInputElement).value;
                 const logoFile = (document.getElementById('cat-logo-file') as HTMLInputElement).files?.[0];
                 const bannerDesktopFile = (document.getElementById('cat-banner-desktop-file') as HTMLInputElement)?.files?.[0];
                 const bannerMobileFile = (document.getElementById('cat-banner-mobile-file') as HTMLInputElement)?.files?.[0];
@@ -868,7 +876,7 @@ export const CatalogSettings = async () => {
                     bannerMobileUrl = await getDownloadURL(storageRef);
                 }
 
-                const newDesign = { ...(lojaConf?.design || {}), primaryColor, secondaryColor, textColor, priceColor, productBgColor, logoUrl, themeId, bannerUrl, bannerMobileUrl };
+                const newDesign = { ...(lojaConf?.design || {}), primaryColor, secondaryColor, textColor, priceColor, productBgColor, logoUrl, themeId, bannerUrl, bannerMobileUrl, metaDescription };
                 await saveToLojaConfig({ design: newDesign });
                 toast.success('Aparência salva!');
                 btn.innerHTML = '<i class="fa-solid fa-check"></i> Salvo!';

@@ -51,8 +51,38 @@ export const Catalog = async (storeId: string) => {
         const logoUrl = design.logoUrl || '';
         const pixKey = design.pixKey || '';
 
-        if (typeof document !== 'undefined') {
-            document.title = store.name || 'Catálogo';
+        const updateMetaTags = (title: string, description: string, image: string) => {
+            if (typeof document === 'undefined') return;
+
+            // Basic tags
+            document.title = title;
+
+            const metaData = [
+                { name: 'description', content: description },
+                { property: 'og:title', content: title },
+                { property: 'og:description', content: description },
+                { property: 'og:image', content: image },
+                { property: 'og:type', content: 'website' },
+                { property: 'og:url', content: window.location.href },
+                { name: 'twitter:card', content: 'summary_large_image' },
+                { name: 'twitter:title', content: title },
+                { name: 'twitter:description', content: description },
+                { name: 'twitter:image', content: image }
+            ];
+
+            metaData.forEach(data => {
+                const selector = data.name ? `meta[name="${data.name}"]` : `meta[property="${data.property}"]`;
+                let element = document.querySelector(selector);
+                if (!element) {
+                    element = document.createElement('meta');
+                    if (data.name) element.setAttribute('name', data.name);
+                    if (data.property) element.setAttribute('property', data.property);
+                    document.head.appendChild(element);
+                }
+                element.setAttribute('content', data.content);
+            });
+
+            // Update favicon if logo exists
             if (logoUrl) {
                 let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
                 if (!link) {
@@ -62,7 +92,13 @@ export const Catalog = async (storeId: string) => {
                 }
                 link.href = logoUrl;
             }
-        }
+        };
+
+        const storeName = store.name || 'Catálogo';
+        const storeDescription = design.metaDescription || `Confira os produtos de ${storeName} em nosso catálogo digital.`;
+        const shareImage = design.logoUrl || (window.location.origin + '/logo.png');
+
+        updateMetaTags(storeName, storeDescription, shareImage);
 
         let whatsappNumber = design.whatsapp || '';
         if (!whatsappNumber) {
