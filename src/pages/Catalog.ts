@@ -99,6 +99,7 @@ export const Catalog = async (storeId: string) => {
         const shareImage = design.logoUrl || (window.location.origin + '/logo.png');
 
         updateMetaTags(storeName, storeDescription, shareImage);
+        console.log(`[Catalog] Meta tags updated for: ${storeName}`);
 
         let whatsappNumber = design.whatsapp || '';
         if (!whatsappNumber) {
