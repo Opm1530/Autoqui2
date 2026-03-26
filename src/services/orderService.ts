@@ -37,7 +37,7 @@ function buildVars(order: any, lead: any): Record<string, string> {
         telefone_lead: (lead?.telefone || '').split('@')[0] || order.clientPhone || '',
         numero_pedido: order.id?.slice(-6).toUpperCase() || '',
         lista_produtos: lista,
-        valor_total: `R$ ${(order.value || order.total || 0).toFixed(2)}`,
+        valor_total: (order.value || order.total || 0).toFixed(2),
         endereco_entrega: order.endereco || order.clientAddress || 'Não informado',
         forma_pagamento: order.formaPagamento || order.paymentMethod || order.pagamento || 'Não informado',
     };
@@ -76,11 +76,10 @@ async function fetchMensagensConfig(companyId: string, lojaId?: string): Promise
     try {
         // 1. Try to fetch from loja_config first (specific store config)
         if (lojaId) {
-            const lojaConfigs = await dbService.getAll('loja_config', {
-                field: 'lojaId',
-                operator: '==',
-                value: lojaId
-            });
+            const lojaConfigs = await dbService.getAll('loja_config', [
+                { field: 'empresaId', operator: '==', value: companyId },
+                { field: 'lojaId', operator: '==', value: lojaId }
+            ]);
             if (lojaConfigs && lojaConfigs.length > 0) {
                 const config = lojaConfigs[0] as any;
                 if (config.mensagens_automaticas) {
@@ -133,7 +132,10 @@ export const orderService = {
                 if (sid) {
                     try {
                         // a. Check loja_config
-                        const lojaConfigs = await dbService.getAll('loja_config', { field: 'lojaId', operator: '==', value: sid }) as any[];
+                        const lojaConfigs = await dbService.getAll('loja_config', [
+                            { field: 'empresaId', operator: '==', value: companyId },
+                            { field: 'lojaId', operator: '==', value: sid }
+                        ]) as any[];
                         const lojaConf = lojaConfigs[0];
                         let targetInstId = lojaConf?.instancia_id;
 

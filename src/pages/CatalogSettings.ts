@@ -14,6 +14,7 @@ const MSG_FIELDS = [
     { key: 'saiu_para_entrega', label: 'Saiu para Entrega', icon: 'fa-truck', default: 'Olá {{nome_lead}}! Pedido #{{numero_pedido}} saiu para entrega: {{endereco_entrega}}' },
     { key: 'pedido_entregue', label: 'Pedido Entregue / Finalizado', icon: 'fa-flag-checkered', default: 'Olá {{nome_lead}}! Pedido #{{numero_pedido}} finalizado. Obrigado pela preferência!' },
     { key: 'pedido_cancelado', label: 'Pedido Cancelado', icon: 'fa-xmark', default: 'Olá {{nome_lead}}! Seu pedido #{{numero_pedido}} foi cancelado.' },
+    { key: 'pedido_recebido', label: 'Pedido Recebido (Aguardando Aprovação)', icon: 'fa-clock', default: 'Olá {{nome_lead}}! Recebemos seu pedido #{{numero_pedido}}. Estamos revisando e já te informamos o status! ⏳' }
 ];
 
 const VARIAVEIS = [

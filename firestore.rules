@@ -4,6 +4,40 @@ service cloud.firestore {
     // Permite leitura/escrita para qualquer usuário autenticado
     // ISSO É APENAS PARA DESENVOLVIMENTO. 
     // Em produção, você deve restringir por companyId.
+    // REGRAS PARA O CATÁLOGO (ACESSO PÚBLICO)
+    
+    // Lojas e Configurações (Apenas leitura)
+    match /loja_config/{docId} {
+      allow read: if true;
+    }
+    match /companies/{companyId} {
+      allow read: if true; // No futuro, ideal selecionar apenas campos de design
+    }
+    match /categories/{catId} {
+      allow read: if true;
+    }
+    match /instancias/{instId} {
+      allow read: if true;
+    }
+
+    // Produtos - Leitura e Abatimento de Estoque
+    match /products/{productId} {
+      allow read: if true;
+      allow update: if true; // Permitir abater estoque no checkout público
+    }
+
+    // Criar Pedidos
+    match /pedidos/{orderId} {
+      allow create: if true;
+      allow read: if true; // Necessário para exibir a confirmação logo após o checkout
+    }
+
+    // Criar/Gerenciar Leads
+    match /leads/{leadId} {
+      allow read, create, update: if true;
+    }
+
+    // REGRAS GERAIS PARA USUÁRIOS AUTENTICADOS (DASHBOARD)
     match /{document=**} {
       allow read, write: if request.auth != null;
     }

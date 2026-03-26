@@ -895,8 +895,9 @@ export const Catalog = async (storeId: string) => {
                     const pixSec = document.getElementById('pix-info-section');
                     if (pixSec) pixSec.style.display = 'none';
                     updateCartUI();
-                } catch (err) {
-                    console.error(err); alert('Erro ao confirmar pedido. Tente novamente.');
+                } catch (err: any) {
+                    console.error('Confirm Pix Manual Error:', err);
+                    alert('Erro ao confirmar pedido: ' + (err.message || 'Erro de conexão/permissão') + '. Tente novamente.');
                     if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-check"></i> Confirmar Pagamento PIX'; }
                 }
             };
@@ -971,8 +972,9 @@ export const Catalog = async (storeId: string) => {
                         if (orderIdEl) orderIdEl.textContent = orderId.slice(0, 8).toUpperCase();
                     }
                     updateCartUI();
-                } catch (err) {
-                    console.error(err); alert('Erro ao gerar PIX. Tente novamente.');
+                } catch (err: any) {
+                    console.error('Confirm Pix MP Error:', err);
+                    alert('Erro ao gerar PIX Mercado Pago: ' + (err.message || 'Erro de resposta') + '. Tente novamente.');
                     if (btn) { btn.disabled = false; btn.innerHTML = '⚡ Pagar via Mercado Pago (PIX)'; }
                 }
             };
