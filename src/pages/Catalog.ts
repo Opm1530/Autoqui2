@@ -781,7 +781,7 @@ export const Catalog = async (storeId: string) => {
                     const desconto = getDescontoValue(subtotal);
                     const total = subtotal + taxaAplicada - desconto;
                     const leadId = await findOrCreateLead(name, phone);
-                    const orderId = await dbService.create('pedidos', {
+                    const orderData = {
                         lojaId: storeId, storeId, companyId: company.id, empresaId: company.id,
                         clientName: name, clientPhone: phone,
                         endereco: address, entrega: deliveryType,
@@ -791,12 +791,14 @@ export const Catalog = async (storeId: string) => {
                         paymentMethod: 'na_entrega', pagamento: 'na_entrega',
                         status: 'em_montagem', source: 'catalog',
                         criadoEm: new Date().toISOString()
-                    });
+                    };
+                    const orderId = await dbService.create('pedidos', orderData);
 
-                    // Trigger operator notification ONLY (no message to customer yet)
+                    // Trigger operator notification AND message to customer
                     try {
-                        console.log('Order created silently, waiting for operator approval.', orderId);
-                    } catch (err) { console.error('Error in order creation log:', err); }
+                        const { orderService } = await import('../services/orderService');
+                        await orderService.notifyNewOrder({ id: orderId, ...orderData }, company.id);
+                    } catch (err) { console.error('Error in order notification:', err); }
 
                     cart.clear(); appliedCoupon = null; closeModal('payment-modal'); updateCartUI();
                     const confirmModal = document.getElementById('confirmation-modal');

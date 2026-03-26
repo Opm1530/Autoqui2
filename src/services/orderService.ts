@@ -103,9 +103,68 @@ async function fetchMensagensConfig(companyId: string, lojaId?: string): Promise
     return {};
 }
 
+async function notifyNewOrder(order: any, companyId: string) {
+    try {
+        const sid = order.storeId || order.lojaId;
+        if (!sid) return;
+
+        // 1. Get instance
+        let instanceName = null;
+        const lojaConfigs = await dbService.getAll('loja_config', [
+            { field: 'empresaId', operator: '==', value: companyId },
+            { field: 'lojaId', operator: '==', value: sid }
+        ]) as any[];
+        const lojaConf = lojaConfigs[0];
+        let targetInstId = lojaConf?.instancia_id;
+
+        if (!targetInstId) {
+            const company = await dbService.get('companies', companyId) as any;
+            const storeInfo = company?.stores?.find((s: any) => s.id === sid);
+            targetInstId = storeInfo?.instancia_id;
+        }
+
+        if (targetInstId) {
+            const instDoc = await dbService.get('instancias', targetInstId) as any;
+            instanceName = instDoc?.nome;
+        }
+
+        if (!instanceName) return;
+
+        // 2. Get message template (optional)
+        const customMsgs = await fetchMensagensConfig(companyId, sid);
+        const template = customMsgs['pedido_recebido'];
+        
+        if (!template) return; // Non-existent or empty string -> don't send
+
+        // 3. Prepare variables
+        const lead = order.leadId ? await dbService.get('leads', order.leadId) : null;
+        const vars = buildVars(order, lead);
+        const message = substituirVariaveis(template, vars);
+
+        // 4. Send
+        const phone = order.clientPhone || order.telefone || (lead as any)?.telefone;
+        if (phone && message) {
+            await evolutionApi.sendText(instanceName, phone, message);
+            if (order.leadId) {
+                await dbService.create('messages', {
+                    conteudo: message,
+                    createdAt: Timestamp.now(),
+                    empresaId: companyId,
+                    leadId: order.leadId,
+                    role: 'assistente',
+                    tipo: 'conversation',
+                });
+            }
+        }
+    } catch (error) {
+        console.error('OrderService - Error in notifyNewOrder:', error);
+    }
+}
+
 // ─── Service ──────────────────────────────────────────────────────────────────
 
 export const orderService = {
+    notifyNewOrder,
 
     /**
      * Update order status.
