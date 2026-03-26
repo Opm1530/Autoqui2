@@ -784,7 +784,7 @@ export const Catalog = async (storeId: string) => {
                     const orderData = {
                         lojaId: storeId, storeId, companyId: company.id, empresaId: company.id,
                         clientName: name, clientPhone: phone,
-                        endereco: address, entrega: deliveryType,
+                        endereco: address, bairro: customer.bairro || '', entrega: deliveryType,
                         leadId, nome: name, items, total,
                         taxaAplicada, taxaNome: getTaxaNome(),
                         desconto, codigoCupom: appliedCoupon?.codigo || null,
@@ -879,7 +879,7 @@ export const Catalog = async (storeId: string) => {
                     const orderId = await dbService.create('pedidos', {
                         lojaId: storeId, storeId, companyId: company.id, empresaId: company.id,
                         clientName: name, clientPhone: phone,
-                        endereco: address, entrega: deliveryType,
+                        endereco: address, bairro: customer.bairro || '', entrega: deliveryType,
                         leadId, nome: name, items, total,
                         taxaAplicada, taxaNome: getTaxaNome(),
                         desconto, codigoCupom: appliedCoupon?.codigo || null,

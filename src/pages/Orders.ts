@@ -593,12 +593,29 @@ export const Orders = async () => {
                         <div class="lead-info-item" style="grid-column:1/-1;">
                             <span class="lead-info-label">Endereço de Entrega</span>
                             <span class="lead-info-value">${order.endereco || 'Não informado'}</span>
-                        </div>`
+                        </div>
+                        ${(() => {
+                        const bVal = order.bairro || (order.taxaNome?.includes('(') ? order.taxaNome.split('(')[1].split(')')[0] : '');
+                        return bVal ? `
+                        <div class="lead-info-item">
+                            <span class="lead-info-label">Bairro</span>
+                            <span class="lead-info-value" style="color:var(--primary); font-weight:600;">${bVal}</span>
+                        </div>` : '';
+                    })()}
+`
             ) : `
                         <div class="lead-info-item" style="grid-column:1/-1;">
                             <span class="lead-info-label">Endereço de Entrega</span>
                             <span class="lead-info-value">${order.endereco || '-'}</span>
                         </div>
+                        ${(() => {
+                        const bVal = order.bairro || (order.taxaNome?.includes('(') ? order.taxaNome.split('(')[1].split(')')[0] : '');
+                        return bVal ? `
+                        <div class="lead-info-item">
+                            <span class="lead-info-label">Bairro</span>
+                            <span class="lead-info-value" style="color:var(--primary); font-weight:600;">${bVal}</span>
+                        </div>` : '';
+                    })()}
                     `}
                 </div>
 

@@ -10,6 +10,7 @@ interface OrderData {
     id: string;
     customerName: string;
     endereco: string;
+    bairro?: string;
     description: string;
     value: number;
     leadId: string;
@@ -225,7 +226,16 @@ class OrderNotificationService {
                         <div style="display: flex; justify-content: space-between; align-items: center;">
                             <label style="font-size: 0.75rem; color: var(--text-dim); font-weight: 700; text-transform: uppercase;">Endereço</label>
                             <span style="font-size: 0.85rem; color: var(--text-muted); text-align: right; max-width: 60%;">${order.endereco || 'Não informado'}</span>
-                        </div>` : ''}
+                        </div>
+                        ${(() => {
+                        const bVal = (order as any).bairro || ((order as any).taxaNome?.includes('(') ? (order as any).taxaNome.split('(')[1].split(')')[0] : '');
+                        return bVal ? `
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <label style="font-size: 0.75rem; color: var(--text-dim); font-weight: 700; text-transform: uppercase;">Bairro</label>
+                            <span style="font-size: 0.85rem; color: var(--text-main); font-weight: 600; text-align: right;">${bVal}</span>
+                        </div>` : '';
+                    })()}
+                        ` : ''}
                         <div style="height: 1px; background: var(--border-color); width: 100%;"></div>
                         <div style="display: flex; justify-content: space-between; align-items: center;">
                             <label style="font-size: 0.75rem; color: var(--text-dim); font-weight: 700; text-transform: uppercase;">Pagamento</label>
