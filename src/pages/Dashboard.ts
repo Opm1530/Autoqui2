@@ -119,7 +119,12 @@ export const Dashboard = async () => {
                     ? orders
                     : orders.filter((o: any) => o.lojaId && userStoreIds.includes(o.lojaId));
 
-                metrics.orders_pending = filteredOrders.filter((o: any) => o.status !== 'finalizado' && o.status !== 'cancelado').length;
+                metrics.orders_pending = filteredOrders.filter((o: any) => {
+                    const status = (o.status || 'em_montagem').toLowerCase();
+                    const isTerminal = status === 'finalizado' || status === 'cancelado';
+                    if (o.arquivado) return false;
+                    return !isTerminal;
+                }).length;
                 metrics.orders_paid = filteredOrders.filter((o: any) => o.status === 'finalizado').length;
 
                 let totalSales = 0;

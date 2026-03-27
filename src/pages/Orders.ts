@@ -46,6 +46,23 @@ function formatDate(date: any): string {
     return new Date(date).toLocaleString('pt-BR');
 }
 
+function isToday(date: any): boolean {
+    if (!date) return false;
+    const d = date.toDate ? date.toDate() : new Date(date);
+    const now = new Date();
+    return d.getDate() === now.getDate() &&
+        d.getMonth() === now.getMonth() &&
+        d.getFullYear() === now.getFullYear();
+}
+
+function isOrderArchived(order: any): boolean {
+    if (order.arquivado) return true;
+    const status = (order.status || 'em_montagem').toLowerCase();
+    const terminal = status === 'finalizado' || status === 'cancelado';
+    const date = order.criadoEm || order.createdAt;
+    return terminal && !isToday(date);
+}
+
 // ─── Filter helpers ───────────────────────────────────────────────────────────
 
 const FILTERS = [
@@ -56,6 +73,7 @@ const FILTERS = [
     { key: 'pedido_pronto', label: '<i class="fa-solid fa-box"></i> Prontos' },
     { key: 'saiu_para_entrega', label: '<i class="fa-solid fa-truck"></i> Em Entrega' },
     { key: 'finalizado', label: '<i class="fa-solid fa-check"></i> Finalizados' },
+    { key: 'arquivados', label: '<i class="fa-solid fa-box-archive"></i> Arquivados' },
 ];
 
 function getDeliveryBadge(entrega: string): string {
@@ -174,8 +192,13 @@ export const Orders = async () => {
     let activeFilter = 'todos';
 
     const filterOrders = (filter: string) => {
-        if (filter === 'todos') return orders;
-        return orders.filter(o => (o.status || 'em_montagem').toLowerCase() === filter);
+        if (filter === 'arquivados') {
+            return orders.filter(o => isOrderArchived(o));
+        }
+        // Pelas regras, qualquer outra tab só mostra quem NÃO está arquivado
+        const nonArchived = orders.filter(o => !isOrderArchived(o));
+        if (filter === 'todos') return nonArchived;
+        return nonArchived.filter(o => (o.status || 'em_montagem').toLowerCase() === filter);
     };
 
     const renderRows = (list: any[]) => {
@@ -212,7 +235,11 @@ export const Orders = async () => {
     };
 
     const filterCountBadge = (key: string) => {
-        const count = key === 'todos' ? orders.length : orders.filter(o => (o.status || 'em_montagem').toLowerCase() === key).length;
+        const count = key === 'arquivados'
+            ? orders.filter(o => isOrderArchived(o)).length
+            : (key === 'todos'
+                ? orders.filter(o => !isOrderArchived(o)).length
+                : orders.filter(o => !isOrderArchived(o) && (o.status || 'em_montagem').toLowerCase() === key).length);
         return `<span class="filter-count" id="count-${key}">${count}</span>`;
     };
 
@@ -223,7 +250,7 @@ export const Orders = async () => {
             <div class="leads-filter-bar" id="orders-filter-bar">
                 ${FILTERS.map(f => `
                     <button class="filter-btn${f.key === 'todos' ? ' active' : ''}" data-filter="${f.key}">
-                        ${f.label} ${filterCountBadge(f.key)}
+                        ${f.label} ${f.key !== 'arquivados' ? filterCountBadge(f.key) : `<span id="count-arquivados" style="display:none;"></span>`}
                     </button>
                 `).join('')}
             </div>
@@ -297,9 +324,11 @@ export const Orders = async () => {
             FILTERS.forEach(f => {
                 const badge = document.getElementById(`count-${f.key}`);
                 if (badge) {
-                    const count = f.key === 'todos'
-                        ? orders.length
-                        : orders.filter(o => (o.status || 'em_montagem').toLowerCase() === f.key).length;
+                    const count = f.key === 'arquivados'
+                        ? orders.filter(o => isOrderArchived(o)).length
+                        : (f.key === 'todos'
+                            ? orders.filter(o => !isOrderArchived(o)).length
+                            : orders.filter(o => !isOrderArchived(o) && (o.status || 'em_montagem').toLowerCase() === f.key).length);
                     badge.textContent = count.toString();
                 }
             });
@@ -500,6 +529,7 @@ export const Orders = async () => {
         // ── Stage action buttons ──
         const stageButtons = buildStageButtons(order, status);
 
+
         // ── Intervir or WhatsApp button (only when not terminal) ──
         const actionBtn = (!isTerminal) ? (
             isCatalog ? `
@@ -533,6 +563,11 @@ export const Orders = async () => {
                             <button class="lead-dropdown-item" data-menu-action="atendimento_humano">
                                 <i class="fa-solid fa-headset" style="color:var(--primary);"></i> Ativar Atendimento Humano
                             </button>
+                            ${!isOrderArchived(order) ? `
+                            <button class="lead-dropdown-item" data-menu-action="arquivar">
+                                <i class="fa-solid fa-box-archive" style="color:#fbbf24;"></i> Arquivar Pedido
+                            </button>
+                            ` : ''}
                         </div>
                     </div>` : ''}
                     <button class="action-btn" id="close-order-modal" title="Fechar">
@@ -791,10 +826,11 @@ export const Orders = async () => {
                 const action = (item as HTMLElement).dataset.menuAction;
                 if (action === 'atendimento_humano') {
                     await handleHumanSupport(order);
+                } else if (action === 'arquivar') {
+                    await handleManualArchive(order, modal);
                 }
             });
         });
-
         // ── Intervir button toggle ──
         const btnIntervir = document.getElementById('btn-intervir');
         const intervirArea = document.getElementById('intervir-area');
@@ -975,6 +1011,30 @@ export const Orders = async () => {
                 }
             }
         });
+
+        // ── Archive button manual ──
+        document.getElementById('btn-archive-manual')?.addEventListener('click', async () => {
+            const ok = await confirm.warning('Arquivar Pedido', 'Deseja arquivar este pedido antigo? Ele sairá da lista principal e irá para Arquivados.');
+            if (!ok) return;
+
+            const btn = document.getElementById('btn-archive-manual') as HTMLButtonElement;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Arquivando...';
+
+            try {
+                await dbService.update('pedidos', order.id, { arquivado: true });
+                order.arquivado = true;
+                updateOrderInList(order);
+                toast.success('Pedido arquivado com sucesso!');
+                const modalEl = document.getElementById('order-detail-modal');
+                if (modalEl) modalEl.classList.add('hidden');
+            } catch (err) {
+                console.error('Erro ao arquivar:', err);
+                toast.error('Erro ao arquivar pedido.');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-box-archive"></i> Arquivar Pedido';
+            }
+        });
     }
 
     async function handleHumanSupport(order: any) {
@@ -988,6 +1048,22 @@ export const Orders = async () => {
             toast.success('Atendimento humano ativado para o lead!');
         } catch {
             toast.error('Erro ao ativar atendimento humano.');
+        }
+    }
+
+    async function handleManualArchive(order: any, modal: HTMLElement) {
+        const ok = await confirm.warning('Arquivar Pedido', 'Deseja arquivar este pedido? Ele sairá da lista principal e irá para Arquivados.');
+        if (!ok) return;
+
+        try {
+            await dbService.update('pedidos', order.id, { arquivado: true });
+            order.arquivado = true;
+            updateOrderInList(order);
+            toast.success('Pedido arquivado com sucesso!');
+            modal.classList.add('hidden');
+        } catch (err) {
+            console.error('Erro ao arquivar:', err);
+            toast.error('Erro ao arquivar pedido.');
         }
     }
 

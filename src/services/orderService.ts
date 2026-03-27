@@ -23,6 +23,15 @@ function substituirVariaveis(template: string, vars: Record<string, string>): st
     });
 }
 
+function isToday(date: any): boolean {
+    if (!date) return false;
+    const d = date.toDate ? date.toDate() : new Date(date);
+    const now = new Date();
+    return d.getDate() === now.getDate() &&
+        d.getMonth() === now.getMonth() &&
+        d.getFullYear() === now.getFullYear();
+}
+
 function buildVars(order: any, lead: any): Record<string, string> {
     // Normalize: catalog orders use `items` with {name, qty, price} while legacy uses `itens` with {item, quantidade, preco}
     const rawItems = Array.isArray(order.itens) ? order.itens : Array.isArray(order.items) ? order.items : [];
@@ -370,8 +379,19 @@ export const orderService = {
                     if (!o.lojaId || !storeIds.includes(o.lojaId)) return false;
                 }
 
+                // If explicitly archived, don't count
+                if (o.arquivado) return false;
+
                 const status = (o.status || 'em_montagem').toLowerCase();
-                return status !== 'finalizado' && status !== 'cancelado';
+                const isTerminal = status === 'finalizado' || status === 'cancelado';
+
+                // If terminal but from a past date, it's implicitly archived
+                if (isTerminal) {
+                    const date = o.criadoEm || o.createdAt;
+                    if (!isToday(date)) return false;
+                }
+
+                return !isTerminal;
             }).length;
         } catch {
             return 0;

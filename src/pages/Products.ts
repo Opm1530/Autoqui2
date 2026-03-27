@@ -61,6 +61,8 @@ export const Products = async () => {
     }
 
     let activeStoreFilter = isOwner ? 'all' : (userStoreIds.length === 1 ? userStoreIds[0] : 'employee_all');
+    let activeSearchTerm = '';
+    let activeCategoryFilter = 'all';
 
     let pendingFiles: Map<string, File> = new Map();
     let editModeProductId: string | null = null;
@@ -100,12 +102,18 @@ export const Products = async () => {
                 (p.storeId && userStoreIds.includes(p.storeId))
             );
         }
+        if (activeSearchTerm) {
+            filteredProducts = filteredProducts.filter((p: any) => p.name.toLowerCase().includes(activeSearchTerm));
+        }
+        if (activeCategoryFilter !== 'all') {
+            filteredProducts = filteredProducts.filter((p: any) => (p.categoryId || 'uncategorized') === activeCategoryFilter);
+        }
 
         if (filteredProducts.length === 0) {
             return `<tr><td colspan="7" style="text-align:center">Nenhum ${labelSingular.toLowerCase()} encontrado.</td></tr>`;
         }
         return filteredProducts.map((p: any) => `
-            <tr data-product-id="${p.id}">
+            <tr data-product-id="${p.id}" data-cat-id="${p.categoryId || 'uncategorized'}">
                 <td><input type="checkbox" class="product-checkbox" data-id="${p.id}" onchange="window.updateBulkBar()"></td>
                 <td>
                     <div style="display: flex; align-items: center; gap: 10px;">
@@ -137,6 +145,12 @@ export const Products = async () => {
                 </td>
             </tr>
         `).join('');
+    };
+
+    (window as any).applyFilters = () => {
+        activeSearchTerm = (document.getElementById('product-search-input') as HTMLInputElement)?.value.toLowerCase() || '';
+        activeCategoryFilter = (document.getElementById('product-category-filter') as HTMLSelectElement)?.value || 'all';
+        refreshTable();
     };
 
     // ── Helpers ──────────────────────────────────────────────────────────────
@@ -1066,16 +1080,50 @@ export const Products = async () => {
             </div>
 
             ${isOwner ? `
-            <div style="margin-bottom: 2rem; display: flex; align-items: center; gap: 12px;">
-                <span style="font-size: 0.85rem; color: var(--text-dim); font-weight: 700; text-transform: uppercase;">Filtrar por Loja:</span>
-                <div class="store-filter-container" id="store-pills-filter">
-                    <button class="filter-pill ${activeStoreFilter === 'all' ? 'active' : ''}" onclick="window.setStoreFilter('all', this)">Todas</button>
-                    ${stores.map((s: any) => `
-                        <button class="filter-pill ${activeStoreFilter === s.id ? 'active' : ''}" onclick="window.setStoreFilter('${s.id}', this)">${s.name}</button>
-                    `).join('')}
+            <div style="margin-bottom: 2rem; display: flex; align-items: center; gap: 20px; flex-wrap: wrap;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <span style="font-size: 0.85rem; color: var(--text-dim); font-weight: 700; text-transform: uppercase;">Filtrar por Loja:</span>
+                    <div class="store-filter-container" id="store-pills-filter">
+                        <button class="filter-pill ${activeStoreFilter === 'all' ? 'active' : ''}" onclick="window.setStoreFilter('all', this)">Todas</button>
+                        ${stores.map((s: any) => `
+                            <button class="filter-pill ${activeStoreFilter === s.id ? 'active' : ''}" onclick="window.setStoreFilter('${s.id}', this)">${s.name}</button>
+                        `).join('')}
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 12px; flex: 1; min-width: 300px;">
+                    <div style="flex: 2; position: relative;">
+                        <i class="fa-solid fa-search" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-dim);"></i>
+                        <input type="text" id="product-search-input" placeholder="Pesquisar ${labelPlural.toLowerCase()}..." 
+                            style="width: 100%; padding: 10px 10px 10px 35px; background: var(--surface-hover); border: 1px solid var(--border-color); border-radius: 12px; color: white;"
+                            oninput="window.applyFilters()">
+                    </div>
+                    <div style="flex: 1;">
+                        <select id="product-category-filter" onchange="window.applyFilters()"
+                            style="width: 100%; padding: 10px; background: var(--surface-hover); border: 1px solid var(--border-color); border-radius: 12px; color: white; outline: none;">
+                            <option value="all">Todas Categorias</option>
+                            ${categories.map((c: any) => `<option value="${c.id}">${c.name}</option>`).join('')}
+                        </select>
+                    </div>
                 </div>
             </div>
-            ` : ''}
+            ` : `
+            <div style="margin-bottom: 2rem; display: flex; gap: 12px;">
+                <div style="flex: 2; position: relative;">
+                    <i class="fa-solid fa-search" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-dim);"></i>
+                    <input type="text" id="product-search-input" placeholder="Pesquisar ${labelPlural.toLowerCase()}..." 
+                        style="width: 100%; padding: 10px 10px 10px 35px; background: var(--surface-hover); border: 1px solid var(--border-color); border-radius: 12px; color: white;"
+                        oninput="window.applyFilters()">
+                </div>
+                <div style="flex: 1;">
+                    <select id="product-category-filter" onchange="window.applyFilters()"
+                        style="width: 100%; padding: 10px; background: var(--surface-hover); border: 1px solid var(--border-color); border-radius: 12px; color: white; outline: none;">
+                        <option value="all">Todas Categorias</option>
+                        ${categories.map((c: any) => `<option value="${c.id}">${c.name}</option>`).join('')}
+                    </select>
+                </div>
+            </div>
+            `}
         </div>
 
         <div class="card">

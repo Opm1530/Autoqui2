@@ -610,9 +610,12 @@ export const Catalog = async (storeId: string) => {
                 const mandatoryPayMsg = document.getElementById('mandatory-pay-msg');
 
                 const isMandatoryPickupPay = config?.pagamentoObrigatorioRetirada === true;
+                const isDeliveryPayDisabled = config?.desativarPagamentoEntrega === true;
 
                 if (payDeliveryBtn) {
                     if (deliveryType === 'retirada' && isMandatoryPickupPay) {
+                        payDeliveryBtn.style.display = 'none';
+                    } else if (deliveryType === 'entrega' && isDeliveryPayDisabled) {
                         payDeliveryBtn.style.display = 'none';
                     } else {
                         payDeliveryBtn.style.display = 'flex';
@@ -1520,6 +1523,9 @@ export const Catalog = async (storeId: string) => {
                 ` : `
                     <!-- Clássico (default) -->
                     <main class="section-container">
+                        <div style="margin-top:20px;">
+                            <input type="search" class="cat-search-bar" placeholder="O que você procura hoje?" oninput="window.catSearch(this.value)">
+                        </div>
                         <div class="cat-selector-wrapper">
                             <div class="cat-selector-scroll">
                                 <button class="cat-selector-item active" onclick="window.catFilterClassic('all')">

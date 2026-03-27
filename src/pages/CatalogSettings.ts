@@ -653,6 +653,21 @@ export const CatalogSettings = async () => {
                     </div>
                 </div>
 
+                <div style="border-top:1px solid var(--border-color);padding-top:1.25rem;margin-bottom:1.5rem;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;">
+                        <div>
+                            <p style="font-size:0.9rem;font-weight:700;margin:0 0 0.4rem;display:flex;align-items:center;gap:8px;">
+                                <i class="fa-solid fa-ban" style="color:var(--primary);"></i> Desativar Pagamento na Entrega
+                            </p>
+                            <p style="margin:0;font-size:0.8rem;color:var(--text-dim);">Remove a opção de pagar no momento da entrega.</p>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="cat-disable-delivery-pay" ${config?.desativarPagamentoEntrega ? 'checked' : ''}>
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+                </div>
+
                 <!-- Cupons de Desconto -->
                 <div style="border-top:1px solid var(--border-color);padding-top:1.25rem;margin-bottom:1.5rem;">
                     <p style="font-size:0.9rem;font-weight:700;margin:0 0 1rem;display:flex;align-items:center;gap:8px;">
@@ -990,12 +1005,13 @@ export const CatalogSettings = async () => {
                 const pixKey = (document.getElementById('cat-pix-key') as HTMLInputElement).value.trim();
                 const mercadoPagoActive = (document.getElementById('mp-active-toggle') as HTMLInputElement)?.checked;
                 const pagamentoObrigatorioRetirada = (document.getElementById('cat-mandatory-pickup-pay') as HTMLInputElement)?.checked;
+                const desativarPagamentoEntrega = (document.getElementById('cat-disable-delivery-pay') as HTMLInputElement)?.checked;
 
                 const newDesign = { ...(lojaConf?.design || {}), whatsapp, pixKey };
                 delete newDesign.taxaFixaNome;
                 delete newDesign.taxaFixaValor;
                 delete newDesign.taxaTipo;
-                await saveToLojaConfig({ design: newDesign, mercadoPagoActive, pagamentoObrigatorioRetirada });
+                await saveToLojaConfig({ design: newDesign, mercadoPagoActive, pagamentoObrigatorioRetirada, desativarPagamentoEntrega });
                 toast.success('Configurações de pagamento salvas!');
                 btn.innerHTML = '<i class="fa-solid fa-check"></i> Salvo!';
                 btn.classList.add('saved');
