@@ -938,19 +938,31 @@ export const Orders = async () => {
 
                     let sum = 0;
                     const updatedItens = Array.isArray(order.itens) ? [...order.itens] : [];
+                    const priceInputs = document.querySelectorAll('.item-price-input');
 
-                    document.querySelectorAll('.item-price-input').forEach((inp: any) => {
-                        const idx = parseInt(inp.dataset.index);
-                        const q = updatedItens[idx]?.quantidade || 1;
-                        const preco = getParsed(inp.value);
-                        if (updatedItens[idx]) {
-                            updatedItens[idx].preco = preco;
-                        }
-                        sum += q * preco;
-                    });
+                    if (priceInputs.length > 0) {
+                        priceInputs.forEach((inp: any) => {
+                            const idx = parseInt(inp.dataset.index);
+                            const q = updatedItens[idx]?.quantidade || 1;
+                            const preco = getParsed(inp.value);
+                            if (updatedItens[idx]) {
+                                updatedItens[idx].preco = preco;
+                            }
+                            sum += q * preco;
+                        });
+                    } else {
+                        // Se não há inputs (ex: pedido de catálogo), usa os valores já presentes no objeto
+                        updatedItens.forEach(i => {
+                            sum += (i.quantidade || 1) * getParsed(i.preco);
+                        });
+                    }
 
-                    const valoresAdicionais = getParsed((document.getElementById('detail-additional-value') as HTMLInputElement)?.value);
-                    const taxaEntrega = getParsed((document.getElementById('detail-taxa-entrega') as HTMLInputElement)?.value);
+                    const addInput = document.getElementById('detail-additional-value') as HTMLInputElement;
+                    const taxaInput = document.getElementById('detail-taxa-entrega') as HTMLInputElement;
+
+                    const valoresAdicionais = addInput ? getParsed(addInput.value) : getParsed(order.valoresAdicionais);
+                    const taxaEntrega = taxaInput ? getParsed(taxaInput.value) : getParsed(order.taxaAplicada || order.taxaEntrega);
+                    
                     sum += valoresAdicionais + taxaEntrega;
 
                     extraUpdates = {

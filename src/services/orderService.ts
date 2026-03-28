@@ -46,7 +46,7 @@ function buildVars(order: any, lead: any): Record<string, string> {
         telefone_lead: (lead?.telefone || '').split('@')[0] || order.clientPhone || '',
         numero_pedido: order.id?.slice(-6).toUpperCase() || '',
         lista_produtos: lista,
-        valor_total: (order.value || order.total || 0).toFixed(2),
+        valor_total: (Number(order.value || order.total) || 0).toFixed(2),
         endereco_entrega: order.endereco || order.clientAddress || 'Não informado',
         forma_pagamento: (() => {
             const base = order.formaPagamento || order.paymentMethod || order.pagamento || 'Não informado';
