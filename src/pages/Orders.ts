@@ -83,7 +83,8 @@ function getDeliveryBadge(entrega: string): string {
     return `<span class="badge info" style="background: rgba(59, 130, 246, 0.1); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.2); font-size: 0.7rem; padding: 0.2rem 0.5rem; display: inline-flex; align-items: center; gap: 0.3rem;"><i class="fa-solid fa-truck" style="font-size: 0.6rem;"></i> Entrega</span>`;
 }
 
-function getPaymentBadge(payment: string, comprovanteUrl?: string, empresaId?: string): string {
+function getPaymentBadge(order: any): string {
+    const payment = order.pagamento || order.formaPagamento || '';
     if (!payment) return `<span class="badge secondary" style="opacity: 0.5; font-size: 0.7rem; padding: 0.2rem 0.5rem;">Pendente</span>`;
 
     const p = payment.toLowerCase().trim();
@@ -101,9 +102,7 @@ function getPaymentBadge(payment: string, comprovanteUrl?: string, empresaId?: s
             <i class="fa-brands fa-pix" style="font-size: 0.6rem;"></i> PIX
         </span>`;
 
-        // Check if there is a storage path or URL
-        // In the user's latest DB example, the path is intermittently in comprovanteUrl or empresaId
-        const path = (comprovanteUrl && comprovanteUrl !== 'tete') ? comprovanteUrl : (empresaId && empresaId.startsWith('comprovantes/') ? empresaId : null);
+        const path = (order.comprovanteUrl && order.comprovanteUrl !== 'tete') ? order.comprovanteUrl : (order.empresaId && order.empresaId.startsWith('comprovantes/') ? order.empresaId : null);
 
         if (path) {
             html += `
@@ -114,9 +113,15 @@ function getPaymentBadge(payment: string, comprovanteUrl?: string, empresaId?: s
         return `<div style="display: flex; align-items: center;">${html}</div>`;
     }
     if (isEntrega) {
-        return `<span class="badge warning" style="background: rgba(245, 158, 11, 0.1); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.2); font-size: 0.7rem; padding: 0.2rem 0.5rem; display: inline-flex; align-items: center; gap: 0.3rem;">
-            <i class="fa-solid fa-hand-holding-dollar" style="font-size: 0.6rem;"></i> Na Entrega
-        </span>`;
+        const sub = order.paymentSubMethod === 'dinheiro' ? 'Dinheiro' : order.paymentSubMethod === 'cartao' ? 'Cartão' : '';
+        const troco = order.troco ? ` (Troco R$ ${parseFloat(order.troco).toFixed(2)})` : '';
+        return `
+            <div style="display:flex; flex-direction:column; gap:4px;">
+                <span class="badge warning" style="background: rgba(245, 158, 11, 0.1); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.2); font-size: 0.7rem; padding: 0.2rem 0.5rem; display: inline-flex; align-items: center; gap: 0.3rem; width:fit-content;">
+                    <i class="fa-solid fa-hand-holding-dollar" style="font-size: 0.6rem;"></i> Na Entrega
+                </span>
+                ${sub ? `<span style="font-size:0.75rem; color:var(--text-dim); font-weight:600; margin-left:4px;">${sub}${troco}</span>` : ''}
+            </div>`;
     }
     return `<span class="badge secondary" style="font-size: 0.7rem; padding: 0.2rem 0.5rem;">${payment}</span>`;
 }
@@ -221,7 +226,7 @@ export const Orders = async () => {
                     </div>
                 </td>
                 <td style="font-weight:600;">R$ ${(order.value || order.total || 0).toFixed(2)}</td>
-                <td>${getStatusBadge(status)}  ${getDeliveryBadge(order.entrega || 'entrega')}  ${getPaymentBadge(order.pagamento || order.formaPagamento, order.comprovanteUrl, order.empresaId)}</td>
+                <td>${getStatusBadge(status)}  ${getDeliveryBadge(order.entrega || 'entrega')}  ${getPaymentBadge(order)}</td>
                 <td style="color:var(--text-muted);font-size:0.82rem;">${formatDate(order.criadoEm || order.createdAt)}</td>
                 <td>
                     <div class="actions">
@@ -617,7 +622,7 @@ export const Orders = async () => {
                     </div>
                     <div class="lead-info-item">
                         <span class="lead-info-label">Pagamento</span>
-                        <span class="lead-info-value">${getPaymentBadge(order.pagamento || order.formaPagamento, order.comprovanteUrl, order.empresaId)}</span>
+                        <span class="lead-info-value">${getPaymentBadge(order)}</span>
                     </div>
                     ${isCatalog ? (
                 order.entrega === 'retirada' ? `

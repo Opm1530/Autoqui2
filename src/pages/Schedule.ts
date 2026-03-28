@@ -24,6 +24,7 @@ interface Service {
     name: string;
     price: number;
     duration?: number;
+    observation?: string;
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: string }> = {
@@ -77,7 +78,17 @@ export const Schedule = async () => {
     clientes.sort((a, b) => (a.nome || '').localeCompare(b.nome || ''));
 
     // Load appointments
-    let appointments = await dbService.getAll('agendamentos', { field: 'companyId', operator: '==', value: companyId }) as Appointment[];
+    const appointmentsRaw = await dbService.getAll('agendamentos', { field: 'companyId', operator: '==', value: companyId }) as any[];
+
+    // Enrich appointments with client details
+    let appointments: Appointment[] = appointmentsRaw.map(a => {
+        const client = clientes.find(c => c.id === a.clienteId);
+        return {
+            ...a,
+            clientName: client?.nome || a.clientName || 'Cliente não identificado',
+            clientPhone: client?.telefone || a.clientPhone || '—'
+        };
+    });
 
     let selectedDate = todayStr();
     let viewMode: 'day' | 'week' | 'list' = 'day';

@@ -632,6 +632,43 @@ export const Catalog = async (storeId: string) => {
             };
 
             (window as any).closePayment = () => closeModal('payment-modal');
+            
+            (window as any).catToggleDeliveryOptions = () => {
+                const details = document.getElementById('delivery-payment-details');
+                if (details) {
+                    const isVisible = details.style.display === 'flex';
+                    details.style.display = isVisible ? 'none' : 'flex';
+                    // Reset selection if hiding
+                    if (isVisible) {
+                        (window as any).catDeliveryPaymentMethod = null;
+                        (window as any).catTroco = null;
+                        document.querySelectorAll('.btn-sub-method').forEach(b => (b as HTMLElement).style.background = 'rgba(255,255,255,0.05)');
+                        const trocoWrap = document.getElementById('troco-wrapper');
+                        if (trocoWrap) trocoWrap.style.display = 'none';
+                    }
+                }
+            };
+
+            (window as any).catSelectDeliverySubMethod = (method: 'dinheiro' | 'cartao') => {
+                (window as any).catDeliveryPaymentMethod = method;
+                document.querySelectorAll('.btn-sub-method').forEach(b => {
+                    (b as HTMLElement).style.background = 'rgba(255,255,255,0.05)';
+                    (b as HTMLElement).style.borderColor = 'rgba(255,255,255,0.1)';
+                });
+                const btn = document.getElementById(`btn-sub-${method}`);
+                if (btn) {
+                    btn.style.background = 'rgba(99,102,241,0.2)';
+                    btn.style.borderColor = '#6366f1';
+                }
+                const trocoWrap = document.getElementById('troco-wrapper');
+                if (trocoWrap) trocoWrap.style.display = method === 'dinheiro' ? 'block' : 'none';
+                
+                const confirmBtn = document.getElementById('btn-confirm-delivery-sub');
+                if (confirmBtn) {
+                    (confirmBtn as HTMLButtonElement).disabled = false;
+                    (confirmBtn as HTMLButtonElement).style.opacity = '1';
+                }
+            };
 
             // ── Apply coupon ──
             (window as any).catApplyCoupon = () => {
@@ -784,6 +821,11 @@ export const Catalog = async (storeId: string) => {
                     const desconto = getDescontoValue(subtotal);
                     const total = subtotal + taxaAplicada - desconto;
                     const leadId = await findOrCreateLead(name, phone);
+                    
+                    const paymentSubMethod = (window as any).catDeliveryPaymentMethod;
+                    const trocoVal = (document.getElementById('cat-troco-input') as HTMLInputElement)?.value;
+                    const troco = (paymentSubMethod === 'dinheiro' && trocoVal) ? parseFloat(trocoVal) : null;
+
                     const orderData = {
                         lojaId: storeId, storeId, companyId: company.id, empresaId: company.id,
                         clientName: name, clientPhone: phone,
@@ -792,6 +834,7 @@ export const Catalog = async (storeId: string) => {
                         taxaAplicada, taxaNome: getTaxaNome(),
                         desconto, codigoCupom: appliedCoupon?.codigo || null,
                         paymentMethod: 'na_entrega', pagamento: 'na_entrega',
+                        paymentSubMethod, troco,
                         status: 'em_montagem', source: 'catalog',
                         criadoEm: new Date().toISOString()
                     };
@@ -1025,6 +1068,7 @@ export const Catalog = async (storeId: string) => {
                     </div>
                     <div class="card-info">
                         <h3>${title}</h3>
+                        ${modulos.includes('agendamento') && p.observation ? `<p style="font-size:0.8rem;color:#94a3b8;margin:4px 0 8px;line-height:1.4;">${p.observation}</p>` : ''}
                         <div class="price-container">
                             <span class="price">R$ ${price?.toFixed(2)}</span>
                             ${originalPrice ? `<span class="original-price">R$ ${originalPrice.toFixed(2)}</span>` : ''}
@@ -1046,6 +1090,7 @@ export const Catalog = async (storeId: string) => {
                     </div>
                     <div class="card-info">
                         <h3>${title}</h3>
+                        ${modulos.includes('agendamento') && p.observation ? `<p style="font-size:0.8rem;color:#94a3b8;margin:4px 0 8px;line-height:1.4;">${p.observation}</p>` : ''}
                         <div class="price-container">
                             <span class="price">R$ ${price?.toFixed(2)}</span>
                             ${originalPrice ? `<span class="original-price">R$ ${originalPrice.toFixed(2)}</span>` : ''}
@@ -1159,10 +1204,32 @@ export const Catalog = async (storeId: string) => {
                         </div>
                     </div>
                     <div style="display:flex;flex-direction:column;gap:12px;">
-                        <button id="btn-pay-delivery" onclick="window.confirmOrderDelivery()"
+                        <button id="btn-pay-delivery" onclick="window.catToggleDeliveryOptions()"
                             style="padding:16px;border-radius:14px;background:rgba(255,255,255,0.05);color:white;border:1px solid rgba(255,255,255,0.1);cursor:pointer;font-weight:700;font-size:0.95rem;text-align:left;display:flex;align-items:center;gap:12px;">
                             <i class="fa-solid fa-handshake" style="font-size:1.2rem;"></i> <span>Pagar na Entrega / Retirada</span>
                         </button>
+                        
+                        <div id="delivery-payment-details" style="display:none;margin-top:-4px;padding:16px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:14px;flex-direction:column;gap:12px;animation: fadeInDown 0.3s ease;">
+                            <p style="margin:0;font-size:0.8rem;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;">Escolha como pagar:</p>
+                            <div style="display:flex;gap:10px;">
+                                <button onclick="window.catSelectDeliverySubMethod('dinheiro')" id="btn-sub-dinheiro" class="btn-sub-method" style="flex:1;padding:12px;border-radius:10px;background:rgba(255,255,255,0.05);color:white;border:1px solid rgba(255,255,255,0.1);cursor:pointer;font-size:0.9rem;font-weight:600;transition:all 0.2s;">
+                                    <i class="fa-solid fa-money-bill-1" style="margin-right:6px;"></i> Dinheiro
+                                </button>
+                                <button onclick="window.catSelectDeliverySubMethod('cartao')" id="btn-sub-cartao" class="btn-sub-method" style="flex:1;padding:12px;border-radius:10px;background:rgba(255,255,255,0.05);color:white;border:1px solid rgba(255,255,255,0.1);cursor:pointer;font-size:0.9rem;font-weight:600;transition:all 0.2s;">
+                                    <i class="fa-solid fa-credit-card" style="margin-right:6px;"></i> Cartão
+                                </button>
+                            </div>
+                            <div id="troco-wrapper" style="display:none;padding:12px;background:rgba(255,255,255,0.02);border-radius:10px;border:1px solid rgba(255,255,255,0.05);">
+                                <label style="display:block;font-size:0.75rem;color:#94a3b8;margin-bottom:8px;font-weight:600;">Precisa de troco para quanto?</label>
+                                <div style="display:flex;align-items:center;gap:8px;">
+                                    <span style="color:#94a3b8;font-weight:700;">R$</span>
+                                    <input type="number" id="cat-troco-input" placeholder="Ex: 50,00" style="flex:1;padding:10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:white;font-size:1rem;font-weight:700;outline:none;">
+                                </div>
+                            </div>
+                            <button id="btn-confirm-delivery-sub" onclick="window.confirmOrderDelivery()" disabled style="opacity:0.5;margin-top:4px;padding:14px;border-radius:12px;background:#6366f1;color:white;border:none;cursor:pointer;font-weight:800;font-size:1rem;transition:all 0.2s;box-shadow:0 4px 12px rgba(99,102,241,0.3);">
+                                <i class="fa-solid fa-check" style="margin-right:8px;"></i> Confirmar Pedido
+                            </button>
+                        </div>
                         <button id="btn-pay-pix-manual" onclick="window.showPixManual()"
                             style="display:${pixKey ? 'flex' : 'none'};padding:16px;border-radius:14px;background:rgba(16,185,129,0.08);color:#10b981;border:1px solid rgba(16,185,129,0.2);cursor:pointer;font-weight:700;font-size:0.95rem;text-align:left;align-items:center;gap:12px;">
                             <i class="fa-brands fa-pix" style="font-size:1.2rem;"></i> <span>PIX Manual</span>

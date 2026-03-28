@@ -21,6 +21,7 @@ interface Product {
     categoryId?: string;
     stock?: number | null;
     duration?: number | null;
+    observation?: string;
 }
 
 interface Category {
@@ -118,7 +119,10 @@ export const Products = async () => {
                 <td>
                     <div style="display: flex; align-items: center; gap: 10px;">
                         ${getProductImageUrl(p) ? `<img src="${getProductImageUrl(p)}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px;">` : '<div style="width: 40px; height: 40px; background: #333; border-radius: 4px; display: flex; align-items: center; justify-content: center;"><i class="fa-solid fa-box"></i></div>'}
-                        <span style="font-weight: 600;">${p.name}</span>
+                        <div style="display: flex; flex-direction: column;">
+                            <span style="font-weight: 600;">${p.name}</span>
+                            ${isAgendamento && p.observation ? `<span style="font-size: 0.75rem; color: #94a3b8; max-width: 250px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${p.observation}">${p.observation}</span>` : ''}
+                        </div>
                     </div>
                 </td>
                 <td><div style="max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${getStoreNames(p)}">${getStoreNames(p)}</div></td>
@@ -244,7 +248,8 @@ export const Products = async () => {
         promotionalPrice: number | string = '',
         categoryId: string = '',
         stock: number | null | undefined = null,
-        duration: number | null | undefined = null
+        duration: number | null | undefined = null,
+        observation: string = ''
     ) => {
         const categoryOptions = categories.map((c: Category) => `<option value="${c.id}" ${c.id === categoryId ? 'selected' : ''}>${c.name}</option>`).join('');
         return `
@@ -296,6 +301,14 @@ export const Products = async () => {
                             }
                         </div>
                     </div>
+                    
+                    ${isAgendamento ? `
+                    <div style="margin-top: 12px;">
+                        <div class="field">
+                            <label>Observação</label>
+                            <textarea name="observation-${tempId}" class="item-observation" placeholder="Ex: Informações adicionais sobre o ${labelSingular.toLowerCase()}..." style="width: 100%; background: var(--bg-color); border: 1px solid var(--border-color); color: white; padding: 10px 12px; border-radius: 8px; font-size: 0.95rem; min-height: 60px; resize: vertical;">${observation}</textarea>
+                        </div>
+                    </div>` : ''}
                     
                     ${!isAgendamento ? `
                     <div class="promotional-section" style="margin-top: 15px; padding-top: 10px; border-top: 1px dashed var(--border-color);">
@@ -407,7 +420,7 @@ export const Products = async () => {
                 listContainer.innerHTML = createProductItemHtml(
                     'edit-item', product.name, product.price, imgUrl,
                     product.promotionalActive, product.promotionalName, product.promotionalPrice,
-                    product.categoryId, product.stock, product.duration
+                    product.categoryId, product.stock, product.duration, product.observation
                 );
                 setTimeout(() => attachItemListeners('edit-item'), 0);
             }
@@ -569,6 +582,8 @@ export const Products = async () => {
                     stock = stockInput !== '' && stockInput != null ? parseInt(stockInput) : null;
                 }
 
+                const observation = (item.querySelector('.item-observation') as HTMLTextAreaElement)?.value || '';
+
                 const progressOverlay = document.getElementById(`progress-${tempId}`);
                 if (progressOverlay) progressOverlay.classList.remove('hidden');
 
@@ -581,7 +596,7 @@ export const Products = async () => {
                     name, price: price || 0, categoryId, storeIds,
                     companyId: currentUser.companyId, active: true,
                     promotionalActive: promoActive, promotionalName: promoName,
-                    promotionalPrice: promoPrice, stock, duration, ...imageData
+                    promotionalPrice: promoPrice, stock, duration, observation, ...imageData
                 };
 
                 if (editModeProductId && tempId === 'edit-item') {

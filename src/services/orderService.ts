@@ -48,7 +48,15 @@ function buildVars(order: any, lead: any): Record<string, string> {
         lista_produtos: lista,
         valor_total: (order.value || order.total || 0).toFixed(2),
         endereco_entrega: order.endereco || order.clientAddress || 'Não informado',
-        forma_pagamento: order.formaPagamento || order.paymentMethod || order.pagamento || 'Não informado',
+        forma_pagamento: (() => {
+            const base = order.formaPagamento || order.paymentMethod || order.pagamento || 'Não informado';
+            if (base === 'na_entrega' || base === 'pagamento_na_entrega') {
+                const sub = order.paymentSubMethod === 'dinheiro' ? 'Dinheiro' : order.paymentSubMethod === 'cartao' ? 'Cartão' : '';
+                const troco = order.troco ? ` (Troco para R$ ${parseFloat(order.troco).toFixed(2)})` : '';
+                if (sub) return `Na Entrega (${sub}${troco})`;
+            }
+            return base;
+        })(),
     };
 }
 
