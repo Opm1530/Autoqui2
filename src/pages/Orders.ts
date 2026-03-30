@@ -736,8 +736,8 @@ export const Orders = async () => {
 
         switch (status) {
             case 'em_montagem':
-                // For withdrawal + pay on delivery, skip waiting for payment
-                const acceptTarget = (isWithdrawal && isPayOnDelivery) ? 'em_preparo' : 'aguardando_pagamento';
+                // Toda vez que for pagamento na entrega/retirada, pula o aguardando pagamento
+                const acceptTarget = isPayOnDelivery ? 'em_preparo' : 'aguardando_pagamento';
                 return `
                     <button id="btn-main-action" class="btn-lead-action" data-target="${acceptTarget}">
                         <i class="fa-solid fa-check"></i> Aceitar Pedido

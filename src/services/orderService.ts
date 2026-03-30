@@ -264,15 +264,14 @@ export const orderService = {
 
             // If we're accepting it (moving from wait payment or prep)
             if (newStatus === 'aguardando_pagamento' || newStatus === 'em_preparo') {
-                if (order.status === 'em_montagem' || !order.status) {
+                // Se for pagamento na entrega, NUNCA disparar "pagamento_confirmado"
+                if (isPayOnDelivery) {
+                    msgKey = isWithdrawal ? 'pedido_aceito_retirada' : 'pedido_aceito_entrega_pendente';
+                } else if (order.status === 'em_montagem' || !order.status) {
                     if (isWithdrawal) {
                         msgKey = 'pedido_aceito_retirada';
                     } else {
-                        if (isPayOnDelivery) {
-                            msgKey = 'pedido_aceito_entrega_pendente';
-                        } else {
-                            msgKey = 'pedido_aceito_entrega_pago';
-                        }
+                        msgKey = 'pedido_aceito_entrega_pago';
                     }
                 }
             }
