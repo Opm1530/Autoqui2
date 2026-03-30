@@ -1100,8 +1100,8 @@ export const Catalog = async (storeId: string) => {
         };
 
         // ── Modal styles ─────────────────────────────────────────────────────
-        const MODAL_BASE = 'display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,0.75);align-items:center;justify-content:center;backdrop-filter:blur(4px);color:white;';
-        const MODAL_CARD = 'background:#1e293b;border-radius:24px;width:92%;max-width:460px;padding:28px;';
+        const MODAL_BASE = 'display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,0.75);align-items:center;justify-content:center;backdrop-filter:blur(4px);color:white;overflow-y:auto;padding:16px 0;';
+        const MODAL_CARD = 'background:#1e293b;border-radius:24px;width:92%;max-width:460px;padding:28px;max-height:90vh;overflow-y:auto;box-sizing:border-box;';
         const MODAL_HEADER = (title: string, closeCall: string) => `
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
                 <h3 style="margin:0;font-size:1.1rem;font-weight:700;display:flex;align-items:center;gap:10px;">${title}</h3>
@@ -1111,7 +1111,7 @@ export const Catalog = async (storeId: string) => {
 
         const modalsHtml = hasVendaCatalogo ? `
             <!-- CART MODAL -->
-            <div id="cart-modal" style="${MODAL_BASE}align-items:flex-end;overflow-y:auto;">
+            <div id="cart-modal" style="${MODAL_BASE}align-items:flex-end;padding:0;">
                 <div style="background:#1e293b;border-radius:24px 24px 0 0;width:100%;max-width:520px;max-height:85vh;display:flex;flex-direction:column;padding:24px;overflow:hidden;">
                     ${MODAL_HEADER('<i class="fa-solid fa-cart-shopping"></i> Meu Carrinho', 'window.closeCart()')}
                     <div id="cart-items" style="flex:1;overflow-y:auto;min-height:80px;"></div>
@@ -1126,7 +1126,7 @@ export const Catalog = async (storeId: string) => {
             </div>
 
             <!-- DELIVERY MODAL -->
-            <div id="delivery-modal" style="${MODAL_BASE}">
+            <div id="delivery-modal" style="${MODAL_BASE}align-items:flex-start;">
                 <div style="${MODAL_CARD}">
                     ${MODAL_HEADER('<i class="fa-solid fa-box"></i> Como deseja receber?', 'window.closeDelivery()')}
                     <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:20px;">
@@ -1154,8 +1154,8 @@ export const Catalog = async (storeId: string) => {
             </div>
 
             <!-- CUSTOMER MODAL -->
-            <div id="customer-modal" style="${MODAL_BASE}">
-                <div style="${MODAL_CARD}max-height:90vh;overflow-y:auto;">
+            <div id="customer-modal" style="${MODAL_BASE}align-items:flex-start;">
+                <div style="${MODAL_CARD}">
                     ${MODAL_HEADER('<i class="fa-solid fa-user"></i> Seus Dados', 'window.closeCustomer()')}
                     <div style="margin-bottom:16px;">
                         <label style="display:block;font-size:0.8rem;color:#94a3b8;text-transform:uppercase;font-weight:700;margin-bottom:6px;">Nome Completo</label>
@@ -1181,7 +1181,7 @@ export const Catalog = async (storeId: string) => {
             </div>
 
             <!-- PAYMENT MODAL -->
-            <div id="payment-modal" style="${MODAL_BASE}">
+            <div id="payment-modal" style="${MODAL_BASE}align-items:flex-start;">
                 <div style="${MODAL_CARD}">
                     ${MODAL_HEADER('<i class="fa-solid fa-credit-card"></i> Forma de Pagamento', 'window.closePayment()')}
                     <div id="payment-order-summary" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:14px;margin-bottom:14px;font-size:0.9rem;"></div>
@@ -1243,8 +1243,8 @@ export const Catalog = async (storeId: string) => {
             </div>
 
             <!-- PIX MANUAL MODAL -->
-            <div id="pix-manual-modal" style="${MODAL_BASE}">
-                <div style="${MODAL_CARD}max-height:90vh;overflow-y:auto;">
+            <div id="pix-manual-modal" style="${MODAL_BASE}align-items:flex-start;">
+                <div style="${MODAL_CARD}">
                     ${MODAL_HEADER('<i class="fa-brands fa-pix"></i> Pagamento via PIX', 'window.closePixManual()')}
                     <div id="pix-manual-summary" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:14px;margin-bottom:16px;font-size:0.9rem;"></div>
                     <div style="background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);border-radius:14px;padding:16px;margin-bottom:16px;">
@@ -1267,8 +1267,8 @@ export const Catalog = async (storeId: string) => {
             </div>
 
             <!-- MERCADO PAGO PIX MODAL -->
-            <div id="mp-pix-modal" style="${MODAL_BASE}">
-                <div style="${MODAL_CARD}max-height:90vh;overflow-y:auto;">
+            <div id="mp-pix-modal" style="${MODAL_BASE}align-items:flex-start;">
+                <div style="${MODAL_CARD}">
                     ${MODAL_HEADER('<i class="fa-solid fa-qrcode"></i> PIX — Mercado Pago', 'window.closeMpPix()')}
                     <div id="mp-pix-summary" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:14px;margin-bottom:16px;font-size:0.9rem;"></div>
                     <div style="text-align:center;margin-bottom:16px;">
