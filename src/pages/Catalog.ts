@@ -797,6 +797,20 @@ export const Catalog = async (storeId: string) => {
                 const btn = document.getElementById('btn-pay-delivery') as HTMLButtonElement;
                 if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Processando...'; }
                 try {
+                    // Verificação de funcionamento em tempo real
+                    if (!isStoreOpen()) {
+                        if (btn) { btn.disabled = false; btn.innerHTML = '🤝 Pagar na Entrega / Retirada'; }
+                        (window as any).showClosedAlert('store');
+                        return;
+                    }
+
+                    const deliveryType = (window as any).catDeliveryType;
+                    if (deliveryType === 'entrega' && !isFreteAbertoAgora()) {
+                        if (btn) { btn.disabled = false; btn.innerHTML = '🤝 Pagar na Entrega / Retirada'; }
+                        (window as any).showClosedAlert('delivery');
+                        return;
+                    }
+
                     const customer = (window as any).catCustomer;
                     if (!customer || !customer.phone) {
                         alert('Seus dados de contato não foram salvos ou foram perdidos. Por favor, preencha novamente.');
@@ -807,7 +821,7 @@ export const Catalog = async (storeId: string) => {
                     }
 
                     const { name, phone, address } = customer;
-                    const deliveryType = (window as any).catDeliveryType;
+                    // deliveryType já declarado acima para verificação de horário
                     const items = Array.from(cart.entries()).map(([id, { product, qty }]) => {
                         const price = product.promotionalActive ? (product.promotionalPrice || product.price) : product.price;
                         return { productId: id, name: product.name, qty, price, subtotal: price * qty };
@@ -884,6 +898,20 @@ export const Catalog = async (storeId: string) => {
                 const btn = document.getElementById('btn-confirm-pix-manual') as HTMLButtonElement;
                 if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Confirmando...'; }
                 try {
+                    // Verificação de funcionamento em tempo real
+                    if (!isStoreOpen()) {
+                        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-check"></i> Confirmar Pagamento PIX'; }
+                        (window as any).showClosedAlert('store');
+                        return;
+                    }
+
+                    const deliveryType = (window as any).catDeliveryType;
+                    if (deliveryType === 'entrega' && !isFreteAbertoAgora()) {
+                        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-check"></i> Confirmar Pagamento PIX'; }
+                        (window as any).showClosedAlert('delivery');
+                        return;
+                    }
+
                     const customer = (window as any).catCustomer;
                     if (!customer || !customer.phone) {
                         alert('Seus dados de contato não foram salvos ou foram perdidos. Por favor, preencha novamente.');
@@ -894,7 +922,7 @@ export const Catalog = async (storeId: string) => {
                     }
 
                     const { name, phone, address } = customer;
-                    const deliveryType = (window as any).catDeliveryType;
+                    // deliveryType já declarado acima para verificação de horário
                     const items = Array.from(cart.entries()).map(([id, { product, qty }]) => {
                         const price = product.promotionalActive ? (product.promotionalPrice || product.price) : product.price;
                         return { productId: id, name: product.name, qty, price, subtotal: price * qty };
@@ -955,8 +983,22 @@ export const Catalog = async (storeId: string) => {
                 const btn = document.getElementById('btn-pay-pix-mp') as HTMLButtonElement;
                 if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Gerando PIX...'; }
                 try {
-                    const { name, phone, address } = (window as any).catCustomer;
+                    // Verificação de funcionamento em tempo real
+                    if (!isStoreOpen()) {
+                        if (btn) { btn.disabled = false; btn.innerHTML = '⚡ Pagar via Mercado Pago (PIX)'; }
+                        (window as any).showClosedAlert('store');
+                        return;
+                    }
+
                     const deliveryType = (window as any).catDeliveryType;
+                    if (deliveryType === 'entrega' && !isFreteAbertoAgora()) {
+                        if (btn) { btn.disabled = false; btn.innerHTML = '⚡ Pagar via Mercado Pago (PIX)'; }
+                        (window as any).showClosedAlert('delivery');
+                        return;
+                    }
+
+                    const { name, phone, address } = (window as any).catCustomer;
+                    // deliveryType já declarado acima
                     const items = Array.from(cart.entries()).map(([id, { product, qty }]) => {
                         const price = product.promotionalActive ? (product.promotionalPrice || product.price) : product.price;
                         return { productId: id, name: product.name, qty, price, subtotal: price * qty };
