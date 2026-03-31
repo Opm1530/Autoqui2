@@ -1,6 +1,7 @@
 import { dbService } from '../services/db';
 import { authService } from '../services/auth';
 import { toast } from '../services/toast';
+import { notifications } from '../services/notifications';
 import { storage } from '../firebase/config';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
@@ -574,9 +575,9 @@ export const CatalogSettings = async () => {
                 </div>
 
                 <div class="cat-field">
-                    <label class="config-label">WhatsApp de Atendimento (com DDD)</label>
-                    <input type="text" id="cat-whatsapp" value="${design.whatsapp || ''}" class="config-input" placeholder="Ex: 5511999999999">
-                    <p class="cat-field-hint">Número exibido no botão flutuante do catálogo.</p>
+                    <label class="config-label">WhatsApp de Atendimento (DDD + 9 dígitos)</label>
+                    <input type="text" id="cat-whatsapp" value="${design.whatsapp || ''}" class="config-input" placeholder="Ex: 11999999999" maxlength="11">
+                    <p class="cat-field-hint">Informe apenas o DDD e os 9 dígitos do número (não inclua o 55).</p>
                 </div>
 
                 <div class="cat-field">
@@ -1001,7 +1002,18 @@ export const CatalogSettings = async () => {
             btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Salvando...';
             try {
                 const lojaConf = getLojaConfig(activeStoreId);
-                const whatsapp = (document.getElementById('cat-whatsapp') as HTMLInputElement).value.replace(/\D/g, '');
+                let whatsapp = (document.getElementById('cat-whatsapp') as HTMLInputElement).value.replace(/\D/g, '');
+                
+                // Remover prefixo 55 se houver 13 dígitos
+                if (whatsapp.length === 13 && whatsapp.startsWith('55')) {
+                    whatsapp = whatsapp.substring(2);
+                }
+
+                if (whatsapp && whatsapp.length !== 11) {
+                    notifications.showPhoneError();
+                    btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Salvar Pagamento';
+                    return;
+                }
                 const pixKey = (document.getElementById('cat-pix-key') as HTMLInputElement).value.trim();
                 const mercadoPagoActive = (document.getElementById('mp-active-toggle') as HTMLInputElement)?.checked;
                 const pagamentoObrigatorioRetirada = (document.getElementById('cat-mandatory-pickup-pay') as HTMLInputElement)?.checked;

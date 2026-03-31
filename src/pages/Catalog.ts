@@ -1,4 +1,5 @@
 import { dbService } from '../services/db';
+import { notifications } from '../services/notifications';
 import { storage } from '../firebase/config';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 
@@ -394,6 +395,8 @@ export const Catalog = async (storeId: string) => {
                     if (val.length > 11) val = val.slice(0, 11);
                     e.target.value = val;
                 });
+                phoneInp.setAttribute('placeholder', 'DDD + 9 dígitos');
+                phoneInp.setAttribute('maxlength', '11');
             }
         };
         setTimeout(() => (window as any).catInit(), 500);
@@ -586,7 +589,16 @@ export const Catalog = async (storeId: string) => {
                 }
 
                 if (!name || !phone) { alert('Preencha nome e telefone.'); return; }
-                if (phone.length < 10) { alert('Telefone inválido. Use o formato DD000000000'); return; }
+                
+                let cleanPhone = phone.replace(/\D/g, '');
+                if (cleanPhone.length === 13 && cleanPhone.startsWith('55')) {
+                    cleanPhone = cleanPhone.substring(2);
+                }
+
+                if (cleanPhone.length !== 11) {
+                    notifications.showPhoneError();
+                    return;
+                }
                 if (deliveryType === 'entrega' && !address) { alert('Preencha o endereço de entrega completo.'); return; }
 
                 (window as any).catSelectedBairro = bairroNome;
@@ -752,15 +764,30 @@ export const Catalog = async (storeId: string) => {
 
             // ── Lead management helper ──
             const findOrCreateLead = async (name: string, phone: string): Promise<string> => {
-                const normalizedPhone = phone.replace(/\D/g, '');
+                let cleanPhone = phone.replace(/\D/g, '');
+                
+                // Sanitização (já feita no goToPayment, mas aqui por segurança)
+                if (cleanPhone.length === 13 && cleanPhone.startsWith('55')) {
+                    cleanPhone = cleanPhone.substring(2);
+                }
+
+                const normalizedPhone = cleanPhone;
                 
                 // Tenta buscar diretamente pelo WhatsApp primeiro (altamente performático)
-                const leadsByWa = await dbService.getAll('leads', [
+                let leads = await dbService.getAll('leads', [
                     { field: 'empresaId', operator: '==', value: company.id },
                     { field: 'whatsapp', operator: '==', value: normalizedPhone }
                 ]) as any[];
 
-                let existing = leadsByWa[0];
+                // Se não encontrar, tenta buscar a versão com 55 (para compatibilidade com dados antigos)
+                if (leads.length === 0) {
+                    leads = await dbService.getAll('leads', [
+                        { field: 'empresaId', operator: '==', value: company.id },
+                        { field: 'whatsapp', operator: '==', value: '55' + normalizedPhone }
+                    ]) as any[];
+                }
+
+                let existing = leads[0];
 
                 if (!existing) {
                     // Tenta pelo campo telefone

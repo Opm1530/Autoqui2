@@ -1,6 +1,7 @@
 import { dbService } from '../services/db';
 import { authService } from '../services/auth';
 import { toast } from '../services/toast';
+import { notifications } from '../services/notifications';
 import { confirm } from '../services/confirm';
 import { Timestamp, collection, query, where, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase/config';
@@ -116,6 +117,14 @@ export const Leads = async () => {
     setTimeout(() => setupListeners(), 100);
 
     return `
+        <style>
+            .lead-modal-header-actions { display: flex; align-items: center; gap: 0.5rem; }
+            .edit-form-group { margin-bottom: 1.25rem; }
+            .edit-label { display: block; font-size: 0.75rem; font-weight: 700; color: var(--text-dim); text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.05em; }
+            .edit-input { width: 100%; padding: 0.75rem 1rem; background: var(--surface-hover); border: 1px solid var(--border-color); border-radius: var(--radius-md); color: var(--text-main); font-size: 0.9rem; transition: border-color .2s; }
+            .edit-input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 2px rgba(99,102,241,.15); }
+            .edit-hint { font-size: 0.75rem; color: var(--text-dim); margin-top: 4px; }
+        </style>
         <div class="leads-page-header">
             <div class="leads-filter-bar">
                 <button class="filter-btn active" data-filter="todos">Todos <span class="filter-count" id="count-lead-todos">${leads.length}</span></button>
@@ -229,10 +238,97 @@ export const Leads = async () => {
         document.querySelectorAll('.action-btn.view').forEach(btn => {
             btn.addEventListener('click', async () => {
                 const leadId = (btn as HTMLElement).dataset.id!;
-                // Always fetch fresh data from memory (re-fetch if stale)
                 const lead = leads.find(l => l.id === leadId);
                 if (lead) showLeadModal(lead);
             });
+        });
+    }
+
+    function showEditLeadModal(lead: any) {
+        const modal = document.getElementById('lead-detail-modal');
+        const inner = document.getElementById('lead-modal-inner');
+        if (!modal || !inner) return;
+
+        const phone = (lead.telefone || '').split('@')[0];
+
+        inner.innerHTML = `
+            <div class="lead-modal-header">
+                <div class="lead-modal-avatar"><i class="fa-solid fa-pen"></i></div>
+                <div class="lead-modal-title">
+                    <h2>Editar Lead</h2>
+                    <p style="color:var(--text-muted);font-size:0.85rem;margin:0;">Alterando informações de contato</p>
+                </div>
+                <div class="lead-modal-header-actions">
+                    <button class="action-btn" id="close-edit-modal" title="Cancelar">
+                        <i class="fa-solid fa-xmark" style="color:#fff;"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="lead-modal-body">
+                <div class="edit-form-group">
+                    <label class="edit-label">Nome do Cliente</label>
+                    <input type="text" id="edit-lead-nome" class="edit-input" value="${lead.nome || ''}" placeholder="Ex: João Silva">
+                </div>
+                <div class="edit-form-group">
+                    <label class="edit-label">WhatsApp (DDD + 9 dígitos)</label>
+                    <input type="text" id="edit-lead-phone" class="edit-input" value="${phone || ''}" placeholder="Ex: 11999999999" maxlength="11">
+                    <p class="edit-hint">Apenas números, sem o 55.</p>
+                </div>
+                <div class="edit-form-group">
+                    <label class="edit-label">Endereço</label>
+                    <input type="text" id="edit-lead-address" class="edit-input" value="${lead.endereco || ''}" placeholder="Rua, número, bairro...">
+                </div>
+            </div>
+
+            <div class="lead-modal-footer">
+                <button id="lead-save-edit" class="btn-lead-action">
+                    <i class="fa-solid fa-floppy-disk"></i> Salvar Alterações
+                </button>
+            </div>
+        `;
+
+        document.getElementById('close-edit-modal')?.addEventListener('click', () => showLeadModal(lead));
+
+        document.getElementById('lead-save-edit')?.addEventListener('click', async function() {
+            const btn = this as HTMLButtonElement;
+            const nome = (document.getElementById('edit-lead-nome') as HTMLInputElement).value.trim();
+            const phoneVal = (document.getElementById('edit-lead-phone') as HTMLInputElement).value.trim();
+            const endereco = (document.getElementById('edit-lead-address') as HTMLInputElement).value.trim();
+
+            let cleanPhone = phoneVal.replace(/\D/g, '');
+            if (cleanPhone.length === 13 && cleanPhone.startsWith('55')) {
+                cleanPhone = cleanPhone.substring(2);
+            }
+
+            if (!nome) { toast.error('O nome é obrigatório.'); return; }
+            if (cleanPhone && cleanPhone.length !== 11) {
+                notifications.showPhoneError();
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Salvando...';
+
+            try {
+                const updates = {
+                    nome,
+                    telefone: cleanPhone,
+                    whatsapp: cleanPhone,
+                    endereco,
+                    updatedAt: Timestamp.now()
+                };
+                await dbService.update('leads', lead.id, updates);
+                Object.assign(lead, updates);
+                toast.success('Lead atualizado!');
+                updateLeadInList(lead);
+                showLeadModal(lead);
+            } catch (err) {
+                console.error(err);
+                toast.error('Erro ao salvar alterações.');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Salvar Alterações';
+            }
         });
     }
 
@@ -399,6 +495,8 @@ export const Leads = async () => {
         const items: { label: string; icon: string; action: string; danger?: boolean }[] = [];
         const isBloqueado = statusLead === 'bloqueado';
 
+        items.push({ label: 'Editar Lead', icon: '<i class="fa-solid fa-pen-to-square"></i>', action: 'editar' });
+
         if (isBloqueado) {
             items.push({ label: 'Desbloquear Lead', icon: '<i class="fa-solid fa-unlock"></i>', action: 'desbloquear' });
         } else {
@@ -409,6 +507,11 @@ export const Leads = async () => {
     }
 
     async function handleMenuAction(action: string, lead: any) {
+        if (action === 'editar') {
+            showEditLeadModal(lead);
+            return;
+        }
+
         if (action === 'bloquear') {
             const ok = await confirm.danger('Bloquear Lead', `Deseja bloquear o lead ${lead.nome || lead.telefone}? Ele não poderá receber atendimento enquanto bloqueado.`);
             if (!ok) return;
