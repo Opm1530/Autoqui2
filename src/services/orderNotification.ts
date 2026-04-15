@@ -19,6 +19,7 @@ interface OrderData {
     taxaAplicada?: number;
     taxaNome?: string;
     total?: number;
+    itens?: any[];
 }
 
 class OrderNotificationService {
@@ -124,7 +125,7 @@ class OrderNotificationService {
             try {
                 const products = await dbService.getAll('products', { field: 'companyId', operator: '==', value: companyId }) as any[];
                 let changed = false;
-                order.itens.forEach(item => {
+                order.itens.forEach((item: any) => {
                     const itemName = (item.item || '').toLowerCase().trim();
                     const product = products.find(p => (p.name || '').toLowerCase().trim() === itemName);
                     if (product) {
@@ -137,7 +138,7 @@ class OrderNotificationService {
                 });
                 if (changed) {
                     let sum = 0;
-                    order.itens.forEach(i => {
+                    order.itens.forEach((i: any) => {
                         const p = parseFloat(i.preco as any) || 0;
                         const q = parseInt(i.quantidade as any) || 1;
                         sum += q * p;

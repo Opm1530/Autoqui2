@@ -939,6 +939,7 @@ export const Orders = async () => {
                         });
                     }
 
+                    const taxaInput = document.getElementById('detail-taxa-entrega') as HTMLInputElement;
                     const taxaEntrega = taxaInput ? getParsed(taxaInput.value) : getParsed(order.taxaAplicada || order.taxaEntrega);
                     
                     sum += taxaEntrega;
