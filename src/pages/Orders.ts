@@ -458,9 +458,8 @@ export const Orders = async () => {
                         const q = parseInt(i.quantidade) || 1;
                         sum += q * p;
                     });
-                    const addVal = parseFloat(order.valoresAdicionais) || 0;
                     const taxaVal = parseFloat(order.taxaAplicada || order.taxaEntrega) || 0;
-                    order.value = sum + addVal + taxaVal;
+                    order.value = sum + taxaVal;
                     // Note: We don't save to DB here yet, we let the user confirm when they change status or save the modal
                 }
             } catch (err) {
@@ -500,7 +499,7 @@ export const Orders = async () => {
                     <span class="lead-info-label" style="font-size:0.85rem; color: var(--text-main);">Taxa de Entrega</span>
                     ${status === 'em_montagem' ? '<small style="display:block; color: var(--text-dim); font-size: 0.75rem;">Frete / Entrega</small>' : ''}
                 </div>
-                ${status === 'em_montagem' && !isCatalog ? `
+                ${status === 'em_montagem' ? `
                     <div style="display:flex;align-items:center;gap:0.75rem; flex-shrink: 0;">
                         <span style="color:var(--text-dim);font-size:0.8rem; font-weight: 600;">R$</span>
                         <input type="number" id="detail-taxa-entrega" value="${order.taxaAplicada || order.taxaEntrega || 0}"
@@ -512,24 +511,7 @@ export const Orders = async () => {
             </div>
         ` : '';
 
-        const addValuesHtml = (status === 'em_montagem' && !isCatalog) ? `
-            <div class="order-item-row" style="margin-top:0.5rem; border-top: 1px solid var(--border-color); padding: 1.25rem; background: rgba(99, 102, 241, 0.03);">
-                <div style="flex: 1;">
-                    <span class="lead-info-label" style="font-size:0.85rem; color: var(--text-main);">Outros Adicionais</span>
-                    <small style="display:block; color: var(--text-dim); font-size: 0.75rem;">Descontos (use valor negativo), acréscimos, etc.</small>
-                </div>
-                <div style="display:flex;align-items:center;gap:0.75rem; flex-shrink: 0;">
-                    <span style="color:var(--text-dim);font-size:0.8rem; font-weight: 600;">R$</span>
-                    <input type="number" id="detail-additional-value" value="${order.valoresAdicionais || 0}"
-                        step="0.01" style="width:100px;background:var(--bg-color);border:1px solid var(--border-color);color:white;padding:0.5rem 0.75rem;border-radius:8px;text-align:right;font-size:0.95rem; font-family: monospace; outline: none;">
-                </div>
-            </div>
-        ` : (order.valoresAdicionais && !isCatalog ? `
-            <div class="order-item-row" style="margin-top:0.5rem; border-top: 1px solid var(--border-color); padding: 1rem 1.25rem;">
-                <span class="lead-info-label" style="font-size:0.85rem;">Valores adicionais</span>
-                <span style="color:var(--primary);font-weight:700;">R$ ${(order.valoresAdicionais || 0).toFixed(2)}</span>
-            </div>
-        ` : '');
+        const addValuesHtml = '';
 
         // ── Stage action buttons ──
         const stageButtons = buildStageButtons(order, status);
@@ -957,21 +939,16 @@ export const Orders = async () => {
                         });
                     }
 
-                    const addInput = document.getElementById('detail-additional-value') as HTMLInputElement;
-                    const taxaInput = document.getElementById('detail-taxa-entrega') as HTMLInputElement;
-
-                    const valoresAdicionais = addInput ? getParsed(addInput.value) : getParsed(order.valoresAdicionais);
                     const taxaEntrega = taxaInput ? getParsed(taxaInput.value) : getParsed(order.taxaAplicada || order.taxaEntrega);
                     
-                    sum += valoresAdicionais + taxaEntrega;
+                    sum += taxaEntrega;
 
                     extraUpdates = {
                         value: sum,
                         total: sum,
                         itens: updatedItens,
-                        valoresAdicionais: valoresAdicionais,
-                        taxaEntrega: taxaEntrega,
-                        taxaAplicada: taxaEntrega
+                        taxaAplicada: taxaEntrega,
+                        taxaEntrega: taxaEntrega
                     };
                 }
 
