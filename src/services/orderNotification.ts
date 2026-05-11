@@ -73,7 +73,10 @@ class OrderNotificationService {
         modal.id = `support-modal-${order.id}`;
         const name = this.formatCustomerName(order);
         modal.innerHTML = `
-            <div class="order-modal-content" style="border-top: 5px solid var(--warning);">
+            <div class="order-modal-content" style="border-top: 5px solid var(--warning); position: relative;">
+                <button id="close-support-x" style="position: absolute; right: 1rem; top: 1rem; background: transparent; border: none; color: var(--text-dim); font-size: 1.5rem; cursor: pointer; transition: color 0.2s;" onmouseover="this.style.color='white'" onmouseout="this.style.color='var(--text-dim)'">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
                 <div class="order-header">
                     <div class="order-icon" style="background: rgba(245, 158, 11, 0.15); color: var(--warning);">👤</div>
                     <h2>Atendimento Humano!</h2>
@@ -99,6 +102,11 @@ class OrderNotificationService {
 
         const closeBtn = modal.querySelector('#close-support');
         closeBtn?.addEventListener('click', () => {
+            modal.remove();
+        });
+
+        const closeXBtn = modal.querySelector('#close-support-x');
+        closeXBtn?.addEventListener('click', () => {
             modal.remove();
         });
     }
@@ -196,8 +204,11 @@ class OrderNotificationService {
         `;
 
         modal.innerHTML = `
-            <div class="order-modal-content" style="max-width: 520px; padding: 1.5rem;">
-                <div class="order-header" style="margin-bottom: 1.25rem;">
+            <div class="order-modal-content" style="max-width: 520px; padding: 1.5rem; position: relative;">
+                <button id="close-modal-x" style="position: absolute; right: 1.5rem; top: 1.5rem; background: transparent; border: none; color: var(--text-dim); font-size: 1.5rem; cursor: pointer; transition: color 0.2s;" onmouseover="this.style.color='white'" onmouseout="this.style.color='var(--text-dim)'">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+                <div class="order-header" style="margin-bottom: 1.25rem; padding-right: 2rem;">
                     <div class="order-icon" style="width: 44px; height: 44px; font-size: 1.25rem; background: var(--primary-glow); color: var(--primary);">
                         <i class="fa-solid fa-bell"></i>
                     </div>
@@ -339,6 +350,11 @@ class OrderNotificationService {
         const confirmRejectBtn = modal.querySelector('#confirm-reject') as HTMLButtonElement;
         const reasonContainer = modal.querySelector('#reject-reason-container') as HTMLDivElement;
         const reasonInput = modal.querySelector('#reject-reason') as HTMLTextAreaElement;
+
+        const closeXBtn = modal.querySelector('#close-modal-x');
+        closeXBtn?.addEventListener('click', () => {
+            modal.remove();
+        });
 
         acceptBtn?.addEventListener('click', async () => {
             const currentUser = authService.getCurrentUser();
