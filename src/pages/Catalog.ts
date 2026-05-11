@@ -903,13 +903,78 @@ export const Catalog = async (storeId: string) => {
             };
 
             // ── Confirm order: PIX Manual ──
-            (window as any).showPixManual = () => {
-                closeModal('payment-modal');
-                const summaryEl = document.getElementById('pix-manual-summary');
-                if (summaryEl) summaryEl.innerHTML = renderOrderSummary();
-                const keyEl = document.getElementById('pix-key-value');
-                if (keyEl) keyEl.textContent = pixKey;
-                openModal('pix-manual-modal');
+            (window as any).showPixManual = async () => {
+                const btn = document.getElementById('btn-pay-pix-manual') as HTMLButtonElement;
+                if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Gerando...'; }
+                try {
+                    if (!isStoreOpen()) {
+                        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-brands fa-pix" style="font-size:1.2rem;"></i> <span>PIX Manual</span>'; }
+                        (window as any).showClosedAlert('store');
+                        return;
+                    }
+                    const deliveryType = (window as any).catDeliveryType;
+                    if (deliveryType === 'entrega' && !isFreteAbertoAgora()) {
+                        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-brands fa-pix" style="font-size:1.2rem;"></i> <span>PIX Manual</span>'; }
+                        (window as any).showClosedAlert('delivery');
+                        return;
+                    }
+                    const customer = (window as any).catCustomer;
+                    if (!customer || !customer.phone) {
+                        alert('Seus dados de contato não foram salvos ou foram perdidos. Por favor, preencha novamente.');
+                        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-brands fa-pix" style="font-size:1.2rem;"></i> <span>PIX Manual</span>'; }
+                        closeModal('payment-modal');
+                        openModal('customer-modal');
+                        return;
+                    }
+                    const { name, phone, address } = customer;
+                    const items = Array.from(cart.entries()).map(([id, { product, qty }]) => {
+                        const price = product.promotionalActive ? (product.promotionalPrice || product.price) : product.price;
+                        return { productId: id, name: product.name, qty, price, subtotal: price * qty };
+                    });
+                    for (const [id, { qty }] of Array.from(cart.entries())) {
+                        const product = products.find((p: any) => p.id === id);
+                        if (product && product.stock != null) await dbService.update('products', id, { stock: Math.max(0, product.stock - qty) });
+                    }
+                    const subtotal = getSubtotal();
+                    const taxaAplicada = getTaxaValue();
+                    const desconto = getDescontoValue(subtotal);
+                    const total = subtotal + taxaAplicada - desconto;
+                    const leadId = await findOrCreateLead(name, phone);
+                    const orderData = {
+                        lojaId: storeId, storeId, companyId: company.id, empresaId: company.id,
+                        clientName: name, clientPhone: phone,
+                        endereco: address, bairro: customer.bairro || '', entrega: deliveryType,
+                        leadId, nome: name, items, total,
+                        taxaAplicada, taxaNome: getTaxaNome(),
+                        desconto, codigoCupom: appliedCoupon?.codigo || null,
+                        paymentMethod: 'pix_manual', pagamento: 'pagamento_no_pix',
+                        status: 'em_montagem', source: 'catalog',
+                        criadoEm: new Date().toISOString()
+                    };
+                    const orderId = await dbService.create('pedidos', orderData);
+                    (window as any).currentPixOrderId = orderId;
+                    
+                    try {
+                        const { orderService } = await import('../services/orderService');
+                        await orderService.notifyNewOrder({ id: orderId, ...orderData }, company.id);
+                    } catch (err) { console.error('Error in order notification:', err); }
+
+                    const summaryHTML = renderOrderSummary();
+                    cart.clear(); appliedCoupon = null; updateCartUI();
+
+                    closeModal('payment-modal');
+                    const summaryEl = document.getElementById('pix-manual-summary');
+                    if (summaryEl) summaryEl.innerHTML = summaryHTML;
+                    const keyEl = document.getElementById('pix-key-value');
+                    if (keyEl) keyEl.textContent = pixKey;
+                    
+                    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-brands fa-pix" style="font-size:1.2rem;"></i> <span>PIX Manual</span>'; }
+                    openModal('pix-manual-modal');
+                } catch (err: any) {
+                    console.error('Show Pix Manual Error:', err);
+                    alert('Erro ao gerar pedido PIX: ' + (err.message || 'Erro de conexão/permissão') + '. Tente novamente.');
+                    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-brands fa-pix" style="font-size:1.2rem;"></i> <span>PIX Manual</span>'; }
+                }
             };
 
             (window as any).closePixManual = () => closeModal('pix-manual-modal');
@@ -922,40 +987,14 @@ export const Catalog = async (storeId: string) => {
             };
 
             (window as any).confirmPixManual = async () => {
+                const orderId = (window as any).currentPixOrderId;
+                if (!orderId) {
+                    closeModal('pix-manual-modal');
+                    return;
+                }
                 const btn = document.getElementById('btn-confirm-pix-manual') as HTMLButtonElement;
-                if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Confirmando...'; }
+                if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Enviando...'; }
                 try {
-                    // Verificação de funcionamento em tempo real
-                    if (!isStoreOpen()) {
-                        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-check"></i> Confirmar Pagamento PIX'; }
-                        (window as any).showClosedAlert('store');
-                        return;
-                    }
-
-                    const deliveryType = (window as any).catDeliveryType;
-                    if (deliveryType === 'entrega' && !isFreteAbertoAgora()) {
-                        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-check"></i> Confirmar Pagamento PIX'; }
-                        (window as any).showClosedAlert('delivery');
-                        return;
-                    }
-
-                    const customer = (window as any).catCustomer;
-                    if (!customer || !customer.phone) {
-                        alert('Seus dados de contato não foram salvos ou foram perdidos. Por favor, preencha novamente.');
-                        closeModal('payment-modal');
-                        closeModal('pix-manual-modal');
-                        openModal('customer-modal');
-                        return;
-                    }
-
-                    const { name, phone, address } = customer;
-                    // deliveryType já declarado acima para verificação de horário
-                    const items = Array.from(cart.entries()).map(([id, { product, qty }]) => {
-                        const price = product.promotionalActive ? (product.promotionalPrice || product.price) : product.price;
-                        return { productId: id, name: product.name, qty, price, subtotal: price * qty };
-                    });
-
-                    // Upload comprovante if provided
                     let comprovanteUrl = '';
                     const fileInput = document.getElementById('pix-comprovante-input') as HTMLInputElement;
                     if (fileInput?.files?.[0]) {
@@ -965,43 +1004,22 @@ export const Catalog = async (storeId: string) => {
                         const fileRef = storageRef(storage, path);
                         await uploadBytes(fileRef, file);
                         comprovanteUrl = await getDownloadURL(fileRef);
+                        
+                        await dbService.update('pedidos', orderId, { comprovanteUrl });
                     }
 
-                    for (const [id, { qty }] of Array.from(cart.entries())) {
-                        const product = products.find((p: any) => p.id === id);
-                        if (product && product.stock != null) await dbService.update('products', id, { stock: Math.max(0, product.stock - qty) });
-                    }
-
-                    const subtotal = getSubtotal();
-                    const taxaAplicada = getTaxaValue();
-                    const desconto = getDescontoValue(subtotal);
-                    const total = subtotal + taxaAplicada - desconto;
-                    const leadId = await findOrCreateLead(name, phone);
-                    const orderId = await dbService.create('pedidos', {
-                        lojaId: storeId, storeId, companyId: company.id, empresaId: company.id,
-                        clientName: name, clientPhone: phone,
-                        endereco: address, bairro: customer.bairro || '', entrega: deliveryType,
-                        leadId, nome: name, items, total,
-                        taxaAplicada, taxaNome: getTaxaNome(),
-                        desconto, codigoCupom: appliedCoupon?.codigo || null,
-                        paymentMethod: 'pix_manual', pagamento: 'pagamento_no_pix',
-                        comprovanteUrl,
-                        status: 'em_montagem', source: 'catalog',
-                        criadoEm: new Date().toISOString()
-                    });
-
-                    cart.clear(); appliedCoupon = null; closeModal('pix-manual-modal'); updateCartUI(); // Update UI to trigger persistence
+                    closeModal('pix-manual-modal');
                     const confirmModal = document.getElementById('confirmation-modal');
                     const orderIdEl = document.getElementById('order-id-display');
                     if (confirmModal) confirmModal.style.display = 'flex';
                     if (orderIdEl) orderIdEl.textContent = orderId.slice(0, 8).toUpperCase();
                     const pixSec = document.getElementById('pix-info-section');
                     if (pixSec) pixSec.style.display = 'none';
-                    updateCartUI();
+                    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-check"></i> Enviar Comprovante'; }
                 } catch (err: any) {
                     console.error('Confirm Pix Manual Error:', err);
-                    alert('Erro ao confirmar pedido: ' + (err.message || 'Erro de conexão/permissão') + '. Tente novamente.');
-                    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-check"></i> Confirmar Pagamento PIX'; }
+                    alert('Erro ao enviar comprovante: ' + (err.message || 'Erro de conexão/permissão') + '. Tente novamente.');
+                    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-check"></i> Enviar Comprovante'; }
                 }
             };
 
@@ -1059,10 +1077,10 @@ export const Catalog = async (storeId: string) => {
                     }
 
                     const leadId = await findOrCreateLead(name, phone);
-                    const orderId = await dbService.create('pedidos', {
+                    const orderData = {
                         lojaId: storeId, storeId, companyId: company.id, empresaId: company.id,
                         clientName: name, clientPhone: phone,
-                        endereco: address, entrega: deliveryType,
+                        endereco: address, bairro: (window as any).catCustomer?.bairro || '', entrega: deliveryType,
                         leadId, nome: name, items, total,
                         taxaAplicada, taxaNome: getTaxaNome(),
                         desconto, codigoCupom: appliedCoupon?.codigo || null,
@@ -1070,7 +1088,13 @@ export const Catalog = async (storeId: string) => {
                         mpPaymentId: mpData?.payment_id || '',
                         status: 'em_montagem', source: 'catalog',
                         criadoEm: new Date().toISOString()
-                    });
+                    };
+                    const orderId = await dbService.create('pedidos', orderData);
+
+                    try {
+                        const { orderService } = await import('../services/orderService');
+                        await orderService.notifyNewOrder({ id: orderId, ...orderData }, company.id);
+                    } catch (err) { console.error('Error in order notification:', err); }
 
                     cart.clear(); appliedCoupon = null; closeModal('payment-modal'); updateCartUI();
 
@@ -1331,7 +1355,7 @@ export const Catalog = async (storeId: string) => {
                             <p id="comprovante-label" style="margin:0;font-size:0.85rem;color:#94a3b8;">Clique para anexar o comprovante</p>
                         </div>
                     </div>
-                    ${BTN_PRIMARY('btn-confirm-pix-manual', 'window.confirmPixManual()', '<i class="fa-solid fa-check"></i> Confirmar Pagamento PIX')}
+                    ${BTN_PRIMARY('btn-confirm-pix-manual', 'window.confirmPixManual()', '<i class="fa-solid fa-check"></i> Enviar Comprovante')}
                 </div>
             </div>
 
