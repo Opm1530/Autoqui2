@@ -1262,6 +1262,10 @@ export const Catalog = async (storeId: string) => {
                         <input id="checkout-address" type="text" placeholder="Rua, número, complemento" style="width:100%;padding:12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:10px;color:white;font-size:0.95rem;box-sizing:border-box;margin-bottom:12px;">
                         ${flatBairros.length > 0 ? `
                         <label style="display:block;font-size:0.8rem;color:#94a3b8;text-transform:uppercase;font-weight:700;margin-bottom:6px;">Bairro</label>
+                        <div style="padding:10px 12px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:10px;margin-bottom:10px;display:flex;align-items:center;gap:8px;">
+                            <i class="fa-solid fa-triangle-exclamation" style="color:#ef4444;font-size:0.9rem;flex-shrink:0;"></i>
+                            <span style="color:#ef4444;font-size:0.82rem;line-height:1.4;">Selecione o bairro <strong>correto</strong> do seu endereço. A taxa será cobrada conforme o bairro informado.</span>
+                        </div>
                         <select id="checkout-bairro" onchange="window.catChangeBairro(this.value)" style="width:100%;padding:12px;background:#1e293b;border:1px solid rgba(255,255,255,0.1);border-radius:10px;color:white;font-size:0.95rem;box-sizing:border-box;outline:none;cursor:pointer;">
                             <option value="">Selecione seu bairro...</option>
                             ${flatBairros.map(b => `<option value="${b.nome}">${b.nome}</option>`).join('')}
