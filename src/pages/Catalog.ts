@@ -573,6 +573,15 @@ export const Catalog = async (storeId: string) => {
                     previewValue.textContent = preco > 0 ? `R$ ${preco.toFixed(2)}` : 'Grátis';
                     preview.style.display = 'flex';
                 }
+                const outrosGroup = document.getElementById('outros-bairros-group');
+                const isOutros = nome.toLowerCase().includes('outros');
+                if (outrosGroup) {
+                    outrosGroup.style.display = isOutros ? 'block' : 'none';
+                    if (!isOutros) {
+                        const realInp = document.getElementById('checkout-bairro-real') as HTMLInputElement;
+                        if (realInp) realInp.value = '';
+                    }
+                }
             };
 
             // Document click to close custom dropdown
@@ -607,6 +616,17 @@ export const Catalog = async (storeId: string) => {
                         }
                         bairroNome = validBairro.nome;
                         bairroPreco = validBairro.preco;
+
+                        if (bairroNome.toLowerCase().includes('outros')) {
+                            const bairroRealInp = document.getElementById('checkout-bairro-real') as HTMLInputElement;
+                            const bairroReal = bairroRealInp?.value.trim();
+                            if (!bairroReal) {
+                                alert('Por favor, informe o nome do seu bairro no campo indicado.');
+                                bairroRealInp?.focus();
+                                return;
+                            }
+                            bairroNome = bairroReal;
+                        }
                     }
                 }
 
@@ -1292,6 +1312,10 @@ export const Catalog = async (storeId: string) => {
                         <div id="bairro-input-wrapper" style="position:relative;margin-bottom:8px;">
                             <input type="text" id="checkout-bairro" placeholder="Digite ou selecione seu bairro..." autocomplete="off" oninput="window.catFilterBairros(this.value)" onfocus="window.catFilterBairros(this.value)" style="width:100%;padding:12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:10px;color:white;font-size:0.95rem;box-sizing:border-box;outline:none;">
                             <div id="checkout-bairro-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;max-height:160px;overflow-y:auto;background:#1e293b;border:1px solid rgba(255,255,255,0.1);border-radius:10px;z-index:9999;box-shadow:0 4px 15px rgba(0,0,0,0.5);margin-top:4px;"></div>
+                        </div>
+                        <div id="outros-bairros-group" style="display:none;margin-bottom:8px;">
+                            <label style="display:block;font-size:0.8rem;color:#fbbf24;text-transform:uppercase;font-weight:700;margin-bottom:6px;"><i class="fa-solid fa-triangle-exclamation" style="margin-right:4px;"></i>Qual é o seu bairro exato?</label>
+                            <input type="text" id="checkout-bairro-real" placeholder="Ex: Jardim das Flores, Vila Nova..." style="width:100%;padding:12px;background:rgba(251,191,36,0.05);border:1px solid rgba(251,191,36,0.4);border-radius:10px;color:white;font-size:0.95rem;box-sizing:border-box;outline:none;">
                         </div>
                         <div id="taxa-preview" style="display:none;padding:10px 14px;border-radius:10px;background:rgba(0,135,90,0.1);border:1px solid rgba(0,135,90,0.25);display:flex;justify-content:space-between;align-items:center;">
                             <span style="color:#94a3b8;font-size:0.85rem;"><i class="fa-solid fa-truck" style="margin-right:6px;color:#00875A;"></i>Taxa de entrega</span>
