@@ -389,6 +389,20 @@ export const Catalog = async (storeId: string) => {
             if (phoneInp && savedUser.phone) phoneInp.value = savedUser.phone;
             if (addrInp && savedUser.address) addrInp.value = savedUser.address;
 
+            if (savedUser.bairro) {
+                const saved = flatBairros.find(b => b.nome.toLowerCase() === (savedUser.bairro || '').toLowerCase());
+                if (saved) {
+                    const bairroInp = document.getElementById('checkout-bairro') as HTMLInputElement;
+                    if (bairroInp) { bairroInp.value = saved.nome; bairroInp.dataset.preco = saved.preco.toString(); }
+                    const previewValue = document.getElementById('taxa-preview-value');
+                    const taxaPreview = document.getElementById('taxa-preview');
+                    if (taxaPreview && previewValue) {
+                        previewValue.textContent = saved.preco > 0 ? `R$ ${saved.preco.toFixed(2)}` : 'Grátis';
+                        taxaPreview.style.display = 'flex';
+                    }
+                }
+            }
+
             if (phoneInp) {
                 phoneInp.addEventListener('input', (e: any) => {
                     let val = e.target.value.replace(/\D/g, '');
@@ -535,6 +549,8 @@ export const Catalog = async (storeId: string) => {
             (window as any).catFilterBairros = (val: string) => {
                 const list = document.getElementById('checkout-bairro-dropdown');
                 if (!list) return;
+                const taxaPreview = document.getElementById('taxa-preview');
+                if (taxaPreview) taxaPreview.style.display = 'none';
                 const filtered = val ? flatBairros.filter(b => b.nome.toLowerCase().includes(val.toLowerCase())) : flatBairros;
                 if (filtered.length === 0) {
                     list.innerHTML = '<div style="padding:12px;color:#ef4444;font-size:0.85rem;">Nenhum bairro encontrado</div>';
@@ -551,6 +567,12 @@ export const Catalog = async (storeId: string) => {
                 }
                 const list = document.getElementById('checkout-bairro-dropdown');
                 if (list) list.style.display = 'none';
+                const preview = document.getElementById('taxa-preview');
+                const previewValue = document.getElementById('taxa-preview-value');
+                if (preview && previewValue) {
+                    previewValue.textContent = preco > 0 ? `R$ ${preco.toFixed(2)}` : 'Grátis';
+                    preview.style.display = 'flex';
+                }
             };
 
             // Document click to close custom dropdown
@@ -1259,15 +1281,19 @@ export const Catalog = async (storeId: string) => {
                         <input id="checkout-phone" type="tel" placeholder="(11) 99999-9999" style="width:100%;padding:12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:10px;color:white;font-size:0.95rem;box-sizing:border-box;">
                     </div>
                     <div id="address-group" style="display:none;margin-bottom:16px;">
+                        <label style="display:block;font-size:0.8rem;color:#94a3b8;text-transform:uppercase;font-weight:700;margin-bottom:6px;">Endereço</label>
+                        <input id="checkout-address" type="text" placeholder="Rua, número, complemento" style="width:100%;padding:12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:10px;color:white;font-size:0.95rem;box-sizing:border-box;margin-bottom:12px;">
                         ${flatBairros.length > 0 ? `
                         <label style="display:block;font-size:0.8rem;color:#94a3b8;text-transform:uppercase;font-weight:700;margin-bottom:6px;">Bairro</label>
-                        <div id="bairro-input-wrapper" style="position:relative;margin-bottom:12px;">
+                        <div id="bairro-input-wrapper" style="position:relative;margin-bottom:8px;">
                             <input type="text" id="checkout-bairro" placeholder="Digite ou selecione seu bairro..." autocomplete="off" oninput="window.catFilterBairros(this.value)" onfocus="window.catFilterBairros(this.value)" style="width:100%;padding:12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:10px;color:white;font-size:0.95rem;box-sizing:border-box;outline:none;">
                             <div id="checkout-bairro-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;max-height:160px;overflow-y:auto;background:#1e293b;border:1px solid rgba(255,255,255,0.1);border-radius:10px;z-index:9999;box-shadow:0 4px 15px rgba(0,0,0,0.5);margin-top:4px;"></div>
                         </div>
+                        <div id="taxa-preview" style="display:none;padding:10px 14px;border-radius:10px;background:rgba(0,135,90,0.1);border:1px solid rgba(0,135,90,0.25);display:flex;justify-content:space-between;align-items:center;">
+                            <span style="color:#94a3b8;font-size:0.85rem;"><i class="fa-solid fa-truck" style="margin-right:6px;color:#00875A;"></i>Taxa de entrega</span>
+                            <span id="taxa-preview-value" style="color:#00875A;font-weight:800;font-size:0.95rem;"></span>
+                        </div>
                         ` : ''}
-                        <label style="display:block;font-size:0.8rem;color:#94a3b8;text-transform:uppercase;font-weight:700;margin-bottom:6px;">Endereço Completo</label>
-                        <input id="checkout-address" type="text" placeholder="Rua, número, complemento" style="width:100%;padding:12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:10px;color:white;font-size:0.95rem;box-sizing:border-box;">
                     </div>
                     ${BTN_PRIMARY('btn-go-payment', 'window.goToPayment()', 'Escolher Pagamento →', 'margin-top:8px;')}
                 </div>
