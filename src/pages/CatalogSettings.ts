@@ -591,6 +591,16 @@ export const CatalogSettings = async () => {
                         <i class="fa-solid fa-truck" style="color:var(--primary);"></i> Taxas de Entrega por Bairro
                     </p>
                     <p style="font-size:0.8rem;color:var(--text-dim);margin-bottom:12px;">Defina o preço da entrega para cada bairro. Para aplicar o mesmo valor a múltiplos bairros, separe-os por vírgula (Ex: Centro, Vila Nova).</p>
+                    <div style="display:grid;grid-template-columns:1fr 120px;gap:12px;margin-bottom:16px;padding:12px;background:rgba(99,102,241,0.05);border:1px solid rgba(99,102,241,0.2);border-radius:10px;align-items:end;">
+                        <div class="field">
+                            <label class="config-label">Taxa genérica (bairros não listados)</label>
+                            <p style="font-size:0.75rem;color:var(--text-dim);margin:0 0 6px;">Aplicada quando o cliente informa um bairro que não está na lista acima.</p>
+                            <input type="number" id="taxa-generica-valor" class="config-input" placeholder="0.00" min="0" step="0.01" value="${config?.taxaGenerica ?? ''}">
+                        </div>
+                        <div style="text-align:right;">
+                            <button class="btn-save-msg" id="btn-save-taxa-generica"><i class="fa-solid fa-floppy-disk"></i> Salvar</button>
+                        </div>
+                    </div>
                     <div style="display:grid;grid-template-columns:1fr 100px;gap:16px;margin-bottom:16px;align-items:end;">
                         <div class="field">
                             <label class="config-label">Bairro(s)</label>
@@ -1060,6 +1070,12 @@ export const CatalogSettings = async () => {
         };
 
         // ── Add/Delete Bairro ──────────────────────────────────────────────
+        document.getElementById('btn-save-taxa-generica')?.addEventListener('click', async () => {
+            const val = parseFloat((document.getElementById('taxa-generica-valor') as HTMLInputElement).value || '0');
+            await saveToLojaConfig({ taxaGenerica: val });
+            toast.success('Taxa genérica salva!');
+        });
+
         document.getElementById('btn-add-bairro')?.addEventListener('click', async () => {
             const nomes = ((document.getElementById('new-bairro-nomes') as HTMLInputElement).value || '').trim();
             const precoStr = (document.getElementById('new-bairro-preco') as HTMLInputElement).value;
