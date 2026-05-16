@@ -391,15 +391,17 @@ export const Catalog = async (storeId: string) => {
             if (addrInp && savedUser.address) addrInp.value = savedUser.address;
 
             if (savedUser.bairro) {
-                const saved = flatBairros.find(b => b.nome.toLowerCase() === (savedUser.bairro || '').toLowerCase());
-                if (saved) {
-                    const bairroInp = document.getElementById('checkout-bairro') as HTMLInputElement;
-                    if (bairroInp) { bairroInp.value = saved.nome; bairroInp.dataset.preco = saved.preco.toString(); }
-                    const previewValue = document.getElementById('taxa-preview-value');
-                    const taxaPreview = document.getElementById('taxa-preview');
-                    if (taxaPreview && previewValue) {
-                        previewValue.textContent = saved.preco > 0 ? `R$ ${saved.preco.toFixed(2)}` : 'Grátis';
-                        taxaPreview.style.display = 'flex';
+                const bairroSelect = document.getElementById('checkout-bairro') as HTMLSelectElement;
+                if (bairroSelect) {
+                    const saved = flatBairros.find(b => b.nome.toLowerCase() === (savedUser.bairro || '').toLowerCase());
+                    if (saved) {
+                        bairroSelect.value = saved.nome;
+                    } else {
+                        bairroSelect.value = '__outro__';
+                        const outroGroup = document.getElementById('outro-bairro-group');
+                        const outroInp = document.getElementById('checkout-bairro-outro') as HTMLInputElement;
+                        if (outroGroup) outroGroup.style.display = 'block';
+                        if (outroInp) outroInp.value = savedUser.bairro;
                     }
                 }
             }
@@ -547,54 +549,10 @@ export const Catalog = async (storeId: string) => {
 
             (window as any).closeCustomer = () => closeModal('customer-modal');
 
-            (window as any).catFilterBairros = (val: string) => {
-                const list = document.getElementById('checkout-bairro-dropdown');
-                if (!list) return;
-                const taxaPreview = document.getElementById('taxa-preview');
-                const previewValue = document.getElementById('taxa-preview-value');
-                // Se digitou algo que não bate com nenhum bairro cadastrado → mostra taxa genérica
-                if (val && taxaPreview && previewValue) {
-                    const exactMatch = flatBairros.find(b => b.nome.toLowerCase() === val.toLowerCase());
-                    if (!exactMatch) {
-                        previewValue.textContent = taxaGenerica > 0 ? `R$ ${taxaGenerica.toFixed(2)} (taxa padrão)` : 'Grátis (taxa padrão)';
-                        taxaPreview.style.display = 'flex';
-                    } else {
-                        taxaPreview.style.display = 'none';
-                    }
-                } else if (taxaPreview) {
-                    taxaPreview.style.display = 'none';
-                }
-                const filtered = val ? flatBairros.filter(b => b.nome.toLowerCase().includes(val.toLowerCase())) : flatBairros;
-                if (filtered.length === 0) {
-                    list.innerHTML = '<div style="padding:12px;color:#ef4444;font-size:0.85rem;">Nenhum bairro encontrado</div>';
-                } else {
-                    list.innerHTML = filtered.map(b => `<div onclick="window.catSelectBairro('${b.nome.replace(/'/g, "\\'")}', ${b.preco})" style="padding:12px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.05);color:white;font-size:0.9rem;">${b.nome}</div>`).join('');
-                }
-                list.style.display = 'block';
+            (window as any).catChangeBairro = (val: string) => {
+                const outroGroup = document.getElementById('outro-bairro-group');
+                if (outroGroup) outroGroup.style.display = val === '__outro__' ? 'block' : 'none';
             };
-            (window as any).catSelectBairro = (nome: string, preco: number) => {
-                const input = document.getElementById('checkout-bairro') as HTMLInputElement;
-                if (input) {
-                    input.value = nome;
-                    input.dataset.preco = preco.toString();
-                }
-                const list = document.getElementById('checkout-bairro-dropdown');
-                if (list) list.style.display = 'none';
-                const preview = document.getElementById('taxa-preview');
-                const previewValue = document.getElementById('taxa-preview-value');
-                if (preview && previewValue) {
-                    previewValue.textContent = preco > 0 ? `R$ ${preco.toFixed(2)}` : 'Grátis';
-                    preview.style.display = 'flex';
-                }
-            };
-
-            // Document click to close custom dropdown
-            document.addEventListener('click', (e) => {
-                if (!(e.target as HTMLElement).closest('#bairro-input-wrapper')) {
-                    const list = document.getElementById('checkout-bairro-dropdown');
-                    if (list) list.style.display = 'none';
-                }
-            });
 
             (window as any).goToPayment = () => {
                 const name = (document.getElementById('checkout-name') as HTMLInputElement)?.value.trim();
@@ -607,19 +565,24 @@ export const Catalog = async (storeId: string) => {
 
                 if (deliveryType === 'entrega') {
                     if (flatBairros.length > 0) {
-                        const bairroInput = document.getElementById('checkout-bairro') as HTMLInputElement;
-                        if (!bairroInput || !bairroInput.value.trim()) {
-                            alert('Selecione ou digite seu bairro para entrega.');
+                        const bairroSelect = document.getElementById('checkout-bairro') as HTMLSelectElement;
+                        if (!bairroSelect || !bairroSelect.value) {
+                            alert('Selecione seu bairro para entrega.');
                             return;
                         }
-                        bairroNome = bairroInput.value.trim();
-                        const validBairro = flatBairros.find(b => b.nome.toLowerCase() === bairroNome.toLowerCase());
-                        if (validBairro) {
-                            bairroNome = validBairro.nome;
-                            bairroPreco = validBairro.preco;
-                        } else {
-                            // Bairro não cadastrado → aplica taxa genérica
+                        if (bairroSelect.value === '__outro__') {
+                            const outroInp = document.getElementById('checkout-bairro-outro') as HTMLInputElement;
+                            bairroNome = outroInp?.value.trim() || '';
+                            if (!bairroNome) {
+                                alert('Digite o nome do seu bairro.');
+                                outroInp?.focus();
+                                return;
+                            }
                             bairroPreco = taxaGenerica;
+                        } else {
+                            bairroNome = bairroSelect.value;
+                            const validBairro = flatBairros.find(b => b.nome === bairroNome);
+                            bairroPreco = validBairro ? validBairro.preco : taxaGenerica;
                         }
                     }
                 }
@@ -1299,17 +1262,13 @@ export const Catalog = async (storeId: string) => {
                         <input id="checkout-address" type="text" placeholder="Rua, número, complemento" style="width:100%;padding:12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:10px;color:white;font-size:0.95rem;box-sizing:border-box;margin-bottom:12px;">
                         ${flatBairros.length > 0 ? `
                         <label style="display:block;font-size:0.8rem;color:#94a3b8;text-transform:uppercase;font-weight:700;margin-bottom:6px;">Bairro</label>
-                        <div style="padding:10px 12px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:10px;margin-bottom:10px;display:flex;align-items:center;gap:8px;">
-                            <i class="fa-solid fa-triangle-exclamation" style="color:#ef4444;font-size:0.9rem;flex-shrink:0;"></i>
-                            <span style="color:#ef4444;font-size:0.82rem;line-height:1.4;">Selecione o bairro <strong>correto</strong> do seu endereço. A taxa será cobrada conforme o bairro informado.</span>
-                        </div>
-                        <div id="bairro-input-wrapper" style="position:relative;margin-bottom:8px;">
-                            <input type="text" id="checkout-bairro" placeholder="Digite ou selecione seu bairro..." autocomplete="off" oninput="window.catFilterBairros(this.value)" onfocus="window.catFilterBairros(this.value)" style="width:100%;padding:12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:10px;color:white;font-size:0.95rem;box-sizing:border-box;outline:none;">
-                            <div id="checkout-bairro-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;max-height:160px;overflow-y:auto;background:#1e293b;border:1px solid rgba(255,255,255,0.1);border-radius:10px;z-index:9999;box-shadow:0 4px 15px rgba(0,0,0,0.5);margin-top:4px;"></div>
-                        </div>
-                        <div id="taxa-preview" style="display:none;padding:10px 14px;border-radius:10px;background:rgba(0,135,90,0.1);border:1px solid rgba(0,135,90,0.25);display:flex;justify-content:space-between;align-items:center;">
-                            <span style="color:#94a3b8;font-size:0.85rem;"><i class="fa-solid fa-truck" style="margin-right:6px;color:#00875A;"></i>Taxa de entrega</span>
-                            <span id="taxa-preview-value" style="color:#00875A;font-weight:800;font-size:0.95rem;"></span>
+                        <select id="checkout-bairro" onchange="window.catChangeBairro(this.value)" style="width:100%;padding:12px;background:#1e293b;border:1px solid rgba(255,255,255,0.1);border-radius:10px;color:white;font-size:0.95rem;box-sizing:border-box;outline:none;cursor:pointer;">
+                            <option value="">Selecione seu bairro...</option>
+                            ${flatBairros.map(b => `<option value="${b.nome}">${b.nome}</option>`).join('')}
+                            <option value="__outro__">Outro Bairro</option>
+                        </select>
+                        <div id="outro-bairro-group" style="display:none;margin-top:10px;">
+                            <input type="text" id="checkout-bairro-outro" placeholder="Digite o nome do seu bairro..." style="width:100%;padding:12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:10px;color:white;font-size:0.95rem;box-sizing:border-box;outline:none;">
                         </div>
                         ` : ''}
                     </div>
