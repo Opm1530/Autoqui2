@@ -268,6 +268,7 @@ export const Catalog = async (storeId: string) => {
         };
 
         const isFreteAbertoAgora = () => {
+            if (config.entregaFechada === true) return false;
             const hj = getDiaSemana();
             const hf = getStoreFrete(hj);
             if (!hf.ativo) return false;
@@ -284,6 +285,7 @@ export const Catalog = async (storeId: string) => {
         const permitirEntrega = isFreteAbertoAgora();
 
         const isStoreOpen = () => {
+            if (config.lojaFechada === true) return false;
             const hj = getDiaSemana();
             const hs = getStoreHorario(hj);
             if (!hs.ativo) return false;

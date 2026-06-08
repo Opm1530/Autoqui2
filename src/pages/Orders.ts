@@ -248,6 +248,41 @@ export const Orders = async () => {
         return `<span class="filter-count" id="count-${key}">${count}</span>`;
     };
 
+    // ── Store status toggles ──────────────────────────────────────────────────
+    const renderStoreToggles = () => {
+        if (stores.length === 0) return '';
+        return `
+        <div id="store-status-bar" style="display:flex;flex-wrap:wrap;gap:0.75rem;padding:0.85rem 1rem;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:12px;margin-bottom:1rem;">
+            ${stores.map((store: any) => {
+                const cfg = lojaConfigs.find((c: any) => c.lojaId === store.id) || {};
+                const lojaFechada = cfg.lojaFechada === true;
+                const entregaFechada = cfg.entregaFechada === true;
+                return `
+                <div style="display:flex;flex-direction:column;gap:0.4rem;min-width:200px;">
+                    <span style="font-size:0.75rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;">${store.name}</span>
+                    <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+                        <button class="store-toggle-btn" data-loja="${store.id}" data-tipo="loja" data-fechada="${lojaFechada}"
+                            style="display:inline-flex;align-items:center;gap:0.4rem;padding:0.3rem 0.75rem;border-radius:8px;border:1px solid;font-size:0.78rem;font-weight:600;cursor:pointer;transition:all 0.2s;
+                            ${lojaFechada
+                                ? 'background:rgba(239,68,68,0.12);color:#f87171;border-color:rgba(239,68,68,0.3);'
+                                : 'background:rgba(16,185,129,0.12);color:#34d399;border-color:rgba(16,185,129,0.3);'}">
+                            <i class="fa-solid ${lojaFechada ? 'fa-door-closed' : 'fa-door-open'}"></i>
+                            Loja ${lojaFechada ? 'Fechada' : 'Aberta'}
+                        </button>
+                        <button class="store-toggle-btn" data-loja="${store.id}" data-tipo="entrega" data-fechada="${entregaFechada}"
+                            style="display:inline-flex;align-items:center;gap:0.4rem;padding:0.3rem 0.75rem;border-radius:8px;border:1px solid;font-size:0.78rem;font-weight:600;cursor:pointer;transition:all 0.2s;
+                            ${entregaFechada
+                                ? 'background:rgba(239,68,68,0.12);color:#f87171;border-color:rgba(239,68,68,0.3);'
+                                : 'background:rgba(59,130,246,0.12);color:#60a5fa;border-color:rgba(59,130,246,0.3);'}">
+                            <i class="fa-solid ${entregaFechada ? 'fa-truck-arrow-right' : 'fa-truck'}"></i>
+                            Entrega ${entregaFechada ? 'Pausada' : 'Ativa'}
+                        </button>
+                    </div>
+                </div>`;
+            }).join('')}
+        </div>`;
+    };
+
     setTimeout(() => setupListeners(), 100);
 
     return `
@@ -260,6 +295,7 @@ export const Orders = async () => {
                 `).join('')}
             </div>
         </div>
+        ${renderStoreToggles()}
 
         <div class="card leads-card">
             <div class="table-container">
@@ -354,6 +390,7 @@ export const Orders = async () => {
         });
 
         attachViewListeners();
+        attachToggleListeners();
 
         // Close modal on backdrop click
         const modal = document.getElementById('order-detail-modal');
@@ -399,6 +436,49 @@ export const Orders = async () => {
                 const orderId = (btn as HTMLElement).dataset.id!;
                 const order = orders.find(o => o.id === orderId);
                 if (order) showOrderModal(order);
+            });
+        });
+    }
+
+    function attachToggleListeners() {
+        document.querySelectorAll('.store-toggle-btn').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const el = btn as HTMLButtonElement;
+                const lojaId = el.dataset.loja!;
+                const tipo = el.dataset.tipo as 'loja' | 'entrega';
+                const fechadaAtual = el.dataset.fechada === 'true';
+                const novoValor = !fechadaAtual;
+
+                el.disabled = true;
+                try {
+                    const cfg = lojaConfigs.find((c: any) => c.lojaId === lojaId);
+                    const field = tipo === 'loja' ? 'lojaFechada' : 'entregaFechada';
+                    if (cfg?.id) {
+                        await dbService.update('loja_config', cfg.id, { [field]: novoValor });
+                        cfg[field] = novoValor;
+                    } else {
+                        const newId = await dbService.create('loja_config', {
+                            empresaId: currentUser!.companyId,
+                            lojaId,
+                            [field]: novoValor
+                        });
+                        lojaConfigs.push({ id: newId, empresaId: currentUser!.companyId, lojaId, [field]: novoValor });
+                    }
+
+                    // Re-render the bar
+                    const bar = document.getElementById('store-status-bar');
+                    if (bar) bar.outerHTML = renderStoreToggles();
+                    // Re-attach after DOM replacement
+                    setTimeout(() => attachToggleListeners(), 50);
+
+                    const label = tipo === 'loja'
+                        ? (novoValor ? 'Loja fechada manualmente' : 'Loja aberta')
+                        : (novoValor ? 'Entregas pausadas' : 'Entregas ativadas');
+                    toast.success(label);
+                } catch (err: any) {
+                    toast.error('Erro ao atualizar status: ' + (err.message || ''));
+                    el.disabled = false;
+                }
             });
         });
     }
