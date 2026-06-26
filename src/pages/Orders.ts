@@ -134,11 +134,19 @@ export const Orders = async () => {
         return `<p>Usuário sem empresa.</p>`;
     }
 
-    let orders: any[] = await dbService.getAll('pedidos', {
-        field: 'empresaId',
-        operator: '==',
-        value: currentUser!.companyId
-    });
+    const companyId = currentUser!.companyId;
+
+    const [ordersRaw, companyDoc, leadsRaw, lojaConfigsRaw] = await Promise.all([
+        dbService.getAll('pedidos', { field: 'empresaId', operator: '==', value: companyId }),
+        dbService.get('companies', companyId),
+        dbService.getAll('leads', { field: 'empresaId', operator: '==', value: companyId }),
+        dbService.getAll('loja_config', { field: 'empresaId', operator: '==', value: companyId }),
+    ]);
+
+    let orders = ordersRaw as any[];
+    let stores = (companyDoc as any)?.stores as Store[] || [];
+    const leads = leadsRaw as Lead[];
+    const lojaConfigs = lojaConfigsRaw as any[];
 
     // Sort: newest first
     orders.sort((a, b) => {
@@ -147,26 +155,11 @@ export const Orders = async () => {
         return tb - ta;
     });
 
-    const companyDoc = await dbService.get('companies', currentUser!.companyId);
-    let stores = (companyDoc as any)?.stores as Store[] || [];
-
     if (currentUser!.role !== 'owner') {
         const userStoreIds = (currentUser as any).storeIds || ((currentUser as any).storeId ? [(currentUser as any).storeId] : []);
         stores = stores.filter((s: any) => userStoreIds.includes(s.id));
         orders = orders.filter((o: any) => userStoreIds.includes(o.lojaId));
     }
-
-    const leads = await dbService.getAll('leads', {
-        field: 'empresaId',
-        operator: '==',
-        value: currentUser!.companyId
-    }) as Lead[];
-
-    const lojaConfigs = await dbService.getAll('loja_config', {
-        field: 'empresaId',
-        operator: '==',
-        value: currentUser!.companyId
-    }) as any[];
 
     const getStoreName = (lojaId: string) => {
         const store = stores.find((s: Store) => s.id === lojaId);
