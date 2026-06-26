@@ -176,6 +176,8 @@ class App {
     // Layout structure: Render a loading state first
     const sidebarHtml = await SidebarComponent();
 
+    const mobileBottomNav = this.buildMobileNav(user.role as UserRole);
+
     this.appElement.innerHTML = `
             <div class="app-container">
                 ${sidebarHtml}
@@ -189,6 +191,7 @@ class App {
                     </div>
                 </main>
             </div>
+            ${mobileBottomNav}
         `;
 
     try {
@@ -320,9 +323,37 @@ class App {
     }
   }
 
+  private buildMobileNav(role: UserRole): string {
+    if (role === 'admin') {
+      return `
+        <nav class="mobile-bottom-nav">
+          <a href="/admin/dashboard" class="mobile-nav-item"><i class="fa-solid fa-chart-line"></i><span>Dashboard</span></a>
+          <a href="/admin/companies" class="mobile-nav-item"><i class="fa-solid fa-building"></i><span>Clientes</span></a>
+          <a href="/admin/users" class="mobile-nav-item"><i class="fa-solid fa-users"></i><span>Usuários</span></a>
+        </nav>`;
+    }
+    if (role === 'employee') {
+      return `
+        <nav class="mobile-bottom-nav">
+          <a href="/dashboard" class="mobile-nav-item"><i class="fa-solid fa-chart-line"></i><span>Dashboard</span></a>
+          <a href="/orders" class="mobile-nav-item"><i class="fa-solid fa-clipboard-list"></i><span>Pedidos</span><span id="orders-count-badge" class="count-badge hidden">0</span></a>
+          <a href="/leads" class="mobile-nav-item"><i class="fa-solid fa-people-group"></i><span>Clientes</span></a>
+        </nav>`;
+    }
+    // owner
+    return `
+      <nav class="mobile-bottom-nav">
+        <a href="/dashboard" class="mobile-nav-item"><i class="fa-solid fa-chart-line"></i><span>Dashboard</span></a>
+        <a href="/orders" class="mobile-nav-item"><i class="fa-solid fa-clipboard-list"></i><span>Pedidos</span><span id="orders-count-badge" class="count-badge hidden">0</span></a>
+        <a href="/products" class="mobile-nav-item"><i class="fa-solid fa-box"></i><span>Produtos</span></a>
+        <a href="/leads" class="mobile-nav-item"><i class="fa-solid fa-people-group"></i><span>Clientes</span></a>
+        <a href="/catalog-settings" class="mobile-nav-item"><i class="fa-solid fa-gear"></i><span>Config</span></a>
+      </nav>`;
+  }
+
   private updateActiveLinks() {
     const path = window.location.pathname;
-    const navItems = document.querySelectorAll('.nav-item');
+    const navItems = document.querySelectorAll('.nav-item, .mobile-nav-item');
     navItems.forEach(item => {
       const href = item.getAttribute('href');
       if (href === path) {

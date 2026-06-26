@@ -303,13 +303,48 @@ export const LandingPage = () => {
             .lp-footer { grid-template-columns: 1fr 1fr; gap: 4rem; }
         }
         @media(max-width: 768px) {
-            .lp-hero h1 { font-size: 2.8rem; }
+            /* Navbar: esconde só os links de texto, mantém botão de login */
             .lp-navbar { padding: 1rem 5%; }
-            .lp-nav-links { display: none; }
-            .lp-footer { grid-template-columns: 1fr; gap: 3rem; text-align: center; }
-            .lp-logo { margin: 0 auto; }
-            .lp-hero { padding-top: 80px; }
-            .lp-wa-float { bottom: 25px; right: 25px; width: 55px; height: 55px; font-size: 28px; }
+            .lp-nav-link { display: none; }
+            .lp-btn-login {
+                padding: 0.55rem 1.2rem;
+                font-size: 0.88rem;
+            }
+
+            /* Hero */
+            .lp-hero { padding: 60px 5% 60px; }
+            .lp-hero h1 { font-size: 2.4rem; letter-spacing: -1px; }
+            .lp-hero p { font-size: 1.05rem; margin-bottom: 2.5rem; }
+            .lp-hero-btns { flex-direction: column; align-items: stretch; gap: 1rem; }
+            .lp-btn-primary, .lp-btn-secondary {
+                padding: 1rem 1.5rem;
+                font-size: 1rem;
+                text-align: center;
+            }
+
+            /* Sections */
+            .lp-section { padding: 70px 5%; }
+            .lp-section-header { margin-bottom: 3rem; }
+            .lp-section-header h2 { font-size: 2.2rem; }
+            .lp-section-header p { font-size: 1rem; }
+            .lp-feat-content h2 { font-size: 2rem; }
+            .lp-feat-content p { font-size: 1rem; }
+
+            /* Cards */
+            .lp-grid-cards { grid-template-columns: 1fr; gap: 1.5rem; }
+            .lp-card { padding: 2rem; border-radius: 20px; }
+            .lp-card h3 { font-size: 1.4rem; }
+
+            /* FAQ */
+            .lp-faq { padding: 60px 5%; }
+            .lp-faq-question { font-size: 1rem; padding: 1.3rem; }
+
+            /* Footer */
+            .lp-footer { grid-template-columns: 1fr; gap: 3rem; text-align: center; padding: 60px 5% 40px; }
+            .lp-logo { justify-content: center; }
+
+            /* WhatsApp float */
+            .lp-wa-float { bottom: 20px; right: 20px; width: 52px; height: 52px; font-size: 26px; }
         }
     </style>
 
