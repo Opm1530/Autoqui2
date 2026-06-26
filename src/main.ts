@@ -35,6 +35,8 @@ import { AdminMigration } from './pages/AdminMigration';
 // Core Application Logic
 class App {
   private appElement: HTMLElement;
+  private shellRendered = false;
+  private shellUserId: string | null = null;
 
   constructor() {
     this.appElement = document.getElementById('app')!;
@@ -99,6 +101,8 @@ class App {
     document.addEventListener('click', async (e) => {
       const target = e.target as HTMLElement;
       if (target.closest('#logout-btn')) {
+        this.shellRendered = false;
+        this.shellUserId = null;
         history.replaceState(null, '', '/');
         await authService.logout();
       }
@@ -167,32 +171,52 @@ class App {
       return;
     }
 
-    const pageTitle = await this.getPageTitle(path);
-    let SidebarComponent: () => Promise<string> | string;
-    if (user.role === 'admin') SidebarComponent = AdminSidebar;
-    else if (user.role === 'employee') SidebarComponent = EmployeeSidebar;
-    else SidebarComponent = OwnerSidebar;
+    // ── Shell: render only once per user session ──────────────────────────────
+    const needsShell = !this.shellRendered || this.shellUserId !== user.uid;
 
-    // Layout structure: Render a loading state first
-    const sidebarHtml = await SidebarComponent();
+    if (needsShell) {
+      let SidebarComponent: () => Promise<string> | string;
+      if (user.role === 'admin') SidebarComponent = AdminSidebar;
+      else if (user.role === 'employee') SidebarComponent = EmployeeSidebar;
+      else SidebarComponent = OwnerSidebar;
 
-    const mobileBottomNav = this.buildMobileNav(user.role as UserRole);
+      const sidebarHtml = await SidebarComponent();
+      const mobileBottomNav = this.buildMobileNav(user.role as UserRole);
+      const pageTitle = await this.getPageTitle(path);
 
-    this.appElement.innerHTML = `
-            <div class="app-container">
-                ${sidebarHtml}
-                <main class="main-content">
-                    ${Topbar(pageTitle)}
-                    <div id="page-content" class="page-container">
-                        <div style="display: flex; justify-content: center; align-items: center; width: 100%; height: 50vh; flex-direction: column; gap: 1rem;">
-                            <i class="fa-solid fa-spinner fa-spin fa-2x" style="color: var(--primary);"></i>
-                            <span style="color: var(--text-muted);">Carregando página...</span>
-                        </div>
-                    </div>
-                </main>
-            </div>
-            ${mobileBottomNav}
-        `;
+      this.appElement.innerHTML = `
+              <div class="app-container">
+                  ${sidebarHtml}
+                  <main class="main-content">
+                      ${Topbar(pageTitle)}
+                      <div id="page-content" class="page-container">
+                          <div style="display:flex;justify-content:center;align-items:center;width:100%;height:50vh;flex-direction:column;gap:1rem;">
+                              <i class="fa-solid fa-spinner fa-spin fa-2x" style="color:var(--primary);"></i>
+                              <span style="color:var(--text-muted);">Carregando página...</span>
+                          </div>
+                      </div>
+                  </main>
+              </div>
+              ${mobileBottomNav}
+          `;
+
+      this.shellRendered = true;
+      this.shellUserId = user.uid;
+    } else {
+      // Shell already in DOM — just update title and show loading indicator
+      const pageTitle = await this.getPageTitle(path);
+      const titleEl = this.appElement.querySelector('.page-title');
+      if (titleEl) titleEl.textContent = pageTitle;
+
+      const pageContainer = document.getElementById('page-content');
+      if (pageContainer) {
+        pageContainer.innerHTML = `
+          <div style="display:flex;justify-content:center;align-items:center;width:100%;height:50vh;flex-direction:column;gap:1rem;">
+              <i class="fa-solid fa-spinner fa-spin fa-2x" style="color:var(--primary);"></i>
+              <span style="color:var(--text-muted);">Carregando página...</span>
+          </div>`;
+      }
+    }
 
     try {
         const content = await this.getPageContent(path);
