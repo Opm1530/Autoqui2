@@ -984,6 +984,30 @@ export const Products = async () => {
         document.getElementById('combos-modal')?.classList.remove('hidden');
     };
 
+    (window as any).renderComboProducts = (lojaId: string) => {
+        const listEl = document.getElementById('combo-products-list');
+        if (!listEl) return;
+        if (!lojaId) {
+            listEl.innerHTML = `<p style="text-align:center;color:var(--text-muted);font-size:0.85rem;padding:1rem 0;margin:0;">Selecione uma loja para ver os produtos.</p>`;
+            return;
+        }
+        const lojaProducts = products.filter((p: any) => {
+            if (p.active === false) return false;
+            const ids = p.storeIds || (p.storeId ? [p.storeId] : []);
+            return ids.includes(lojaId);
+        });
+        if (lojaProducts.length === 0) {
+            listEl.innerHTML = `<p style="text-align:center;color:var(--text-muted);font-size:0.85rem;padding:1rem 0;margin:0;">Nenhum produto ativo nesta loja.</p>`;
+            return;
+        }
+        listEl.innerHTML = lojaProducts.map((p: Product) => `
+            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:6px 8px;border-radius:6px;transition:background 0.15s;" onmouseover="this.style.background='rgba(255,255,255,0.04)'" onmouseout="this.style.background='transparent'">
+                <input type="checkbox" class="combo-product-check" value="${p.id}" data-name="${p.name}" data-price="${p.price}" style="width:16px;height:16px;accent-color:var(--primary);">
+                <span style="flex:1;font-size:0.87rem;">${p.name}</span>
+                <span style="font-size:0.8rem;color:var(--text-muted);">R$ ${(p.price || 0).toFixed(2)}</span>
+            </label>`).join('');
+    };
+
     (window as any).saveCombo = async () => {
         const nome = (document.getElementById('combo-nome') as HTMLInputElement)?.value.trim();
         const preco = parseFloat((document.getElementById('combo-preco') as HTMLInputElement)?.value || '0');
@@ -1353,7 +1377,7 @@ export const Products = async () => {
                         </div>
                         <div>
                             <label style="font-size:0.8rem;font-weight:600;color:var(--text-muted);display:block;margin-bottom:4px;">Loja *</label>
-                            <select id="combo-loja" style="width:100%;padding:0.6rem 0.8rem;background:var(--surface-hover);border:1px solid var(--border-color);border-radius:8px;color:var(--text-main);font-size:0.9rem;box-sizing:border-box;">
+                            <select id="combo-loja" onchange="window.renderComboProducts(this.value)" style="width:100%;padding:0.6rem 0.8rem;background:var(--surface-hover);border:1px solid var(--border-color);border-radius:8px;color:var(--text-main);font-size:0.9rem;box-sizing:border-box;">
                                 <option value="">Selecione uma loja</option>
                                 ${stores.map((s: any) => `<option value="${s.id}">${s.name}</option>`).join('')}
                             </select>
@@ -1375,12 +1399,7 @@ export const Products = async () => {
                         <div>
                             <label style="font-size:0.8rem;font-weight:600;color:var(--text-muted);display:block;margin-bottom:4px;">Produtos do Combo *</label>
                             <div id="combo-products-list" style="display:flex;flex-direction:column;gap:6px;max-height:200px;overflow-y:auto;background:var(--surface-hover);border:1px solid var(--border-color);border-radius:8px;padding:8px;">
-                                ${products.filter((p: any) => p.active !== false).map((p: Product) => `
-                                <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:6px 8px;border-radius:6px;transition:background 0.15s;" onmouseover="this.style.background='rgba(255,255,255,0.04)'" onmouseout="this.style.background='transparent'">
-                                    <input type="checkbox" class="combo-product-check" value="${p.id}" data-name="${p.name}" data-price="${p.price}" style="width:16px;height:16px;accent-color:var(--primary);">
-                                    <span style="flex:1;font-size:0.87rem;">${p.name}</span>
-                                    <span style="font-size:0.8rem;color:var(--text-muted);">R$ ${(p.price || 0).toFixed(2)}</span>
-                                </label>`).join('')}
+                                <p style="text-align:center;color:var(--text-muted);font-size:0.85rem;padding:1rem 0;margin:0;">Selecione uma loja para ver os produtos.</p>
                             </div>
                         </div>
                         <button onclick="window.saveCombo()" class="btn-primary" style="width:100%;justify-content:center;"><i class="fa-solid fa-plus"></i> Criar Combo</button>
