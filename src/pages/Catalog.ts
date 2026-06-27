@@ -40,8 +40,12 @@ export const Catalog = async (storeId: string) => {
         const modulos = company.modulos_ativos || [];
         const hasVendaCatalogo = modulos.includes('venda_catalogo');
 
-        const productsRaw = await dbService.getAll('products', { field: 'companyId', operator: '==', value: company.id }) as any[];
-        const categories = await dbService.getAll('categories', { field: 'companyId', operator: '==', value: company.id }) as any[];
+        const [productsRaw, categories, combosRaw] = await Promise.all([
+            dbService.getAll('products', { field: 'companyId', operator: '==', value: company.id }),
+            dbService.getAll('categories', { field: 'companyId', operator: '==', value: company.id }),
+            dbService.getAll('combos', { field: 'empresaId', operator: '==', value: company.id }),
+        ]) as [any[], any[], any[]];
+        const combos = (combosRaw as any[]).filter((c: any) => c.ativo !== false && c.lojaId === storeId);
 
         const config = lojaConfigs[0] || {};
         const design = config.design || {};
@@ -475,6 +479,25 @@ export const Catalog = async (storeId: string) => {
             };
 
             (window as any).catRemoveItem = (productId: string) => { cart.delete(productId); updateCartUI(); };
+
+            (window as any).catAddComboToCart = (comboId: string) => {
+                const combo = combos.find((c: any) => c.id === comboId);
+                if (!combo) return;
+                // Add each product in the combo to cart individually
+                (combo.produtos || []).forEach((cp: any) => {
+                    const product = products.find((p: any) => p.id === cp.id);
+                    if (!product || product.stock === 0) return;
+                    const existing = cart.get(cp.id);
+                    const maxQty = product.stock ?? Infinity;
+                    if ((existing?.qty || 0) < maxQty) {
+                        cart.set(cp.id, { product, qty: (existing?.qty || 0) + 1 });
+                    }
+                });
+                updateCartUI();
+                // Brief visual feedback
+                const btn = document.querySelector(`[onclick="window.catAddComboToCart('${comboId}')"] button`);
+                if (btn) { btn.textContent = '✓ Adicionado!'; setTimeout(() => { if (btn) btn.textContent = '+ Adicionar Combo'; }, 1200); }
+            };
 
             // ── Modal navigation ──
             (window as any).openCart = () => { updateCartUI(); openModal('cart-modal'); };
@@ -1146,6 +1169,39 @@ export const Catalog = async (storeId: string) => {
         }
 
         // ── Render helpers ───────────────────────────────────────────────────
+        const renderComboCard = (c: any) => {
+            const precoOriginal = (c.produtos || []).reduce((sum: number, p: any) => sum + (p.price || 0), 0);
+            const economia = precoOriginal > 0 ? (precoOriginal - parseFloat(c.preco || 0)) : 0;
+            return `
+            <div class="product-card" onclick="window.catAddComboToCart('${c.id}')" style="cursor:pointer;position:relative;border:1.5px solid rgba(245,158,11,0.3);">
+                <div class="card-image" style="background:linear-gradient(135deg,rgba(245,158,11,0.15),rgba(251,191,36,0.05));display:flex;align-items:center;justify-content:center;min-height:120px;">
+                    <i class="fa-solid fa-layer-group" style="font-size:2.5rem;color:#f59e0b;opacity:0.8;"></i>
+                    <div class="promo-tag" style="background:#f59e0b;">COMBO</div>
+                </div>
+                <div class="card-info">
+                    <h3 style="font-weight:800;">${c.nome}</h3>
+                    ${c.descricao ? `<p style="font-size:0.8rem;color:var(--text-dim);margin:2px 0 6px;line-height:1.4;font-style:italic;">${c.descricao}</p>` : ''}
+                    <p style="font-size:0.75rem;color:#94a3b8;margin:4px 0 8px;line-height:1.4;">${(c.produtos || []).map((p: any) => p.name).join(' + ')}</p>
+                    <div class="price-container">
+                        <span class="price" style="color:#f59e0b;">R$ ${parseFloat(c.preco || 0).toFixed(2)}</span>
+                        ${precoOriginal > 0 && economia > 0 ? `<span class="original-price">R$ ${precoOriginal.toFixed(2)}</span>` : ''}
+                    </div>
+                    ${economia > 0 ? `<p style="font-size:0.75rem;color:#10b981;margin:4px 0 0;font-weight:700;">✓ Economize R$ ${economia.toFixed(2)}</p>` : ''}
+                    <button style="margin-top:12px;width:100%;padding:10px;border-radius:10px;background:#f59e0b;color:white;border:none;cursor:pointer;font-weight:700;font-size:0.9rem;">
+                        + Adicionar Combo
+                    </button>
+                </div>
+            </div>`;
+        };
+
+        const combosSection = combos.length > 0 ? `
+            <div class="section-title" style="margin-top:40px;">
+                <i class="fa-solid fa-layer-group" style="color:#f59e0b;" aria-hidden="true"></i>
+                <span>Combos Especiais</span>
+                <div class="line" style="background:linear-gradient(to right,#f59e0b,transparent);"></div>
+            </div>
+            <div class="product-grid" role="list">${combos.map(renderComboCard).join('')}</div>` : '';
+
         const renderProductCard = (p: any, usePromo: boolean = false) => {
             const title = usePromo ? (p.promotionalName || p.name) : p.name;
             const price = usePromo ? (p.promotionalPrice || p.price) : p.price;
@@ -1624,6 +1680,7 @@ export const Catalog = async (storeId: string) => {
                             <i class="fa-solid fa-store" style="font-size:3rem;color:rgba(255,255,255,0.3);"></i>
                         </div>`}
                     <main class="section-container" style="padding-top:20px;">
+                        ${combosSection}
                         ${promoProducts.length > 0 ? `<div class="section-title"><i class="fa-solid fa-bolt-lightning" aria-hidden="true"></i><span>Ofertas do Dia</span><div class="line"></div></div><div class="product-grid" role="list">${promoProducts.map((p: any) => renderProductCard(p, true)).join('')}</div>` : ''}
                         ${categorizedData.map((cat: any) => `<div class="section-title"><i class="fa-solid ${cat.icon || 'fa-tag'}" aria-hidden="true"></i><span>${cat.name}</span><div class="line"></div></div><div class="product-grid" role="list">${cat.products.map((p: any) => renderProductCard(p, false)).join('')}</div>`).join('')}
                         ${uncategorizedProducts.length > 0 ? `<div class="section-title"><i class="fa-solid fa-box" aria-hidden="true"></i><span>Outros</span><div class="line"></div></div><div class="product-grid" role="list">${uncategorizedProducts.map((p: any) => renderProductCard(p, false)).join('')}</div>` : ''}
@@ -1682,6 +1739,7 @@ export const Catalog = async (storeId: string) => {
                         </aside>
                         <div>
                             <div id="cat-moderno-content">
+                                ${combosSection}
                                 ${promoProducts.length > 0 ? `<div class="section-title" data-catgroup="promo"><i class="fa-solid fa-bolt-lightning" aria-hidden="true"></i><span>Ofertas do Dia</span><div class="line"></div></div><div class="product-grid" data-catgroup="promo" role="list">${promoProducts.map((p: any) => renderProductCard(p, true)).join('')}</div>` : ''}
                                 ${categorizedData.map((cat: any) => `<div class="section-title" data-catgroup="${cat.id}"><i class="fa-solid ${cat.icon || 'fa-tag'}" aria-hidden="true"></i><span>${cat.name}</span><div class="line"></div></div><div class="product-grid" data-catgroup="${cat.id}" role="list">${cat.products.map((p: any) => renderProductCard(p, false)).join('')}</div>`).join('')}
                                 ${uncategorizedProducts.length > 0 ? `<div class="section-title" data-catgroup="outros"><i class="fa-solid fa-box" aria-hidden="true"></i><span>Outros</span><div class="line"></div></div><div class="product-grid" data-catgroup="outros" role="list">${uncategorizedProducts.map((p: any) => renderProductCard(p, false)).join('')}</div>` : ''}

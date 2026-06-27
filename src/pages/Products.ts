@@ -78,8 +78,14 @@ export const Products = async () => {
         `;
     }
 
-    let products = await dbService.getAll('products', { field: 'companyId', operator: '==', value: currentUser.companyId }) as Product[];
-    let categories = await dbService.getAll('categories', { field: 'companyId', operator: '==', value: currentUser.companyId }) as Category[];
+    const [productsRaw, categoriesRaw, combosRaw] = await Promise.all([
+        dbService.getAll('products', { field: 'companyId', operator: '==', value: currentUser.companyId }),
+        dbService.getAll('categories', { field: 'companyId', operator: '==', value: currentUser.companyId }),
+        dbService.getAll('combos', { field: 'empresaId', operator: '==', value: currentUser.companyId }),
+    ]);
+    let products = productsRaw as Product[];
+    let categories = categoriesRaw as Category[];
+    let combos = combosRaw as any[];
 
     const getStoreNames = (p: any) => {
         const ids = p.storeIds || (p.storeId ? [p.storeId] : []);
@@ -493,6 +499,7 @@ export const Products = async () => {
         document.getElementById('category-modal')?.classList.add('hidden');
         document.getElementById('edit-cat-name-modal')?.classList.add('hidden');
         document.getElementById('migration-modal')?.classList.add('hidden');
+        document.getElementById('combos-modal')?.classList.add('hidden');
     };
 
     (window as any).handleBulkFileSelection = (input: HTMLInputElement) => {
@@ -1088,8 +1095,9 @@ export const Products = async () => {
                     </a>
                 </div>
 
-                <div style="display: flex; gap: 10px;">
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
                     <button class="btn-secondary" onclick="window.openCategoryModal()"><i class="fa-solid fa-tags"></i> Categorias</button>
+                    ${!isAgendamento ? `<button class="btn-secondary" onclick="window.openCombosModal()" style="color:#f59e0b;border-color:rgba(245,158,11,0.4);"><i class="fa-solid fa-layer-group"></i> Combos</button>` : ''}
                     <button class="btn-primary" onclick="window.openProductModal()"><i style="color: #fff;" class="fa-solid fa-plus"></i> Novo ${labelSingular}</button>
                 </div>
             </div>
@@ -1177,5 +1185,184 @@ export const Products = async () => {
         </div>
         ${modalHtml}
         ${categoriesModalHtml}
+
+        <!-- Combos Modal -->
+        <div id="combos-modal" class="modal hidden">
+            <div class="modal-content glass" style="max-width:560px;max-height:90vh;overflow-y:auto;padding:0;">
+                <div style="padding:1.5rem 1.5rem 1rem;border-bottom:1px solid var(--border-color);display:flex;justify-content:space-between;align-items:center;">
+                    <div>
+                        <h3 style="margin:0;font-size:1.1rem;font-weight:700;"><i class="fa-solid fa-layer-group" style="color:#f59e0b;margin-right:8px;"></i>Combos</h3>
+                        <p style="margin:4px 0 0;font-size:0.82rem;color:var(--text-muted);">Crie kits de produtos com preço especial</p>
+                    </div>
+                    <span class="close-modal" onclick="document.getElementById('combos-modal').classList.add('hidden')">&times;</span>
+                </div>
+
+                <!-- Form criar combo -->
+                <div id="combo-form-section" style="padding:1.25rem 1.5rem;border-bottom:1px solid var(--border-color);">
+                    <div style="display:flex;flex-direction:column;gap:0.75rem;">
+                        <div>
+                            <label style="font-size:0.8rem;font-weight:600;color:var(--text-muted);display:block;margin-bottom:4px;">Nome do Combo *</label>
+                            <input id="combo-nome" type="text" placeholder="Ex: Combo Família" style="width:100%;padding:0.6rem 0.8rem;background:var(--surface-hover);border:1px solid var(--border-color);border-radius:8px;color:var(--text-main);font-size:0.9rem;box-sizing:border-box;">
+                        </div>
+                        <div>
+                            <label style="font-size:0.8rem;font-weight:600;color:var(--text-muted);display:block;margin-bottom:4px;">Loja *</label>
+                            <select id="combo-loja" style="width:100%;padding:0.6rem 0.8rem;background:var(--surface-hover);border:1px solid var(--border-color);border-radius:8px;color:var(--text-main);font-size:0.9rem;box-sizing:border-box;">
+                                <option value="">Selecione uma loja</option>
+                                ${stores.map((s: any) => `<option value="${s.id}">${s.name}</option>`).join('')}
+                            </select>
+                        </div>
+                        <div>
+                            <label style="font-size:0.8rem;font-weight:600;color:var(--text-muted);display:block;margin-bottom:4px;">Descrição</label>
+                            <input id="combo-descricao" type="text" placeholder="Ex: Perfeito para 4 pessoas" style="width:100%;padding:0.6rem 0.8rem;background:var(--surface-hover);border:1px solid var(--border-color);border-radius:8px;color:var(--text-main);font-size:0.9rem;box-sizing:border-box;">
+                        </div>
+                        <div>
+                            <label style="font-size:0.8rem;font-weight:600;color:var(--text-muted);display:block;margin-bottom:4px;">Preço do Combo (R$) *</label>
+                            <input id="combo-preco" type="number" min="0" step="0.01" placeholder="0,00" style="width:100%;padding:0.6rem 0.8rem;background:var(--surface-hover);border:1px solid var(--border-color);border-radius:8px;color:var(--text-main);font-size:0.9rem;box-sizing:border-box;">
+                        </div>
+                        <div>
+                            <label style="font-size:0.8rem;font-weight:600;color:var(--text-muted);display:block;margin-bottom:4px;">Produtos do Combo *</label>
+                            <div id="combo-products-list" style="display:flex;flex-direction:column;gap:6px;max-height:200px;overflow-y:auto;background:var(--surface-hover);border:1px solid var(--border-color);border-radius:8px;padding:8px;">
+                                ${products.filter((p: any) => p.active !== false).map((p: Product) => `
+                                <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:6px 8px;border-radius:6px;transition:background 0.15s;" onmouseover="this.style.background='rgba(255,255,255,0.04)'" onmouseout="this.style.background='transparent'">
+                                    <input type="checkbox" class="combo-product-check" value="${p.id}" data-name="${p.name}" data-price="${p.price}" style="width:16px;height:16px;accent-color:var(--primary);">
+                                    <span style="flex:1;font-size:0.87rem;">${p.name}</span>
+                                    <span style="font-size:0.8rem;color:var(--text-muted);">R$ ${(p.price || 0).toFixed(2)}</span>
+                                </label>`).join('')}
+                            </div>
+                        </div>
+                        <button onclick="window.saveCombo()" class="btn-primary" style="width:100%;justify-content:center;"><i class="fa-solid fa-plus"></i> Criar Combo</button>
+                    </div>
+                </div>
+
+                <!-- Lista de combos existentes -->
+                <div style="padding:1.25rem 1.5rem;">
+                    <p style="font-size:0.8rem;font-weight:700;text-transform:uppercase;color:var(--text-muted);margin:0 0 0.75rem;">Combos Cadastrados</p>
+                    <div id="combos-list">
+                        ${combos.length === 0
+                            ? `<p style="text-align:center;color:var(--text-muted);font-size:0.88rem;padding:1.5rem 0;">Nenhum combo cadastrado ainda.</p>`
+                            : combos.map((c: any) => `
+                            <div id="combo-item-${c.id}" style="background:var(--surface-hover);border:1px solid var(--border-color);border-radius:10px;padding:0.85rem 1rem;margin-bottom:0.6rem;display:flex;align-items:flex-start;justify-content:space-between;gap:0.75rem;">
+                                <div style="flex:1;min-width:0;">
+                                    <div style="font-weight:700;font-size:0.92rem;margin-bottom:2px;">${c.nome}</div>
+                                    <div style="font-size:0.78rem;color:var(--text-muted);">${(c.produtos || []).map((p: any) => p.name).join(' + ')}</div>
+                                    <div style="font-size:0.9rem;font-weight:700;color:#10b981;margin-top:4px;">R$ ${parseFloat(c.preco || 0).toFixed(2)}</div>
+                                </div>
+                                <div style="display:flex;gap:6px;flex-shrink:0;">
+                                    <button onclick="window.toggleComboAtivo('${c.id}', ${!c.ativo})" style="background:${c.ativo !== false ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.12)'};color:${c.ativo !== false ? '#34d399' : '#f87171'};border:1px solid ${c.ativo !== false ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)'};border-radius:6px;padding:4px 10px;font-size:0.75rem;font-weight:600;cursor:pointer;" title="${c.ativo !== false ? 'Desativar' : 'Ativar'}">
+                                        ${c.ativo !== false ? 'Ativo' : 'Inativo'}
+                                    </button>
+                                    <button onclick="window.deleteCombo('${c.id}')" style="background:rgba(239,68,68,0.1);color:#f87171;border:1px solid rgba(239,68,68,0.25);border-radius:6px;padding:4px 8px;font-size:0.75rem;cursor:pointer;" title="Excluir"><i class="fa-solid fa-trash"></i></button>
+                                </div>
+                            </div>`).join('')
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
     `;
+
+    // ── Combo logic ───────────────────────────────────────────────────────────
+    (window as any).openCombosModal = () => {
+        document.getElementById('combos-modal')?.classList.remove('hidden');
+    };
+
+    (window as any).saveCombo = async () => {
+        const nome = (document.getElementById('combo-nome') as HTMLInputElement)?.value.trim();
+        const descricao = (document.getElementById('combo-descricao') as HTMLInputElement)?.value.trim();
+        const preco = parseFloat((document.getElementById('combo-preco') as HTMLInputElement)?.value || '0');
+        const lojaId = (document.getElementById('combo-loja') as HTMLSelectElement)?.value;
+        const checks = document.querySelectorAll('.combo-product-check:checked') as NodeListOf<HTMLInputElement>;
+
+        if (!nome) { toast.error('Informe o nome do combo.'); return; }
+        if (!lojaId) { toast.error('Selecione uma loja.'); return; }
+        if (isNaN(preco) || preco <= 0) { toast.error('Informe um preço válido.'); return; }
+        if (checks.length < 2) { toast.error('Selecione ao menos 2 produtos.'); return; }
+
+        const produtosSelecionados = Array.from(checks).map(cb => ({
+            id: cb.value,
+            name: cb.dataset.name || '',
+            price: parseFloat(cb.dataset.price || '0'),
+        }));
+
+        try {
+            const newId = await dbService.create('combos', {
+                nome,
+                descricao,
+                preco,
+                lojaId,
+                empresaId: currentUser!.companyId,
+                produtos: produtosSelecionados,
+                ativo: true,
+                criadoEm: new Date(),
+            });
+
+            combos.push({ id: newId, nome, descricao, preco, lojaId, empresaId: currentUser!.companyId, produtos: produtosSelecionados, ativo: true });
+
+            // Reset form
+            (document.getElementById('combo-nome') as HTMLInputElement).value = '';
+            (document.getElementById('combo-descricao') as HTMLInputElement).value = '';
+            (document.getElementById('combo-preco') as HTMLInputElement).value = '';
+            (document.getElementById('combo-loja') as HTMLSelectElement).value = '';
+            checks.forEach(cb => { cb.checked = false; });
+
+            // Re-render list
+            const listEl = document.getElementById('combos-list');
+            if (listEl) listEl.outerHTML = `<div id="combos-list">${combos.map((c: any) => buildComboItem(c)).join('')}</div>`;
+            attachComboListeners();
+
+            toast.success('Combo criado com sucesso!');
+        } catch (e: any) {
+            toast.error('Erro ao criar combo: ' + (e.message || ''));
+        }
+    };
+
+    const buildComboItem = (c: any) => `
+        <div id="combo-item-${c.id}" style="background:var(--surface-hover);border:1px solid var(--border-color);border-radius:10px;padding:0.85rem 1rem;margin-bottom:0.6rem;display:flex;align-items:flex-start;justify-content:space-between;gap:0.75rem;">
+            <div style="flex:1;min-width:0;">
+                <div style="font-weight:700;font-size:0.92rem;margin-bottom:2px;">${c.nome}</div>
+                <div style="font-size:0.78rem;color:var(--text-muted);">${(c.produtos || []).map((p: any) => p.name).join(' + ')}</div>
+                <div style="font-size:0.9rem;font-weight:700;color:#10b981;margin-top:4px;">R$ ${parseFloat(c.preco || 0).toFixed(2)}</div>
+            </div>
+            <div style="display:flex;gap:6px;flex-shrink:0;">
+                <button data-combo-toggle="${c.id}" data-ativo="${c.ativo !== false}" style="background:${c.ativo !== false ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.12)'};color:${c.ativo !== false ? '#34d399' : '#f87171'};border:1px solid ${c.ativo !== false ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)'};border-radius:6px;padding:4px 10px;font-size:0.75rem;font-weight:600;cursor:pointer;">
+                    ${c.ativo !== false ? 'Ativo' : 'Inativo'}
+                </button>
+                <button data-combo-delete="${c.id}" style="background:rgba(239,68,68,0.1);color:#f87171;border:1px solid rgba(239,68,68,0.25);border-radius:6px;padding:4px 8px;font-size:0.75rem;cursor:pointer;"><i class="fa-solid fa-trash"></i></button>
+            </div>
+        </div>`;
+
+    const attachComboListeners = () => {
+        document.querySelectorAll('[data-combo-toggle]').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const id = (btn as HTMLElement).dataset.comboToggle!;
+                const atualAtivo = (btn as HTMLElement).dataset.ativo === 'true';
+                try {
+                    await dbService.update('combos', id, { ativo: !atualAtivo });
+                    const combo = combos.find((c: any) => c.id === id);
+                    if (combo) combo.ativo = !atualAtivo;
+                    const listEl = document.getElementById('combos-list');
+                    if (listEl) listEl.outerHTML = `<div id="combos-list">${combos.map((c: any) => buildComboItem(c)).join('')}</div>`;
+                    attachComboListeners();
+                } catch (e: any) { toast.error('Erro: ' + e.message); }
+            });
+        });
+
+        document.querySelectorAll('[data-combo-delete]').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const id = (btn as HTMLElement).dataset.comboDelete!;
+                const ok = await confirm.show({ title: 'Excluir Combo', message: 'Tem certeza que deseja excluir este combo?', type: 'danger', confirmText: 'Excluir' });
+                if (!ok) return;
+                try {
+                    await dbService.delete('combos', id);
+                    combos = combos.filter((c: any) => c.id !== id);
+                    const listEl = document.getElementById('combos-list');
+                    if (listEl) listEl.outerHTML = `<div id="combos-list">${combos.length === 0 ? '<p style="text-align:center;color:var(--text-muted);font-size:0.88rem;padding:1.5rem 0;">Nenhum combo cadastrado ainda.</p>' : combos.map((c: any) => buildComboItem(c)).join('')}</div>`;
+                    attachComboListeners();
+                    toast.success('Combo excluído.');
+                } catch (e: any) { toast.error('Erro: ' + e.message); }
+            });
+        });
+    };
+
+    setTimeout(() => attachComboListeners(), 100);
 };
