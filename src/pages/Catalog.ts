@@ -43,7 +43,8 @@ export const Catalog = async (storeId: string) => {
         const [productsRaw, categories, combosRaw] = await Promise.all([
             dbService.getAll('products', { field: 'companyId', operator: '==', value: company.id }),
             dbService.getAll('categories', { field: 'companyId', operator: '==', value: company.id }),
-            dbService.getAll('combos', { field: 'empresaId', operator: '==', value: company.id }),
+            // Combos é opcional: se a regra de leitura não permitir, não quebra o catálogo
+            dbService.getAll('combos', { field: 'empresaId', operator: '==', value: company.id }).catch(() => []),
         ]) as [any[], any[], any[]];
         const combos = (combosRaw as any[]).filter((c: any) => c.ativo !== false && c.lojaId === storeId);
 
@@ -183,6 +184,25 @@ export const Catalog = async (storeId: string) => {
                 t += price * qty;
             });
             return t;
+        };
+
+        // Baixa de estoque do carrinho — trata combos baixando os produtos internos
+        const deductCartStock = async () => {
+            for (const [id, { product, qty }] of Array.from(cart.entries())) {
+                if ((product as any).isCombo) {
+                    for (const cp of ((product as any).produtos || [])) {
+                        const prod = products.find((p: any) => p.id === cp.id);
+                        if (prod && prod.stock != null) {
+                            await dbService.update('products', prod.id, { stock: Math.max(0, prod.stock - qty) });
+                        }
+                    }
+                } else {
+                    const prod = products.find((p: any) => p.id === id);
+                    if (prod && prod.stock != null) {
+                        await dbService.update('products', id, { stock: Math.max(0, prod.stock - qty) });
+                    }
+                }
+            }
         };
 
         const getTaxaValue = () => {
@@ -483,16 +503,21 @@ export const Catalog = async (storeId: string) => {
             (window as any).catAddComboToCart = (comboId: string) => {
                 const combo = combos.find((c: any) => c.id === comboId);
                 if (!combo) return;
-                // Add each product in the combo to cart individually
-                (combo.produtos || []).forEach((cp: any) => {
-                    const product = products.find((p: any) => p.id === cp.id);
-                    if (!product || product.stock === 0) return;
-                    const existing = cart.get(cp.id);
-                    const maxQty = product.stock ?? Infinity;
-                    if ((existing?.qty || 0) < maxQty) {
-                        cart.set(cp.id, { product, qty: (existing?.qty || 0) + 1 });
-                    }
-                });
+                // Combo entra como UMA linha única, pelo preço do combo.
+                // Guarda os produtos internos para baixar o estoque no checkout.
+                const cartId = `combo_${comboId}`;
+                const comboProduct = {
+                    id: cartId,
+                    name: combo.nome,
+                    price: parseFloat(combo.preco || 0),
+                    isCombo: true,
+                    produtos: combo.produtos || [],
+                    imagemPath: combo.imagemPath || null,
+                    downloadToken: combo.downloadToken || null,
+                    stock: null,
+                };
+                const existing = cart.get(cartId);
+                cart.set(cartId, { product: comboProduct, qty: (existing?.qty || 0) + 1 });
                 updateCartUI();
                 // Brief visual feedback
                 const btn = document.querySelector(`[onclick="window.catAddComboToCart('${comboId}')"] button`);
@@ -515,12 +540,23 @@ export const Catalog = async (storeId: string) => {
                 if (btn) btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Verificando...';
 
                 let outOfStock = false;
+                // Combos validam o estoque de cada produto interno; itens normais validam direto.
+                const toCheck: { id: string; qty: number; label: string }[] = [];
                 for (const [id, { product, qty }] of Array.from(cart.entries())) {
+                    if ((product as any).isCombo) {
+                        for (const cp of ((product as any).produtos || [])) {
+                            toCheck.push({ id: cp.id, qty, label: product.name });
+                        }
+                    } else {
+                        toCheck.push({ id, qty, label: product.name });
+                    }
+                }
+                for (const item of toCheck) {
                     try {
-                        const freshProduct = await dbService.get('products', id) as any;
-                        if (!freshProduct || freshProduct.active === false || (freshProduct.stock != null && freshProduct.stock < qty)) {
+                        const freshProduct = await dbService.get('products', item.id) as any;
+                        if (!freshProduct || freshProduct.active === false || (freshProduct.stock != null && freshProduct.stock < item.qty)) {
                             outOfStock = true;
-                            alert(`O produto "${product.name}" não possui quantidade suficiente em estoque ou está indisponível.`);
+                            alert(`O item "${item.label}" não possui quantidade suficiente em estoque ou está indisponível.`);
                             break;
                         }
                     } catch (e) {
@@ -875,12 +911,13 @@ export const Catalog = async (storeId: string) => {
                     // deliveryType já declarado acima para verificação de horário
                     const items = Array.from(cart.entries()).map(([id, { product, qty }]) => {
                         const price = product.promotionalActive ? (product.promotionalPrice || product.price) : product.price;
+                        if ((product as any).isCombo) {
+                            const inclui = ((product as any).produtos || []).map((p: any) => p.name).join(' + ');
+                            return { productId: id, name: product.name, qty, price, subtotal: price * qty, isCombo: true, itensCombo: inclui };
+                        }
                         return { productId: id, name: product.name, qty, price, subtotal: price * qty };
                     });
-                    for (const [id, { qty }] of Array.from(cart.entries())) {
-                        const product = products.find((p: any) => p.id === id);
-                        if (product && product.stock != null) await dbService.update('products', id, { stock: Math.max(0, product.stock - qty) });
-                    }
+                    await deductCartStock();
                     const subtotal = getSubtotal();
                     const taxaAplicada = getTaxaValue();
                     const desconto = getDescontoValue(subtotal);
@@ -953,12 +990,13 @@ export const Catalog = async (storeId: string) => {
                     const { name, phone, address } = customer;
                     const items = Array.from(cart.entries()).map(([id, { product, qty }]) => {
                         const price = product.promotionalActive ? (product.promotionalPrice || product.price) : product.price;
+                        if ((product as any).isCombo) {
+                            const inclui = ((product as any).produtos || []).map((p: any) => p.name).join(' + ');
+                            return { productId: id, name: product.name, qty, price, subtotal: price * qty, isCombo: true, itensCombo: inclui };
+                        }
                         return { productId: id, name: product.name, qty, price, subtotal: price * qty };
                     });
-                    for (const [id, { qty }] of Array.from(cart.entries())) {
-                        const product = products.find((p: any) => p.id === id);
-                        if (product && product.stock != null) await dbService.update('products', id, { stock: Math.max(0, product.stock - qty) });
-                    }
+                    await deductCartStock();
                     const subtotal = getSubtotal();
                     const taxaAplicada = getTaxaValue();
                     const desconto = getDescontoValue(subtotal);
@@ -1070,6 +1108,10 @@ export const Catalog = async (storeId: string) => {
                     // deliveryType já declarado acima
                     const items = Array.from(cart.entries()).map(([id, { product, qty }]) => {
                         const price = product.promotionalActive ? (product.promotionalPrice || product.price) : product.price;
+                        if ((product as any).isCombo) {
+                            const inclui = ((product as any).produtos || []).map((p: any) => p.name).join(' + ');
+                            return { productId: id, name: product.name, qty, price, subtotal: price * qty, isCombo: true, itensCombo: inclui };
+                        }
                         return { productId: id, name: product.name, qty, price, subtotal: price * qty };
                     });
                     const subtotal = getSubtotal();
@@ -1095,10 +1137,7 @@ export const Catalog = async (storeId: string) => {
                     });
                     const mpData = mpResponse.ok ? await mpResponse.json() : null;
 
-                    for (const [id, { qty }] of Array.from(cart.entries())) {
-                        const product = products.find((p: any) => p.id === id);
-                        if (product && product.stock != null) await dbService.update('products', id, { stock: Math.max(0, product.stock - qty) });
-                    }
+                    await deductCartStock();
 
                     const leadId = await findOrCreateLead(name, phone);
                     const orderData = {
