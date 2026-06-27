@@ -916,6 +916,105 @@ export const Products = async () => {
         </div>
     `;
 
+    // ── Combo logic ───────────────────────────────────────────────────────────
+    const buildComboItem = (c: any) => `
+        <div id="combo-item-${c.id}" style="background:var(--surface-hover);border:1px solid var(--border-color);border-radius:10px;padding:0.85rem 1rem;margin-bottom:0.6rem;display:flex;align-items:flex-start;justify-content:space-between;gap:0.75rem;">
+            <div style="flex:1;min-width:0;">
+                <div style="font-weight:700;font-size:0.92rem;margin-bottom:2px;">${c.nome}</div>
+                <div style="font-size:0.78rem;color:var(--text-muted);">${(c.produtos || []).map((p: any) => p.name).join(' + ')}</div>
+                <div style="font-size:0.9rem;font-weight:700;color:#10b981;margin-top:4px;">R$ ${parseFloat(c.preco || 0).toFixed(2)}</div>
+            </div>
+            <div style="display:flex;gap:6px;flex-shrink:0;">
+                <button data-combo-toggle="${c.id}" data-ativo="${c.ativo !== false}" style="background:${c.ativo !== false ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.12)'};color:${c.ativo !== false ? '#34d399' : '#f87171'};border:1px solid ${c.ativo !== false ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)'};border-radius:6px;padding:4px 10px;font-size:0.75rem;font-weight:600;cursor:pointer;">
+                    ${c.ativo !== false ? 'Ativo' : 'Inativo'}
+                </button>
+                <button data-combo-delete="${c.id}" style="background:rgba(239,68,68,0.1);color:#f87171;border:1px solid rgba(239,68,68,0.25);border-radius:6px;padding:4px 8px;font-size:0.75rem;cursor:pointer;"><i class="fa-solid fa-trash"></i></button>
+            </div>
+        </div>`;
+
+    const attachComboListeners = () => {
+        document.querySelectorAll('[data-combo-toggle]').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const id = (btn as HTMLElement).dataset.comboToggle!;
+                const atualAtivo = (btn as HTMLElement).dataset.ativo === 'true';
+                try {
+                    await dbService.update('combos', id, { ativo: !atualAtivo });
+                    const combo = combos.find((c: any) => c.id === id);
+                    if (combo) combo.ativo = !atualAtivo;
+                    const listEl = document.getElementById('combos-list');
+                    if (listEl) listEl.outerHTML = `<div id="combos-list">${combos.map((c: any) => buildComboItem(c)).join('')}</div>`;
+                    attachComboListeners();
+                } catch (e: any) { toast.error('Erro: ' + e.message); }
+            });
+        });
+
+        document.querySelectorAll('[data-combo-delete]').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const id = (btn as HTMLElement).dataset.comboDelete!;
+                const ok = await confirm.show({ title: 'Excluir Combo', message: 'Tem certeza que deseja excluir este combo?', type: 'danger', confirmText: 'Excluir' });
+                if (!ok) return;
+                try {
+                    await dbService.delete('combos', id);
+                    combos = combos.filter((c: any) => c.id !== id);
+                    const listEl = document.getElementById('combos-list');
+                    if (listEl) listEl.outerHTML = `<div id="combos-list">${combos.length === 0 ? '<p style="text-align:center;color:var(--text-muted);font-size:0.88rem;padding:1.5rem 0;">Nenhum combo cadastrado ainda.</p>' : combos.map((c: any) => buildComboItem(c)).join('')}</div>`;
+                    attachComboListeners();
+                    toast.success('Combo excluído.');
+                } catch (e: any) { toast.error('Erro: ' + e.message); }
+            });
+        });
+    };
+
+    (window as any).openCombosModal = () => {
+        document.getElementById('combos-modal')?.classList.remove('hidden');
+    };
+
+    (window as any).saveCombo = async () => {
+        const nome = (document.getElementById('combo-nome') as HTMLInputElement)?.value.trim();
+        const descricao = (document.getElementById('combo-descricao') as HTMLInputElement)?.value.trim();
+        const preco = parseFloat((document.getElementById('combo-preco') as HTMLInputElement)?.value || '0');
+        const lojaId = (document.getElementById('combo-loja') as HTMLSelectElement)?.value;
+        const checks = document.querySelectorAll('.combo-product-check:checked') as NodeListOf<HTMLInputElement>;
+
+        if (!nome) { toast.error('Informe o nome do combo.'); return; }
+        if (!lojaId) { toast.error('Selecione uma loja.'); return; }
+        if (isNaN(preco) || preco <= 0) { toast.error('Informe um preço válido.'); return; }
+        if (checks.length < 2) { toast.error('Selecione ao menos 2 produtos.'); return; }
+
+        const produtosSelecionados = Array.from(checks).map(cb => ({
+            id: cb.value,
+            name: cb.dataset.name || '',
+            price: parseFloat(cb.dataset.price || '0'),
+        }));
+
+        try {
+            const newId = await dbService.create('combos', {
+                nome, descricao, preco, lojaId,
+                empresaId: currentUser!.companyId,
+                produtos: produtosSelecionados,
+                ativo: true,
+                criadoEm: new Date(),
+            });
+
+            combos.push({ id: newId, nome, descricao, preco, lojaId, empresaId: currentUser!.companyId, produtos: produtosSelecionados, ativo: true });
+
+            (document.getElementById('combo-nome') as HTMLInputElement).value = '';
+            (document.getElementById('combo-descricao') as HTMLInputElement).value = '';
+            (document.getElementById('combo-preco') as HTMLInputElement).value = '';
+            (document.getElementById('combo-loja') as HTMLSelectElement).value = '';
+            checks.forEach(cb => { cb.checked = false; });
+
+            const listEl = document.getElementById('combos-list');
+            if (listEl) listEl.outerHTML = `<div id="combos-list">${combos.map((c: any) => buildComboItem(c)).join('')}</div>`;
+            attachComboListeners();
+            toast.success('Combo criado com sucesso!');
+        } catch (e: any) {
+            toast.error('Erro ao criar combo: ' + (e.message || ''));
+        }
+    };
+
+    setTimeout(() => attachComboListeners(), 150);
+
     return `
         <style>
             .bulk-dropzone {
@@ -1260,105 +1359,4 @@ export const Products = async () => {
             </div>
         </div>
     `;
-
-    // ── Combo logic (registrado antes do return via setTimeout) ───────────────
-    const buildComboItem = (c: any) => `
-        <div id="combo-item-${c.id}" style="background:var(--surface-hover);border:1px solid var(--border-color);border-radius:10px;padding:0.85rem 1rem;margin-bottom:0.6rem;display:flex;align-items:flex-start;justify-content:space-between;gap:0.75rem;">
-            <div style="flex:1;min-width:0;">
-                <div style="font-weight:700;font-size:0.92rem;margin-bottom:2px;">${c.nome}</div>
-                <div style="font-size:0.78rem;color:var(--text-muted);">${(c.produtos || []).map((p: any) => p.name).join(' + ')}</div>
-                <div style="font-size:0.9rem;font-weight:700;color:#10b981;margin-top:4px;">R$ ${parseFloat(c.preco || 0).toFixed(2)}</div>
-            </div>
-            <div style="display:flex;gap:6px;flex-shrink:0;">
-                <button data-combo-toggle="${c.id}" data-ativo="${c.ativo !== false}" style="background:${c.ativo !== false ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.12)'};color:${c.ativo !== false ? '#34d399' : '#f87171'};border:1px solid ${c.ativo !== false ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)'};border-radius:6px;padding:4px 10px;font-size:0.75rem;font-weight:600;cursor:pointer;">
-                    ${c.ativo !== false ? 'Ativo' : 'Inativo'}
-                </button>
-                <button data-combo-delete="${c.id}" style="background:rgba(239,68,68,0.1);color:#f87171;border:1px solid rgba(239,68,68,0.25);border-radius:6px;padding:4px 8px;font-size:0.75rem;cursor:pointer;"><i class="fa-solid fa-trash"></i></button>
-            </div>
-        </div>`;
-
-    const attachComboListeners = () => {
-        document.querySelectorAll('[data-combo-toggle]').forEach(btn => {
-            btn.addEventListener('click', async () => {
-                const id = (btn as HTMLElement).dataset.comboToggle!;
-                const atualAtivo = (btn as HTMLElement).dataset.ativo === 'true';
-                try {
-                    await dbService.update('combos', id, { ativo: !atualAtivo });
-                    const combo = combos.find((c: any) => c.id === id);
-                    if (combo) combo.ativo = !atualAtivo;
-                    const listEl = document.getElementById('combos-list');
-                    if (listEl) listEl.outerHTML = `<div id="combos-list">${combos.map((c: any) => buildComboItem(c)).join('')}</div>`;
-                    attachComboListeners();
-                } catch (e: any) { toast.error('Erro: ' + e.message); }
-            });
-        });
-
-        document.querySelectorAll('[data-combo-delete]').forEach(btn => {
-            btn.addEventListener('click', async () => {
-                const id = (btn as HTMLElement).dataset.comboDelete!;
-                const ok = await confirm.show({ title: 'Excluir Combo', message: 'Tem certeza que deseja excluir este combo?', type: 'danger', confirmText: 'Excluir' });
-                if (!ok) return;
-                try {
-                    await dbService.delete('combos', id);
-                    combos = combos.filter((c: any) => c.id !== id);
-                    const listEl = document.getElementById('combos-list');
-                    if (listEl) listEl.outerHTML = `<div id="combos-list">${combos.length === 0 ? '<p style="text-align:center;color:var(--text-muted);font-size:0.88rem;padding:1.5rem 0;">Nenhum combo cadastrado ainda.</p>' : combos.map((c: any) => buildComboItem(c)).join('')}</div>`;
-                    attachComboListeners();
-                    toast.success('Combo excluído.');
-                } catch (e: any) { toast.error('Erro: ' + e.message); }
-            });
-        });
-    };
-
-    setTimeout(() => {
-        (window as any).openCombosModal = () => {
-            document.getElementById('combos-modal')?.classList.remove('hidden');
-        };
-
-        (window as any).saveCombo = async () => {
-            const nome = (document.getElementById('combo-nome') as HTMLInputElement)?.value.trim();
-            const descricao = (document.getElementById('combo-descricao') as HTMLInputElement)?.value.trim();
-            const preco = parseFloat((document.getElementById('combo-preco') as HTMLInputElement)?.value || '0');
-            const lojaId = (document.getElementById('combo-loja') as HTMLSelectElement)?.value;
-            const checks = document.querySelectorAll('.combo-product-check:checked') as NodeListOf<HTMLInputElement>;
-
-            if (!nome) { toast.error('Informe o nome do combo.'); return; }
-            if (!lojaId) { toast.error('Selecione uma loja.'); return; }
-            if (isNaN(preco) || preco <= 0) { toast.error('Informe um preço válido.'); return; }
-            if (checks.length < 2) { toast.error('Selecione ao menos 2 produtos.'); return; }
-
-            const produtosSelecionados = Array.from(checks).map(cb => ({
-                id: cb.value,
-                name: cb.dataset.name || '',
-                price: parseFloat(cb.dataset.price || '0'),
-            }));
-
-            try {
-                const newId = await dbService.create('combos', {
-                    nome, descricao, preco, lojaId,
-                    empresaId: currentUser!.companyId,
-                    produtos: produtosSelecionados,
-                    ativo: true,
-                    criadoEm: new Date(),
-                });
-
-                combos.push({ id: newId, nome, descricao, preco, lojaId, empresaId: currentUser!.companyId, produtos: produtosSelecionados, ativo: true });
-
-                (document.getElementById('combo-nome') as HTMLInputElement).value = '';
-                (document.getElementById('combo-descricao') as HTMLInputElement).value = '';
-                (document.getElementById('combo-preco') as HTMLInputElement).value = '';
-                (document.getElementById('combo-loja') as HTMLSelectElement).value = '';
-                checks.forEach(cb => { cb.checked = false; });
-
-                const listEl = document.getElementById('combos-list');
-                if (listEl) listEl.outerHTML = `<div id="combos-list">${combos.map((c: any) => buildComboItem(c)).join('')}</div>`;
-                attachComboListeners();
-                toast.success('Combo criado com sucesso!');
-            } catch (e: any) {
-                toast.error('Erro ao criar combo: ' + (e.message || ''));
-            }
-        };
-
-        attachComboListeners();
-    }, 100);
 };
