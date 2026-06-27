@@ -1183,7 +1183,6 @@ export const Catalog = async (storeId: string) => {
                 </div>
                 <div class="card-info">
                     <h3 style="font-weight:800;">${c.nome}</h3>
-                    ${c.descricao ? `<p style="font-size:0.8rem;color:var(--text-dim);margin:2px 0 6px;line-height:1.4;font-style:italic;">${c.descricao}</p>` : ''}
                     <p style="font-size:0.75rem;color:#94a3b8;margin:4px 0 8px;line-height:1.4;">${(c.produtos || []).map((p: any) => p.name).join(' + ')}</p>
                     <div class="price-container">
                         <span class="price" style="color:#f59e0b;">R$ ${parseFloat(c.preco || 0).toFixed(2)}</span>
