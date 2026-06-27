@@ -28,6 +28,7 @@ class OrderNotificationService {
     private humanSupportSound: HTMLAudioElement;
     private notifiedSupportIds = new Set<string>();
     private isInitialLoad = true;
+    private listenerStartTime = 0;
     private isLeadsInitialLoad = true;
     private unsubscribe: (() => void) | null = null;
     private unsubscribeLeads: (() => void) | null = null;
@@ -39,6 +40,20 @@ class OrderNotificationService {
         this.newOrderSound.volume = 0.5;
         this.paymentSound.volume = 0.5;
         this.humanSupportSound.volume = 0.6;
+    }
+
+    // Converte o campo de data do pedido (Timestamp do Firestore, Date, número ou string) em ms.
+    private getCreatedMs(data: any): number | null {
+        const raw = data?.criadoEm ?? data?.createdAt;
+        if (!raw) return null;
+        try {
+            if (typeof raw?.toDate === 'function') return raw.toDate().getTime();
+            if (raw instanceof Date) return raw.getTime();
+            const ms = new Date(raw).getTime();
+            return isNaN(ms) ? null : ms;
+        } catch {
+            return null;
+        }
     }
 
     private formatCustomerName(data: any): string {
@@ -573,6 +588,8 @@ class OrderNotificationService {
     startListening() {
         if (this.unsubscribe) return;
 
+        this.listenerStartTime = Date.now();
+
         const currentUser = authService.getCurrentUser();
         if (!currentUser || !currentUser.companyId) return;
 
@@ -643,6 +660,13 @@ class OrderNotificationService {
                 if (change.type === 'added') {
                     const finalStatuses = ['cancelado', 'finalizado'];
                     if (finalStatuses.includes(status)) return;
+
+                    // Só notifica pedidos criados DEPOIS que o listener iniciou.
+                    // Evita que pedidos antigos disparem como novos (cache do Firestore
+                    // ou reentrada na janela limit(50)).
+                    const createdMs = this.getCreatedMs(data);
+                    if (createdMs != null && createdMs < this.listenerStartTime - 60000) return;
+
                     this.showNewOrder({
                         id: change.doc.id,
                         ...data,
