@@ -1172,10 +1172,13 @@ export const Catalog = async (storeId: string) => {
         const renderComboCard = (c: any) => {
             const precoOriginal = (c.produtos || []).reduce((sum: number, p: any) => sum + (p.price || 0), 0);
             const economia = precoOriginal > 0 ? (precoOriginal - parseFloat(c.preco || 0)) : 0;
+            const hasImg = (c.imagemPath && c.downloadToken) || c.imageUrl;
             return `
             <div class="product-card" onclick="window.catAddComboToCart('${c.id}')" style="cursor:pointer;position:relative;border:1.5px solid rgba(245,158,11,0.3);">
-                <div class="card-image" style="background:linear-gradient(135deg,rgba(245,158,11,0.15),rgba(251,191,36,0.05));display:flex;align-items:center;justify-content:center;min-height:120px;">
-                    <i class="fa-solid fa-layer-group" style="font-size:2.5rem;color:#f59e0b;opacity:0.8;"></i>
+                <div class="card-image" style="${hasImg ? '' : 'background:linear-gradient(135deg,rgba(245,158,11,0.15),rgba(251,191,36,0.05));display:flex;align-items:center;justify-content:center;min-height:120px;'}">
+                    ${hasImg
+                        ? `<img src="${getImageUrl(c)}" alt="${c.nome}" loading="lazy">`
+                        : `<i class="fa-solid fa-layer-group" style="font-size:2.5rem;color:#f59e0b;opacity:0.8;"></i>`}
                     <div class="promo-tag" style="background:#f59e0b;">COMBO</div>
                 </div>
                 <div class="card-info">

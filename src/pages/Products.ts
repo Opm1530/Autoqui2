@@ -917,12 +917,26 @@ export const Products = async () => {
     `;
 
     // ── Combo logic ───────────────────────────────────────────────────────────
-    const buildComboItem = (c: any) => `
+    const getComboImageUrl = (c: any) => {
+        if (c.imagemPath && c.downloadToken) {
+            return `https://firebasestorage.googleapis.com/v0/b/conectacidade-5e46d.firebasestorage.app/o/${encodeURIComponent(c.imagemPath)}?alt=media&token=${c.downloadToken}`;
+        }
+        return null;
+    };
+
+    const buildComboItem = (c: any) => {
+        const imgUrl = getComboImageUrl(c);
+        return `
         <div id="combo-item-${c.id}" style="background:var(--surface-hover);border:1px solid var(--border-color);border-radius:10px;padding:0.85rem 1rem;margin-bottom:0.6rem;display:flex;align-items:flex-start;justify-content:space-between;gap:0.75rem;">
-            <div style="flex:1;min-width:0;">
-                <div style="font-weight:700;font-size:0.92rem;margin-bottom:2px;">${c.nome}</div>
-                <div style="font-size:0.78rem;color:var(--text-muted);">${(c.produtos || []).map((p: any) => p.name).join(' + ')}</div>
-                <div style="font-size:0.9rem;font-weight:700;color:#10b981;margin-top:4px;">R$ ${parseFloat(c.preco || 0).toFixed(2)}</div>
+            <div style="display:flex;gap:0.75rem;flex:1;min-width:0;">
+                <div style="width:46px;height:46px;border-radius:8px;flex-shrink:0;overflow:hidden;background:rgba(245,158,11,0.1);display:flex;align-items:center;justify-content:center;">
+                    ${imgUrl ? `<img src="${imgUrl}" style="width:100%;height:100%;object-fit:cover;">` : '<i class="fa-solid fa-layer-group" style="color:#f59e0b;"></i>'}
+                </div>
+                <div style="flex:1;min-width:0;">
+                    <div style="font-weight:700;font-size:0.92rem;margin-bottom:2px;">${c.nome}</div>
+                    <div style="font-size:0.78rem;color:var(--text-muted);">${(c.produtos || []).map((p: any) => p.name).join(' + ')}</div>
+                    <div style="font-size:0.9rem;font-weight:700;color:#10b981;margin-top:4px;">R$ ${parseFloat(c.preco || 0).toFixed(2)}</div>
+                </div>
             </div>
             <div style="display:flex;gap:6px;flex-shrink:0;">
                 <button data-combo-toggle="${c.id}" data-ativo="${c.ativo !== false}" style="background:${c.ativo !== false ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.12)'};color:${c.ativo !== false ? '#34d399' : '#f87171'};border:1px solid ${c.ativo !== false ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)'};border-radius:6px;padding:4px 10px;font-size:0.75rem;font-weight:600;cursor:pointer;">
@@ -931,6 +945,7 @@ export const Products = async () => {
                 <button data-combo-delete="${c.id}" style="background:rgba(239,68,68,0.1);color:#f87171;border:1px solid rgba(239,68,68,0.25);border-radius:6px;padding:4px 8px;font-size:0.75rem;cursor:pointer;"><i class="fa-solid fa-trash"></i></button>
             </div>
         </div>`;
+    };
 
     const attachComboListeners = () => {
         document.querySelectorAll('[data-combo-toggle]').forEach(btn => {
@@ -987,21 +1002,41 @@ export const Products = async () => {
             price: parseFloat(cb.dataset.price || '0'),
         }));
 
+        const saveBtn = document.querySelector('[onclick="window.saveCombo()"]') as HTMLButtonElement | null;
+        if (saveBtn) { saveBtn.disabled = true; saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Salvando...'; }
+
         try {
+            // Upload da foto se houver
+            let imagemPath = '';
+            let downloadToken = '';
+            const fotoInput = document.getElementById('combo-foto-input') as HTMLInputElement;
+            const file = fotoInput?.files?.[0];
+            if (file) {
+                const img = await uploadImage(file, currentUser!.companyId!);
+                imagemPath = img.imagemPath;
+                downloadToken = img.downloadToken;
+            }
+
             const newId = await dbService.create('combos', {
                 nome, descricao, preco, lojaId,
                 empresaId: currentUser!.companyId,
                 produtos: produtosSelecionados,
+                imagemPath, downloadToken,
                 ativo: true,
                 criadoEm: new Date(),
             });
 
-            combos.push({ id: newId, nome, descricao, preco, lojaId, empresaId: currentUser!.companyId, produtos: produtosSelecionados, ativo: true });
+            combos.push({ id: newId, nome, descricao, preco, lojaId, empresaId: currentUser!.companyId, produtos: produtosSelecionados, imagemPath, downloadToken, ativo: true });
 
             (document.getElementById('combo-nome') as HTMLInputElement).value = '';
             (document.getElementById('combo-descricao') as HTMLInputElement).value = '';
             (document.getElementById('combo-preco') as HTMLInputElement).value = '';
             (document.getElementById('combo-loja') as HTMLSelectElement).value = '';
+            if (fotoInput) fotoInput.value = '';
+            const fotoPreview = document.getElementById('combo-foto-preview');
+            if (fotoPreview) fotoPreview.innerHTML = '<i class="fa-solid fa-image" style="color:#f59e0b;"></i>';
+            const fotoLabel = document.getElementById('combo-foto-label');
+            if (fotoLabel) fotoLabel.textContent = 'Clique para anexar uma imagem';
             checks.forEach(cb => { cb.checked = false; });
 
             const listEl = document.getElementById('combos-list');
@@ -1010,7 +1045,22 @@ export const Products = async () => {
             toast.success('Combo criado com sucesso!');
         } catch (e: any) {
             toast.error('Erro ao criar combo: ' + (e.message || ''));
+        } finally {
+            if (saveBtn) { saveBtn.disabled = false; saveBtn.innerHTML = '<i class="fa-solid fa-plus"></i> Criar Combo'; }
         }
+    };
+
+    (window as any).previewComboFoto = (input: HTMLInputElement) => {
+        const file = input.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const preview = document.getElementById('combo-foto-preview');
+            const label = document.getElementById('combo-foto-label');
+            if (preview) preview.innerHTML = `<img src="${e.target?.result}" style="width:100%;height:100%;object-fit:cover;">`;
+            if (label) label.textContent = file.name;
+        };
+        reader.readAsDataURL(file);
     };
 
     setTimeout(() => attachComboListeners(), 150);
@@ -1315,6 +1365,16 @@ export const Products = async () => {
                             <input id="combo-descricao" type="text" placeholder="Ex: Perfeito para 4 pessoas" style="width:100%;padding:0.6rem 0.8rem;background:var(--surface-hover);border:1px solid var(--border-color);border-radius:8px;color:var(--text-main);font-size:0.9rem;box-sizing:border-box;">
                         </div>
                         <div>
+                            <label style="font-size:0.8rem;font-weight:600;color:var(--text-muted);display:block;margin-bottom:4px;">Foto do Combo</label>
+                            <div onclick="document.getElementById('combo-foto-input').click()" style="display:flex;align-items:center;gap:12px;padding:0.6rem 0.8rem;background:var(--surface-hover);border:1px dashed var(--border-color);border-radius:8px;cursor:pointer;">
+                                <div id="combo-foto-preview" style="width:48px;height:48px;border-radius:8px;background:rgba(245,158,11,0.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;">
+                                    <i class="fa-solid fa-image" style="color:#f59e0b;"></i>
+                                </div>
+                                <span id="combo-foto-label" style="font-size:0.85rem;color:var(--text-muted);">Clique para anexar uma imagem</span>
+                                <input type="file" id="combo-foto-input" accept="image/*" style="display:none;" onchange="window.previewComboFoto(this)">
+                            </div>
+                        </div>
+                        <div>
                             <label style="font-size:0.8rem;font-weight:600;color:var(--text-muted);display:block;margin-bottom:4px;">Preço do Combo (R$) *</label>
                             <input id="combo-preco" type="number" min="0" step="0.01" placeholder="0,00" style="width:100%;padding:0.6rem 0.8rem;background:var(--surface-hover);border:1px solid var(--border-color);border-radius:8px;color:var(--text-main);font-size:0.9rem;box-sizing:border-box;">
                         </div>
@@ -1339,20 +1399,7 @@ export const Products = async () => {
                     <div id="combos-list">
                         ${combos.length === 0
                             ? `<p style="text-align:center;color:var(--text-muted);font-size:0.88rem;padding:1.5rem 0;">Nenhum combo cadastrado ainda.</p>`
-                            : combos.map((c: any) => `
-                            <div id="combo-item-${c.id}" style="background:var(--surface-hover);border:1px solid var(--border-color);border-radius:10px;padding:0.85rem 1rem;margin-bottom:0.6rem;display:flex;align-items:flex-start;justify-content:space-between;gap:0.75rem;">
-                                <div style="flex:1;min-width:0;">
-                                    <div style="font-weight:700;font-size:0.92rem;margin-bottom:2px;">${c.nome}</div>
-                                    <div style="font-size:0.78rem;color:var(--text-muted);">${(c.produtos || []).map((p: any) => p.name).join(' + ')}</div>
-                                    <div style="font-size:0.9rem;font-weight:700;color:#10b981;margin-top:4px;">R$ ${parseFloat(c.preco || 0).toFixed(2)}</div>
-                                </div>
-                                <div style="display:flex;gap:6px;flex-shrink:0;">
-                                    <button onclick="window.toggleComboAtivo('${c.id}', ${!c.ativo})" style="background:${c.ativo !== false ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.12)'};color:${c.ativo !== false ? '#34d399' : '#f87171'};border:1px solid ${c.ativo !== false ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)'};border-radius:6px;padding:4px 10px;font-size:0.75rem;font-weight:600;cursor:pointer;" title="${c.ativo !== false ? 'Desativar' : 'Ativar'}">
-                                        ${c.ativo !== false ? 'Ativo' : 'Inativo'}
-                                    </button>
-                                    <button onclick="window.deleteCombo('${c.id}')" style="background:rgba(239,68,68,0.1);color:#f87171;border:1px solid rgba(239,68,68,0.25);border-radius:6px;padding:4px 8px;font-size:0.75rem;cursor:pointer;" title="Excluir"><i class="fa-solid fa-trash"></i></button>
-                                </div>
-                            </div>`).join('')
+                            : combos.map((c: any) => buildComboItem(c)).join('')
                         }
                     </div>
                 </div>
