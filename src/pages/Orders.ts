@@ -111,8 +111,13 @@ function getPaymentBadge(order: any): string {
                 </button>`;
         }
 
-        // Selo PAGO quando o PIX Mercado Pago foi confirmado (webhook marcou pago).
-        if (order.pago === true) {
+        // Selo de pagamento: ESTORNADO (se foi devolvido) tem prioridade sobre PAGO.
+        if (order.estornado === true) {
+            html += `
+                <span class="badge" style="background: rgba(245,158,11,0.15); color: #fbbf24; border: 1px solid rgba(245,158,11,0.3); border-radius: 4px; font-size: 0.65rem; padding: 0.2rem 0.5rem; margin-left: 0.4rem; display: inline-flex; align-items: center; gap: 0.3rem;">
+                    <i class="fa-solid fa-rotate-left" style="font-size: 0.6rem;"></i> ESTORNADO
+                </span>`;
+        } else if (order.pago === true) {
             html += `
                 <span class="badge success" style="background: rgba(16,185,129,0.15); color: #34d399; border: 1px solid rgba(16,185,129,0.3); border-radius: 4px; font-size: 0.65rem; padding: 0.2rem 0.5rem; margin-left: 0.4rem; display: inline-flex; align-items: center; gap: 0.3rem;">
                     <i class="fa-solid fa-circle-check" style="font-size: 0.6rem;"></i> PAGO
