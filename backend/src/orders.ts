@@ -263,9 +263,19 @@ export async function handleMpPaymentApproved(
   const status = payment?.status;
   if (status !== 'approved') return { handled: false, orderId: order.id, status };
 
-  if (order.pago === true) return { handled: true, orderId: order.id, status }; // idempotente
+  // O MP manda o webhook várias vezes. Marca pago de forma ATÔMICA (transação):
+  // só o PRIMEIRO webhook concorrente vence e dispara a notificação — os demais
+  // saem sem reprocessar.
+  const orderRef = db.collection('pedidos').doc(order.id);
+  const primeiraVez = await db.runTransaction(async (tx) => {
+    const snap = await tx.get(orderRef);
+    if (snap.data()?.pago === true) return false;
+    tx.update(orderRef, { pago: true });
+    return true;
+  });
 
-  await db.collection('pedidos').doc(order.id).update({ pago: true });
+  if (!primeiraVez) return { handled: true, orderId: order.id, status };
+
   try {
     await notifyPaymentReceived(order.id);
   } catch (err) {
