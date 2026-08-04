@@ -1,45 +1,94 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Permite leitura/escrita para qualquer usuário autenticado
-    // ISSO É APENAS PARA DESENVOLVIMENTO. 
-    // Em produção, você deve restringir por companyId.
-    // REGRAS PARA O CATÁLOGO (ACESSO PÚBLICO)
-    
-    // Lojas e Configurações (Apenas leitura)
-    match /loja_config/{docId} {
-      allow read: if true;
+
+    // ── Helpers ──────────────────────────────────────────────────────────────
+    function signedIn() { return request.auth != null; }
+    function hasUserDoc() {
+      return signedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid));
     }
-    match /companies/{companyId} {
-      allow read: if true; // No futuro, ideal selecionar apenas campos de design
+    function myCompany() {
+      return hasUserDoc()
+        ? get(/databases/$(database)/documents/users/$(request.auth.uid)).data.companyId
+        : '__none__';
     }
-    match /categories/{catId} {
-      allow read: if true;
+    function isAdmin() {
+      return signedIn() && (
+        request.auth.token.email == 'ginannymoreira@gmail.com' ||
+        (hasUserDoc() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin')
+      );
     }
-    match /instancias/{instId} {
+    // Escrita permitida: admin, ou o campo de empresa do doc == empresa do usuário.
+    // create usa request.resource.data (doc novo); update/delete usa resource.data (doc atual).
+    function ownsCreate(field) { return signedIn() && (isAdmin() || request.resource.data[field] == myCompany()); }
+    function ownsDoc(field)    { return signedIn() && (isAdmin() || resource.data[field] == myCompany()); }
+
+    // ── Catálogo: leitura pública; escrita escopada por empresa ──────────────
+    match /companies/{id} {
       allow read: if true;
+      allow write: if isAdmin() || (signedIn() && id == myCompany());
+    }
+    match /loja_config/{id} {
+      allow read: if true;
+      allow create: if ownsCreate('empresaId');
+      allow update, delete: if ownsDoc('empresaId');
+    }
+    match /categories/{id} {
+      allow read: if true;
+      allow create: if ownsCreate('companyId');
+      allow update, delete: if ownsDoc('companyId');
+    }
+    match /instancias/{id} {
+      allow read: if true;
+      allow create: if ownsCreate('empresaId');
+      allow update, delete: if ownsDoc('empresaId');
+    }
+    match /combos/{id} {
+      allow read: if true;
+      allow create: if ownsCreate('empresaId');
+      allow update, delete: if ownsDoc('empresaId');
     }
 
-    // Produtos - Leitura e Abatimento de Estoque
-    match /products/{productId} {
-      allow read: if true;
-      allow update: if true; // Permitir abater estoque no checkout público
+    // ── Produtos e pedidos: escrita SÓ pelo backend (Admin SDK ignora regras) ──
+    match /products/{id} { allow read: if true; }
+    match /pedidos/{id}  { allow read: if true; }
+
+    // ── Coleções do painel (leitura autenticada; escrita escopada) ────────────
+    match /messages/{id} { allow read: if signedIn(); } // criado só pelo backend
+    match /leads/{id} {
+      allow read: if signedIn();
+      allow create: if ownsCreate('empresaId');
+      allow update, delete: if ownsDoc('empresaId');
+    }
+    match /campanhas/{id} {
+      allow read: if signedIn();
+      allow create: if ownsCreate('cliente_id');
+      allow update, delete: if ownsDoc('cliente_id');
+    }
+    match /agendamentos/{id} {
+      allow read: if signedIn();
+      allow create: if ownsCreate('companyId');
+      allow update, delete: if ownsDoc('companyId');
+    }
+    match /clientes/{id} {
+      allow read: if signedIn();
+      allow create: if ownsCreate('companyId');
+      allow update, delete: if ownsDoc('companyId');
     }
 
-    // Criar Pedidos
-    match /pedidos/{orderId} {
-      allow create: if true;
-      allow read: if true; // Necessário para exibir a confirmação logo após o checkout
+    // ── Usuários ──────────────────────────────────────────────────────────────
+    match /users/{uid} {
+      allow read: if signedIn();
+      allow create: if isAdmin() || (signedIn() && request.resource.data.companyId == myCompany());
+      allow update, delete: if isAdmin() || (signedIn() && (uid == request.auth.uid || resource.data.companyId == myCompany()));
     }
 
-    // Criar/Gerenciar Leads
-    match /leads/{leadId} {
-      allow read, create, update: if true;
+    // ── Settings globais (billing OpenAI): só admin ──────────────────────────
+    match /settings/{id} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
     }
 
-    // REGRAS GERAIS PARA USUÁRIOS AUTENTICADOS (DASHBOARD)
-    match /{document=**} {
-      allow read, write: if request.auth != null;
-    }
+    // Sem catch-all: qualquer coleção não listada acima fica bloqueada.
   }
 }
