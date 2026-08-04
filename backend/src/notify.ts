@@ -4,6 +4,7 @@
 
 import { getAll, getDoc, db } from './firebase.js';
 import { sendText } from './evolution.js';
+import { refundPayment } from './mercadopago.js';
 import { Timestamp } from 'firebase-admin/firestore';
 
 type OrderStatus =
@@ -241,11 +242,30 @@ export async function notifyStatusChange(
 
   if (!msgKey) return { sent: false, reason: 'no_message_for_status' };
 
+  // Cancelamento de pedido JÁ PAGO no Mercado Pago → estorna automaticamente.
+  let refundNote = '';
+  if (
+    newStatus === 'cancelado' &&
+    order.paymentMethod === 'pix_mercadopago' &&
+    order.pago === true &&
+    order.mpPaymentId
+  ) {
+    const refunded = await refundPayment(companyId, order.mpPaymentId);
+    await db.collection('pedidos').doc(orderId).update({ estornado: refunded });
+    console.log(`[refund] ${orderId} pagamento ${order.mpPaymentId} -> ${refunded ? 'ESTORNADO' : 'FALHOU'}`);
+    refundNote = refunded
+      ? ' O valor pago foi estornado e voltará para a sua conta em alguns instantes. 💸'
+      : '';
+  }
+
   const template = customMsgs[msgKey] || DEFAULT_MESSAGES[msgKey] || '';
   if (!template) return { sent: false, reason: 'template_empty' };
 
   let message = substituirVariaveis(template, vars);
-  if (newStatus === 'cancelado' && reason) message = `${message} Motivo: ${reason}`;
+  if (newStatus === 'cancelado') {
+    if (reason) message = `${message} Motivo: ${reason}`;
+    message = `${message}${refundNote}`;
+  }
 
   const phone = getPhone(order, lead);
   if (!phone || !message) return { sent: false, reason: 'missing_phone_or_message' };
@@ -264,4 +284,22 @@ async function saveMessageLog(companyId: string, leadId: string, message: string
     role: 'assistente',
     tipo: 'conversation',
   });
+}
+
+// Avisa o cliente que o pagamento PIX (MP) caiu — o pedido segue aguardando a loja aceitar.
+export async function notifyPaymentReceived(orderId: string): Promise<boolean> {
+  const order = await getDoc('pedidos', orderId);
+  if (!order) return false;
+  const companyId = order.empresaId;
+  const instanceName = await resolveInstanceName(companyId, order);
+  if (!instanceName) return false;
+  const lead = order.leadId ? await getDoc('leads', order.leadId) : null;
+  const vars = buildVars(order, lead);
+  const numero = vars.numero_pedido;
+  const message = `✅ Recebemos seu pagamento do pedido #${numero}! Já vamos confirmar e preparar. 🎉`;
+  const phone = getPhone(order, lead);
+  if (!phone) return false;
+  const ok = await sendText(instanceName, phone, message);
+  if (ok && order.leadId) await saveMessageLog(companyId, order.leadId, message);
+  return ok;
 }

@@ -110,6 +110,14 @@ function getPaymentBadge(order: any): string {
                     <i class="fa-solid fa-eye" style="font-size: 0.6rem;"></i> Comprovante
                 </button>`;
         }
+
+        // Selo PAGO quando o PIX Mercado Pago foi confirmado (webhook marcou pago).
+        if (order.pago === true) {
+            html += `
+                <span class="badge success" style="background: rgba(16,185,129,0.15); color: #34d399; border: 1px solid rgba(16,185,129,0.3); border-radius: 4px; font-size: 0.65rem; padding: 0.2rem 0.5rem; margin-left: 0.4rem; display: inline-flex; align-items: center; gap: 0.3rem;">
+                    <i class="fa-solid fa-circle-check" style="font-size: 0.6rem;"></i> PAGO
+                </span>`;
+        }
         return `<div style="display: flex; align-items: center;">${html}</div>`;
     }
     if (isEntrega) {
@@ -791,8 +799,9 @@ export const Orders = async () => {
 
         switch (status) {
             case 'em_montagem':
-                // Toda vez que for pagamento na entrega/retirada, pula o aguardando pagamento
-                const acceptTarget = isPayOnDelivery ? 'em_preparo' : 'aguardando_pagamento';
+                // Pagamento na entrega OU pedido já pago (PIX MP confirmado) → aceita direto
+                // pra Em Preparo, pulando a confirmação de pagamento (redundante se já pago).
+                const acceptTarget = (isPayOnDelivery || order.pago) ? 'em_preparo' : 'aguardando_pagamento';
                 return `
                     <button id="btn-main-action" class="btn-lead-action" data-target="${acceptTarget}">
                         <i class="fa-solid fa-check"></i> Aceitar Pedido

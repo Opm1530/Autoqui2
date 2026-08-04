@@ -4,7 +4,8 @@
 // cria o pedido e dispara a notificação. O cliente não controla os valores.
 
 import { getAll, getDoc, db } from './firebase.js';
-import { notifyNewOrder } from './notify.js';
+import { notifyNewOrder, notifyPaymentReceived } from './notify.js';
+import { createPixCharge, getPayment } from './mercadopago.js';
 
 type CartLine = { id: string; qty: number; isCombo?: boolean };
 
@@ -18,54 +19,6 @@ export interface CreateOrderInput {
   paymentMethod: 'na_entrega' | 'pix_manual' | 'pix_mercadopago';
   paymentSubMethod?: string | null;
   troco?: number | null;
-}
-
-// Cria a cobrança PIX DIRETO na API do Mercado Pago (sem n8n) — com o total do
-// SERVIDOR e o token lido do Firestore (não vem mais do navegador).
-// Retorna { payment_id, qr_code_base64, qr_code_text }.
-async function createMercadoPagoCharge(
-  companyId: string,
-  _storeId: string,
-  _items: any[],
-  total: number,
-  clientName: string,
-  orderRef: string
-): Promise<{ payment_id: string; qr_code_base64: string; qr_code_text: string } | null> {
-  const company = await getDoc('companies', companyId);
-  const accessToken = company?.mercadoPagoToken || '';
-  if (!accessToken) throw new Error('mercadopago_sem_token');
-
-  const resp = await fetch('https://api.mercadopago.com/v1/payments', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${accessToken}`,
-      'X-Idempotency-Key': orderRef,
-    },
-    body: JSON.stringify({
-      transaction_amount: Number(total.toFixed(2)),
-      description: `Pedido ${orderRef}`,
-      payment_method_id: 'pix',
-      external_reference: orderRef,
-      payer: {
-        email: `pedido-${orderRef}@autoqui.com.br`,
-        first_name: (clientName || 'Cliente').slice(0, 40),
-      },
-    }),
-  });
-
-  const data = await resp.json().catch(() => null);
-  if (!resp.ok || !data) {
-    console.error('[mercadopago] erro ao criar cobrança:', resp.status, data);
-    throw new Error('mercadopago_erro');
-  }
-
-  const tx = data.point_of_interaction?.transaction_data || {};
-  return {
-    payment_id: String(data.id || ''),
-    qr_code_base64: tx.qr_code_base64 || '',
-    qr_code_text: tx.qr_code || '',
-  };
 }
 
 function num(v: any, def = 0): number {
@@ -267,9 +220,9 @@ export async function createCatalogOrder(
   let mpData: any = null;
   if (input.paymentMethod === 'pix_mercadopago') {
     try {
-      mpData = await createMercadoPagoCharge(companyId, storeId, items, total, input.customer.name, orderId);
+      mpData = await createPixCharge(companyId, total, input.customer.name, orderId);
       if (mpData?.payment_id) {
-        await db.collection('pedidos').doc(orderId).update({ mpPaymentId: mpData.payment_id });
+        await db.collection('pedidos').doc(orderId).update({ mpPaymentId: mpData.payment_id, pago: false });
       }
     } catch (err) {
       console.error('[orders] cobrança MP falhou:', err);
@@ -284,4 +237,29 @@ export async function createCatalogOrder(
   }
 
   return { orderId, total, mpData };
+}
+
+// Chamado pelo webhook do Mercado Pago. Confere o pagamento na fonte (MP) e,
+// se aprovado, marca o pedido como pago e avisa o cliente. O pedido segue
+// aguardando a loja aceitar (o dono decide aceitar ou recusar/estornar).
+export async function handleMpPaymentApproved(
+  paymentId: string
+): Promise<{ handled: boolean; orderId?: string; status?: string }> {
+  const orders = await getAll('pedidos', { field: 'mpPaymentId', operator: '==', value: paymentId });
+  const order = orders[0];
+  if (!order) return { handled: false };
+
+  const payment = await getPayment(order.empresaId, paymentId);
+  const status = payment?.status;
+  if (status !== 'approved') return { handled: false, orderId: order.id, status };
+
+  if (order.pago === true) return { handled: true, orderId: order.id, status }; // idempotente
+
+  await db.collection('pedidos').doc(order.id).update({ pago: true });
+  try {
+    await notifyPaymentReceived(order.id);
+  } catch (err) {
+    console.error('[mp-webhook] notifyPaymentReceived falhou:', err);
+  }
+  return { handled: true, orderId: order.id, status };
 }

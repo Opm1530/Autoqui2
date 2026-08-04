@@ -16,3 +16,7 @@ export const EVOLUTION_API_KEY = process.env.EVOLUTION_API_KEY || '';
 if (!EVOLUTION_API_KEY) {
   console.warn('[config] EVOLUTION_API_KEY não definida — envios de WhatsApp vão falhar.');
 }
+
+// URL pública do próprio backend — usada como notification_url do Mercado Pago
+// (é aqui que o MP avisa quando o pagamento é aprovado).
+export const PUBLIC_BASE_URL = process.env.PUBLIC_BASE_URL || 'https://api.autoqui.com.br';

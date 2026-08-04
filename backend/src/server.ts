@@ -4,7 +4,7 @@ import { PORT, ALLOWED_ORIGINS } from './config.js';
 import { notifyNewOrder, notifyStatusChange } from './notify.js';
 import { requireAuth } from './auth.js';
 import * as wa from './evolution.js';
-import { createCatalogOrder } from './orders.js';
+import { createCatalogOrder, handleMpPaymentApproved } from './orders.js';
 
 const app = express();
 
@@ -82,6 +82,26 @@ app.post('/api/orders', async (req, res) => {
     const reason = err?.message || 'erro';
     console.warn(`[orders] recusado: ${reason}`);
     return res.status(400).json({ error: reason });
+  }
+});
+
+// ── Webhook do Mercado Pago (público; o MP avisa quando o pagamento aprova) ──
+// Confere o status na fonte (API do MP), então não confia cegamente no corpo.
+app.post('/api/mp/webhook', async (req, res) => {
+  // MP manda o id do pagamento no corpo (data.id) ou na query (?data.id= / ?id=).
+  const paymentId = String(
+    req.body?.data?.id || req.query['data.id'] || req.query['id'] || ''
+  ).trim();
+
+  // Responde 200 rápido (o MP reenvia se não receber 200).
+  res.json({ received: true });
+
+  if (!paymentId) return;
+  try {
+    const result = await handleMpPaymentApproved(paymentId);
+    console.log(`[mp-webhook] pagamento ${paymentId} -> ${result.handled ? 'PAGO ' + result.orderId : 'ignorado (' + (result.status || 'sem pedido') + ')'}`);
+  } catch (err: any) {
+    console.error('[mp-webhook] erro:', err?.message || err);
   }
 });
 
