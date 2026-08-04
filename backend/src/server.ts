@@ -9,6 +9,16 @@ import {
   changeOrderStatus, archiveOrder, setComprovante,
 } from './orders.js';
 import { saveProduct, deleteProduct, updateProductFields } from './products.js';
+import { connectMp, disconnectMp, mpStatus } from './mercadopago.js';
+import { getDoc } from './firebase.js';
+
+// Empresa do usuário logado (a partir do doc users/{uid}).
+async function companyOf(uid: string): Promise<string> {
+  const user = await getDoc('users', uid);
+  const companyId = user?.companyId;
+  if (!companyId) throw new Error('no_company');
+  return companyId;
+}
 
 const app = express();
 
@@ -163,6 +173,41 @@ app.post('/api/products/update-fields', requireAuth, async (req, res) => {
     res.json(result);
   } catch (err: any) {
     console.warn(`[products/update-fields] recusado ${id}: ${err?.message}`);
+    res.status(400).json({ error: err?.message || 'erro' });
+  }
+});
+
+// ── Conectar/gerenciar Mercado Pago (autenticado; token vai pro secrets) ──
+app.get('/api/mp/status', requireAuth, async (req, res) => {
+  try {
+    const companyId = await companyOf((req as any).uid);
+    res.json(await mpStatus(companyId));
+  } catch (err: any) {
+    res.status(400).json({ error: err?.message || 'erro' });
+  }
+});
+
+app.post('/api/mp/connect', requireAuth, async (req, res) => {
+  const accessToken = String(req.body?.accessToken || '').trim();
+  if (!accessToken) return res.status(400).json({ error: 'accessToken obrigatório' });
+  try {
+    const companyId = await companyOf((req as any).uid);
+    const result = await connectMp(companyId, accessToken);
+    console.log(`[mp/connect] empresa ${companyId} -> ok (userId ${result.userId})`);
+    res.json(result);
+  } catch (err: any) {
+    console.warn(`[mp/connect] recusado: ${err?.message}`);
+    res.status(400).json({ error: err?.message || 'erro' });
+  }
+});
+
+app.post('/api/mp/disconnect', requireAuth, async (req, res) => {
+  try {
+    const companyId = await companyOf((req as any).uid);
+    const result = await disconnectMp(companyId);
+    console.log(`[mp/disconnect] empresa ${companyId}`);
+    res.json(result);
+  } catch (err: any) {
     res.status(400).json({ error: err?.message || 'erro' });
   }
 });

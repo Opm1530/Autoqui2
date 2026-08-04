@@ -120,7 +120,10 @@ export const Catalog = async (storeId: string) => {
             }
         }
 
-        const isMpActive = (!!company.mercadoPagoToken) && (config.mercadoPagoActive !== false);
+        // Booleano público (o token não fica mais no doc companies). Fallback pro
+        // campo antigo pra lojas ainda não re-conectadas.
+        const isMpActive = (company.mercadoPagoAtivo === true || !!company.mercadoPagoToken)
+            && (config.mercadoPagoActive !== false);
 
         const products = productsRaw.filter((p: any) =>
             p.active !== false &&

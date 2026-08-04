@@ -1,91 +1,73 @@
-import { dbService } from '../services/db';
 import { authService } from '../services/auth';
 import { toast } from '../services/toast';
 import { confirm } from '../services/confirm';
+import { API_BASE_URL } from '../services/api';
+import { auth } from '../firebase/config';
+
+async function authHeaders(): Promise<Record<string, string>> {
+    const h: Record<string, string> = { 'Content-Type': 'application/json' };
+    const user = auth.currentUser;
+    if (user) {
+        try { h['Authorization'] = `Bearer ${await user.getIdToken()}`; } catch { /* ignore */ }
+    }
+    return h;
+}
 
 export const MercadoPago = async () => {
     const user = authService.getCurrentUser();
     if (!user || !user.companyId) return '<p>Acesso negado.</p>';
 
-    const companyDoc = await dbService.get('companies', user.companyId);
-    const company = companyDoc as any;
-    const currentToken = company?.mercadoPagoToken || '';
-    const currentUserId = company?.userIdMercadoPago || '';
+    // Estado vem do backend (o token NÃO volta pro cliente).
+    let connected = false;
+    let currentUserId = '';
+    try {
+        const resp = await fetch(`${API_BASE_URL}/api/mp/status`, { headers: await authHeaders() });
+        const data = await resp.json().catch(() => ({}));
+        connected = !!data.connected;
+        currentUserId = data.userId || '';
+    } catch { /* mostra como desconectado */ }
 
-    // Global function for disconnecting
     (window as any).disconnectMercadoPago = async () => {
-        const ok = await confirm.danger('Desativar Integração', 'Tem certeza que deseja desativar o Mercado Pago? Isso removerá seu token de acesso.');
+        const ok = await confirm.danger('Desativar Integração', 'Tem certeza que deseja desativar o Mercado Pago? Isso removerá o token de acesso.');
         if (!ok) return;
-
-        const disconnectBtn = document.getElementById('btn-disconnect-mp') as HTMLButtonElement;
-        disconnectBtn.disabled = true;
-        disconnectBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
-
+        const btn = document.getElementById('btn-disconnect-mp') as HTMLButtonElement;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
         try {
-            await dbService.update('companies', user.companyId!, {
-                mercadoPagoToken: null,
-                userIdMercadoPago: null
-            });
-
+            const resp = await fetch(`${API_BASE_URL}/api/mp/disconnect`, { method: 'POST', headers: await authHeaders() });
+            if (!resp.ok) throw new Error('Falha ao desativar.');
             toast.success('Integração desativada.');
             setTimeout(() => window.location.reload(), 1000);
         } catch (error: any) {
             toast.error('Erro ao desativar: ' + error.message);
-            disconnectBtn.disabled = false;
-            disconnectBtn.innerHTML = '<i class="fa-solid fa-plug-circle-xmark"></i> <span>Desativar</span>';
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-plug-circle-xmark"></i> <span>Desativar</span>';
         }
     };
 
-    // Global function for connecting via Webhook
     (window as any).connectMercadoPago = async () => {
         const tokenInput = document.getElementById('mp-token-input') as HTMLInputElement;
-        const connectBtn = document.getElementById('btn-connect-mp') as HTMLButtonElement;
-
+        const btn = document.getElementById('btn-connect-mp') as HTMLButtonElement;
         const token = tokenInput.value.trim();
-        if (!token) {
-            toast.warning('Por favor, insira o Access Token primeiro.');
-            return;
-        }
+        if (!token) { toast.warning('Insira o Access Token primeiro.'); return; }
 
-        connectBtn.disabled = true;
-        const originalContent = connectBtn.innerHTML;
-        connectBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> <span>Conectando...</span>';
-
+        btn.disabled = true;
+        const original = btn.innerHTML;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> <span>Conectando...</span>';
         try {
-            // 1. Save token to Firebase locally first to ensure it's persisted
-            await dbService.update('companies', user.companyId!, {
-                mercadoPagoToken: token
-            });
-
-            // 2. Call individual webhook to handle extra logic (like fetching discovery data)
-            const response = await fetch('https://n8n.vps.pequi.digital/webhook/autoqui-userId-mercadopago', {
+            const resp = await fetch(`${API_BASE_URL}/api/mp/connect`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    accessToken: token,
-                    companyId: user.companyId
-                })
+                headers: await authHeaders(),
+                body: JSON.stringify({ accessToken: token }),
             });
-
-            if (!response.ok) {
-                throw new Error('Falha ao processar a conexão via servidor.');
-            }
-
-            toast.success('Integração processada com sucesso!');
-
-            // Reload page to fetch updated data from Firebase
-            setTimeout(() => {
-                window.location.reload();
-            }, 1500);
-
+            const data = await resp.json().catch(() => ({}));
+            if (!resp.ok) throw new Error(data.error === 'token_invalido' ? 'Token inválido. Confira e tente de novo.' : 'Falha ao conectar.');
+            toast.success('Integração conectada com sucesso!');
+            setTimeout(() => window.location.reload(), 1200);
         } catch (error: any) {
-            console.error(error);
             toast.error('Erro na conexão: ' + error.message);
-        } finally {
-            connectBtn.disabled = false;
-            connectBtn.innerHTML = originalContent;
+            btn.disabled = false;
+            btn.innerHTML = original;
         }
     };
 
@@ -102,61 +84,44 @@ export const MercadoPago = async () => {
                 </div>
                 <div>
                     <h3 style="margin: 0; font-size: 1.25rem;">Integração de Pagamentos</h3>
-                    <p style="margin: 0; color: var(--text-dim); font-size: 0.85rem;">Conecte sua conta para aceitar cartões e Pix.</p>
+                    <p style="margin: 0; color: var(--text-dim); font-size: 0.85rem;">Conecte sua conta para aceitar Pix.</p>
                 </div>
             </div>
 
-            <div class="form-group" style="margin-bottom: 20px;">
-                <label style="display: block; margin-bottom: 10px; font-weight: 600; color: var(--text-main);">Access Token (Produção)</label>
-                <div style="position: relative;">
-                    <input type="password" id="mp-token-input" class="input-field" 
-                           placeholder="APP_USR-0000..." 
-                           value="${currentToken}" 
-                           style="width: 100%; padding: 14px 45px 14px 16px; background: var(--bg-color); border: 1px solid var(--border-color); color: white; border-radius: 10px; font-family: monospace;">
-                    <button type="button" onclick="const input = document.getElementById('mp-token-input'); input.type = input.type === 'password' ? 'text' : 'password';" 
-                            style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: var(--text-dim); border: none; background: none; cursor: pointer; padding: 5px;">
-                        <i class="fa-solid fa-eye"></i>
+            ${connected ? `
+                <div style="background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.25); border-radius: 12px; padding: 18px; display:flex; align-items:center; justify-content:space-between; gap:16px;">
+                    <div style="display:flex; align-items:center; gap:12px;">
+                        <i class="fa-solid fa-circle-check" style="color:#34d399; font-size:1.4rem;"></i>
+                        <div>
+                            <div style="font-weight:700; color:#34d399;">Conectado</div>
+                            <div style="font-size:0.8rem; color:var(--text-muted); font-family:monospace;">User ID: ${currentUserId || '—'}</div>
+                        </div>
+                    </div>
+                    <button id="btn-disconnect-mp" onclick="window.disconnectMercadoPago()" style="display: flex; align-items: center; gap: 8px; padding: 0 22px; height: 44px; border-radius: 10px; font-weight: 600; background: #ef4444; color: white; border: none; cursor: pointer;">
+                        <i class="fa-solid fa-plug-circle-xmark"></i> <span>Desativar</span>
                     </button>
                 </div>
-            </div>
-
-            <div class="form-group" style="margin-bottom: 25px;">
-                <label style="display: block; margin-bottom: 10px; font-weight: 600; color: var(--text-main);">User Id</label>
-                <div style="display: flex; gap: 10px;">
-                    <input type="text" id="mp-userid-input" class="input-field" 
-                           placeholder="Clique em conectar para buscar o ID" 
-                           value="${currentUserId}" 
-                           disabled
-                           style="flex: 1; padding: 14px 16px; background: rgba(0,0,0,0.1); border: 1px solid var(--border-color); color: var(--text-muted); border-radius: 10px; font-family: monospace;">
-                    
-                    ${currentToken ? `
-                        <button id="btn-disconnect-mp" class="btn-danger" onclick="window.disconnectMercadoPago()" style="display: flex; align-items: center; gap: 8px; padding: 0 25px; height: 48px; border-radius: 10px; font-weight: 600; background: #ef4444; color: white; border: none; cursor: pointer;">
-                            <i class="fa-solid fa-plug-circle-xmark"></i> <span>Desativar</span>
+            ` : `
+                <div class="form-group" style="margin-bottom: 20px;">
+                    <label style="display: block; margin-bottom: 10px; font-weight: 600; color: var(--text-main);">Access Token (Produção)</label>
+                    <div style="position: relative;">
+                        <input type="password" id="mp-token-input" class="input-field" placeholder="APP_USR-0000..."
+                               style="width: 100%; padding: 14px 45px 14px 16px; background: var(--bg-color); border: 1px solid var(--border-color); color: white; border-radius: 10px; font-family: monospace;">
+                        <button type="button" onclick="const i = document.getElementById('mp-token-input'); i.type = i.type === 'password' ? 'text' : 'password';"
+                                style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: var(--text-dim); border: none; background: none; cursor: pointer; padding: 5px;">
+                            <i class="fa-solid fa-eye"></i>
                         </button>
-                    ` : `
-                        <button id="btn-connect-mp" class="btn-primary" onclick="window.connectMercadoPago()" style="display: flex; align-items: center; gap: 8px; padding: 0 25px; height: 48px; border-radius: 10px; font-weight: 600; background: #009ee3;">
-                            <i class="fa-solid fa-plug"></i> <span>Conectar</span>
-                        </button>
-                    `}
+                    </div>
+                    <button id="btn-connect-mp" onclick="window.connectMercadoPago()" style="margin-top:14px; display: flex; align-items: center; gap: 8px; padding: 0 25px; height: 48px; border-radius: 10px; font-weight: 600; background: #009ee3; color:white; border:none; cursor:pointer;">
+                        <i class="fa-solid fa-plug"></i> <span>Conectar</span>
+                    </button>
                 </div>
-            </div>
-            
-            <div style="background: rgba(99, 102, 241, 0.05); border: 1px solid rgba(99, 102, 241, 0.1); border-radius: 10px; padding: 15px; display: flex; gap: 12px;">
-                <i class="fa-solid fa-circle-info" style="color: var(--primary); margin-top: 3px;"></i>
+            `}
+
+            <div style="background: rgba(99, 102, 241, 0.05); border: 1px solid rgba(99, 102, 241, 0.1); border-radius: 10px; padding: 15px; display: flex; gap: 12px; margin-top: 20px;">
+                <i class="fa-solid fa-shield-halved" style="color: var(--primary); margin-top: 3px;"></i>
                 <div style="font-size: 0.85rem; line-height: 1.5; color: var(--text-muted);">
-                    Após inserir o <strong>Access Token</strong>, clique em <strong>Conectar</strong>. O sistema buscará seu <strong>User ID</strong> automaticamente para validar a integração.
-                </div>
-            </div>
-        </div>
-
-        <div class="card" style="max-width: 600px; margin-top: 20px; border-left: 4px solid var(--warning); background: rgba(245, 158, 11, 0.02);">
-            <div style="display: flex; gap: 15px;">
-                <i class="fa-solid fa-shield-halved" style="color: var(--warning); font-size: 1.2rem;"></i>
-                <div>
-                    <h4 style="margin: 0 0 5px 0;">Segurança dos Dados</h4>
-                    <p style="margin: 0; font-size: 0.85rem; color: var(--text-muted); line-height: 1.5;">
-                        Seu token é armazenado de forma criptografada e utilizado apenas para comunicação oficial com a API do Mercado Pago. Nunca compartilhe seu token com terceiros.
-                    </p>
+                    O token é guardado <strong>no servidor</strong>, numa área protegida — nunca fica exposto no navegador nem no catálogo. Usado apenas para comunicação oficial com o Mercado Pago.
                 </div>
             </div>
         </div>

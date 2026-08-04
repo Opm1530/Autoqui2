@@ -1,16 +1,61 @@
 // Integração direta com a API do Mercado Pago (sem n8n).
 // O access token é por empresa (lido do Firestore, nunca do navegador).
 
-import { getDoc } from './firebase.js';
+import { getDoc, db } from './firebase.js';
 import { PUBLIC_BASE_URL } from './config.js';
 
 const MP_API = 'https://api.mercadopago.com';
 
+// O token fica em company_secrets/{companyId} (coleção bloqueada a clientes).
+// Fallback para o campo antigo em companies (dados legados, até re-conectar).
 async function tokenOf(companyId: string): Promise<string> {
-  const company = await getDoc('companies', companyId);
-  const token = company?.mercadoPagoToken || '';
+  const secret = await getDoc('company_secrets', companyId);
+  let token = secret?.mercadoPagoToken || '';
+  if (!token) {
+    const company = await getDoc('companies', companyId);
+    token = company?.mercadoPagoToken || '';
+  }
   if (!token) throw new Error('mercadopago_sem_token');
   return token;
+}
+
+// Conecta: valida o token no MP, guarda no secrets, marca ativo (booleano público)
+// e limpa o token do doc companies (não fica mais na leitura pública).
+export async function connectMp(
+  companyId: string,
+  accessToken: string
+): Promise<{ ok: boolean; userId?: string }> {
+  const meResp = await fetch(`${MP_API}/users/me`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!meResp.ok) throw new Error('token_invalido');
+  const me = await meResp.json().catch(() => ({}));
+  const userId = String(me?.id || '');
+
+  await db.collection('company_secrets').doc(companyId).set({ mercadoPagoToken: accessToken }, { merge: true });
+  await db.collection('companies').doc(companyId).update({
+    mercadoPagoAtivo: true,
+    userIdMercadoPago: userId,
+    mercadoPagoToken: null, // remove o segredo da leitura pública
+  });
+  return { ok: true, userId };
+}
+
+export async function disconnectMp(companyId: string): Promise<{ ok: boolean }> {
+  await db.collection('company_secrets').doc(companyId).delete().catch(() => {});
+  await db.collection('companies').doc(companyId).update({
+    mercadoPagoAtivo: false,
+    userIdMercadoPago: null,
+    mercadoPagoToken: null,
+  });
+  return { ok: true };
+}
+
+export async function mpStatus(companyId: string): Promise<{ connected: boolean; userId: string }> {
+  const secret = await getDoc('company_secrets', companyId);
+  const company = await getDoc('companies', companyId);
+  const connected = !!(secret?.mercadoPagoToken || company?.mercadoPagoToken);
+  return { connected, userId: company?.userIdMercadoPago || '' };
 }
 
 // Cria a cobrança PIX. external_reference = orderId (a confirmação usa isso).
