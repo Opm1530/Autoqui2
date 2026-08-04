@@ -2,6 +2,7 @@ import { dbService } from '../services/db';
 import { authService } from '../services/auth';
 import { toast } from '../services/toast';
 import { confirm } from '../services/confirm';
+import { productsApi } from '../services/productsApi';
 
 export const AdminMigration = async () => {
     const currentUser = authService.getCurrentUser();
@@ -75,7 +76,7 @@ export const AdminMigration = async () => {
                 delete cleanProduct.lojaId;
                 delete cleanProduct.createdAt; // Let dbService set a new one
 
-                await dbService.create('products', cleanProduct);
+                await productsApi.save(cleanProduct, undefined, targetCompanyId);
                 successCount++;
             }
 

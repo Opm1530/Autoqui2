@@ -4,6 +4,7 @@ import { toast } from '../services/toast';
 import { confirm } from '../services/confirm';
 import { storage } from '../firebase/config';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+import { productsApi } from '../services/productsApi';
 
 interface Product {
     id: string;
@@ -436,7 +437,7 @@ export const Products = async () => {
 
     (window as any).toggleProductStatus = async (id: string, currentStatus: boolean) => {
         try {
-            await dbService.update('products', id, { active: !currentStatus });
+            await productsApi.updateFields(id, { active: !currentStatus });
             const product = products.find((p: any) => p.id === id);
             if (product) product.active = !currentStatus;
             refreshTable();
@@ -466,7 +467,7 @@ export const Products = async () => {
                         }
                     }
                 }
-                await dbService.delete('products', id);
+                await productsApi.delete(id);
                 products = products.filter((p: any) => p.id !== id);
                 refreshTable();
                 toast.success(`${labelSingular} excluído com sucesso!`);
@@ -607,11 +608,11 @@ export const Products = async () => {
                 };
 
                 if (editModeProductId && tempId === 'edit-item') {
-                    await dbService.update('products', editModeProductId, productData);
+                    await productsApi.save(productData, editModeProductId);
                     const idx = products.findIndex((p: Product) => p.id === editModeProductId);
                     if (idx !== -1) products[idx] = { ...products[idx], ...productData };
                 } else {
-                    const newId = await dbService.create('products', productData);
+                    const { id: newId } = await productsApi.save(productData);
                     products.push({ id: newId, ...productData });
                 }
 
@@ -738,7 +739,7 @@ export const Products = async () => {
         const btn = document.getElementById('btn-bulk-save');
         if (btn) btn.innerHTML = '<div class="spinner-small"></div>';
         try {
-            await Promise.all(selected.map(id => dbService.update('products', id, { categoryId: catId })));
+            await Promise.all(selected.map(id => productsApi.updateFields(id, { categoryId: catId })));
             products.forEach((p: any) => { if (selected.includes(p.id)) p.categoryId = catId; });
             toast.success(`${selected.length} produtos atualizados!`);
             (window as any).cancelBulkActions();

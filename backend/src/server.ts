@@ -5,6 +5,7 @@ import { notifyNewOrder, notifyStatusChange } from './notify.js';
 import { requireAuth } from './auth.js';
 import * as wa from './evolution.js';
 import { createCatalogOrder, handleMpPaymentApproved } from './orders.js';
+import { saveProduct, deleteProduct, updateProductFields } from './products.js';
 
 const app = express();
 
@@ -82,6 +83,45 @@ app.post('/api/orders', async (req, res) => {
     const reason = err?.message || 'erro';
     console.warn(`[orders] recusado: ${reason}`);
     return res.status(400).json({ error: reason });
+  }
+});
+
+// ── Gestão de produtos (autenticado; valida dono) ──
+app.post('/api/products/save', requireAuth, async (req, res) => {
+  const { id, data, companyId } = req.body || {};
+  if (!data) return res.status(400).json({ error: 'data obrigatório' });
+  try {
+    const result = await saveProduct((req as any).uid, { id, data, companyId });
+    console.log(`[products/save] ${id ? 'update ' + id : 'create ' + result.id}`);
+    res.json(result);
+  } catch (err: any) {
+    console.warn(`[products/save] recusado: ${err?.message}`);
+    res.status(400).json({ error: err?.message || 'erro' });
+  }
+});
+
+app.post('/api/products/delete', requireAuth, async (req, res) => {
+  const id = String(req.body?.id || '');
+  if (!id) return res.status(400).json({ error: 'id obrigatório' });
+  try {
+    const result = await deleteProduct((req as any).uid, id);
+    console.log(`[products/delete] ${id}`);
+    res.json(result);
+  } catch (err: any) {
+    console.warn(`[products/delete] recusado: ${err?.message}`);
+    res.status(400).json({ error: err?.message || 'erro' });
+  }
+});
+
+app.post('/api/products/update-fields', requireAuth, async (req, res) => {
+  const { id, fields } = req.body || {};
+  if (!id || !fields) return res.status(400).json({ error: 'id e fields obrigatórios' });
+  try {
+    const result = await updateProductFields((req as any).uid, String(id), fields);
+    res.json(result);
+  } catch (err: any) {
+    console.warn(`[products/update-fields] recusado: ${err?.message}`);
+    res.status(400).json({ error: err?.message || 'erro' });
   }
 });
 
