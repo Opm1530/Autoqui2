@@ -187,25 +187,6 @@ export const Catalog = async (storeId: string) => {
             return t;
         };
 
-        // Baixa de estoque do carrinho — trata combos baixando os produtos internos
-        const deductCartStock = async () => {
-            for (const [id, { product, qty }] of Array.from(cart.entries())) {
-                if ((product as any).isCombo) {
-                    for (const cp of ((product as any).produtos || [])) {
-                        const prod = products.find((p: any) => p.id === cp.id);
-                        if (prod && prod.stock != null) {
-                            await dbService.update('products', prod.id, { stock: Math.max(0, prod.stock - qty) });
-                        }
-                    }
-                } else {
-                    const prod = products.find((p: any) => p.id === id);
-                    if (prod && prod.stock != null) {
-                        await dbService.update('products', id, { stock: Math.max(0, prod.stock - qty) });
-                    }
-                }
-            }
-        };
-
         // Envia o pedido pro backend, que recalcula preço/taxa/cupom e valida estoque.
         // O navegador manda só o carrinho e as escolhas — não os valores.
         const buildCartPayload = () => Array.from(cart.entries()).map(([id, { qty, product }]) =>
@@ -235,7 +216,7 @@ export const Catalog = async (storeId: string) => {
             });
             const data = await resp.json().catch(() => ({}));
             if (!resp.ok) throw new Error(data.error || 'erro_ao_criar_pedido');
-            return data as { orderId: string; total: number };
+            return data as { orderId: string; total: number; mpData?: any };
         };
 
         const getTaxaValue = () => {
@@ -856,61 +837,6 @@ export const Catalog = async (storeId: string) => {
             };
 
             // ── Lead management helper ──
-            const findOrCreateLead = async (name: string, phone: string): Promise<string> => {
-                let cleanPhone = phone.replace(/\D/g, '');
-                
-                // Sanitização (já feita no goToPayment, mas aqui por segurança)
-                if (cleanPhone.length === 13 && cleanPhone.startsWith('55')) {
-                    cleanPhone = cleanPhone.substring(2);
-                }
-
-                const normalizedPhone = cleanPhone;
-                
-                // Tenta buscar diretamente pelo WhatsApp primeiro (altamente performático)
-                let leads = await dbService.getAll('leads', [
-                    { field: 'empresaId', operator: '==', value: company.id },
-                    { field: 'whatsapp', operator: '==', value: normalizedPhone }
-                ]) as any[];
-
-                // Se não encontrar, tenta buscar a versão com 55 (para compatibilidade com dados antigos)
-                if (leads.length === 0) {
-                    leads = await dbService.getAll('leads', [
-                        { field: 'empresaId', operator: '==', value: company.id },
-                        { field: 'whatsapp', operator: '==', value: '55' + normalizedPhone }
-                    ]) as any[];
-                }
-
-                let existing = leads[0];
-
-                if (!existing) {
-                    // Tenta pelo campo telefone
-                    const leadsByPh = await dbService.getAll('leads', [
-                        { field: 'empresaId', operator: '==', value: company.id },
-                        { field: 'telefone', operator: '==', value: normalizedPhone }
-                    ]) as any[];
-                    existing = leadsByPh[0];
-                }
-
-                if (existing) {
-                    if (existing.statusLead !== 'cliente_ativo') {
-                        await dbService.update('leads', existing.id, { statusLead: 'cliente_ativo' });
-                    }
-                    return existing.id;
-                }
-
-                // Not found — create new lead
-                const newLeadId = await dbService.create('leads', {
-                    nome: name,
-                    telefone: normalizedPhone,
-                    whatsapp: normalizedPhone,
-                    empresaId: company.id,
-                    lojaId: storeId,
-                    origem: 'catalogo',
-                    statusLead: 'cliente_ativo',
-                    criadoEm: new Date().toISOString(),
-                });
-                return newLeadId as string;
-            };
 
             // ── Confirm order: Na Entrega ──
             (window as any).confirmOrderDelivery = async () => {
@@ -1075,60 +1001,10 @@ export const Catalog = async (storeId: string) => {
                         return;
                     }
 
-                    const { name, phone, address } = (window as any).catCustomer;
-                    // deliveryType já declarado acima
-                    const items = Array.from(cart.entries()).map(([id, { product, qty }]) => {
-                        const price = product.promotionalActive ? (product.promotionalPrice || product.price) : product.price;
-                        if ((product as any).isCombo) {
-                            const inclui = ((product as any).produtos || []).map((p: any) => p.name).join(' + ');
-                            return { productId: id, name: product.name, qty, price, subtotal: price * qty, isCombo: true, itensCombo: inclui };
-                        }
-                        return { productId: id, name: product.name, qty, price, subtotal: price * qty };
-                    });
-                    const subtotal = getSubtotal();
-                    const taxaAplicada = getTaxaValue();
-                    const desconto = getDescontoValue(subtotal);
-                    const total = subtotal + taxaAplicada - desconto;
-
-                    // Decide whether to use n8n webhook or direct API (if proxy/CORS allowed)
-                    const webhookUrl = 'https://n8n.vps.pequi.digital/webhook/autoqui-pix-catalog';
-
-                    const mpResponse = await fetch(webhookUrl, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            companyId: company.id,
-                            storeId,
-                            items,
-                            total,
-                            clientName: name,
-                            clientPhone: phone,
-                            accessToken: company.mercadoPagoToken
-                        })
-                    });
-                    const mpData = mpResponse.ok ? await mpResponse.json() : null;
-
-                    await deductCartStock();
-
-                    const leadId = await findOrCreateLead(name, phone);
-                    const orderData = {
-                        lojaId: storeId, storeId, companyId: company.id, empresaId: company.id,
-                        clientName: name, clientPhone: phone,
-                        endereco: address, bairro: (window as any).catCustomer?.bairro || '', entrega: deliveryType,
-                        leadId, nome: name, items, total,
-                        taxaAplicada, taxaNome: getTaxaNome(),
-                        desconto, codigoCupom: appliedCoupon?.codigo || null,
-                        paymentMethod: 'pix_mercadopago', pagamento: 'pagamento_no_pix',
-                        mpPaymentId: mpData?.payment_id || '',
-                        status: 'em_montagem', source: 'catalog',
-                        criadoEm: new Date().toISOString()
-                    };
-                    const orderId = await dbService.create('pedidos', orderData);
-
-                    try {
-                        const { orderService } = await import('../services/orderService');
-                        await orderService.notifyNewOrder({ id: orderId, ...orderData }, company.id);
-                    } catch (err) { console.error('Error in order notification:', err); }
+                    // Backend recalcula preço/taxa/cupom, cria a cobrança no Mercado Pago
+                    // (com o token lido do Firestore), valida/baixa estoque, cria o pedido
+                    // e notifica. Retorna o mpData pra exibir o QR.
+                    const { orderId, mpData } = await postOrder('pix_mercadopago');
 
                     cart.clear(); appliedCoupon = null; closeModal('payment-modal'); updateCartUI();
 

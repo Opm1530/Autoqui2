@@ -3,7 +3,7 @@
 // taxa e cupom lendo o Firestore (fonte da verdade), valida/baixa estoque,
 // cria o pedido e dispara a notificação. O cliente não controla os valores.
 
-import { getAll, db } from './firebase.js';
+import { getAll, getDoc, db } from './firebase.js';
 import { notifyNewOrder } from './notify.js';
 
 type CartLine = { id: string; qty: number; isCombo?: boolean };
@@ -15,9 +15,57 @@ export interface CreateOrderInput {
   bairro?: string;
   couponCode?: string | null;
   customer: { name: string; phone: string; address?: string; bairro?: string };
-  paymentMethod: 'na_entrega' | 'pix_manual';
+  paymentMethod: 'na_entrega' | 'pix_manual' | 'pix_mercadopago';
   paymentSubMethod?: string | null;
   troco?: number | null;
+}
+
+// Cria a cobrança PIX DIRETO na API do Mercado Pago (sem n8n) — com o total do
+// SERVIDOR e o token lido do Firestore (não vem mais do navegador).
+// Retorna { payment_id, qr_code_base64, qr_code_text }.
+async function createMercadoPagoCharge(
+  companyId: string,
+  _storeId: string,
+  _items: any[],
+  total: number,
+  clientName: string,
+  orderRef: string
+): Promise<{ payment_id: string; qr_code_base64: string; qr_code_text: string } | null> {
+  const company = await getDoc('companies', companyId);
+  const accessToken = company?.mercadoPagoToken || '';
+  if (!accessToken) throw new Error('mercadopago_sem_token');
+
+  const resp = await fetch('https://api.mercadopago.com/v1/payments', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${accessToken}`,
+      'X-Idempotency-Key': orderRef,
+    },
+    body: JSON.stringify({
+      transaction_amount: Number(total.toFixed(2)),
+      description: `Pedido ${orderRef}`,
+      payment_method_id: 'pix',
+      external_reference: orderRef,
+      payer: {
+        email: `pedido-${orderRef}@autoqui.com.br`,
+        first_name: (clientName || 'Cliente').slice(0, 40),
+      },
+    }),
+  });
+
+  const data = await resp.json().catch(() => null);
+  if (!resp.ok || !data) {
+    console.error('[mercadopago] erro ao criar cobrança:', resp.status, data);
+    throw new Error('mercadopago_erro');
+  }
+
+  const tx = data.point_of_interaction?.transaction_data || {};
+  return {
+    payment_id: String(data.id || ''),
+    qr_code_base64: tx.qr_code_base64 || '',
+    qr_code_text: tx.qr_code || '',
+  };
 }
 
 function num(v: any, def = 0): number {
@@ -84,7 +132,9 @@ async function findOrCreateLead(
   return ref.id;
 }
 
-export async function createCatalogOrder(input: CreateOrderInput): Promise<{ orderId: string; total: number }> {
+export async function createCatalogOrder(
+  input: CreateOrderInput
+): Promise<{ orderId: string; total: number; mpData?: any }> {
   const { storeId } = input;
 
   // 1. Resolve config + companyId a partir da loja (não confia no cliente).
@@ -212,12 +262,26 @@ export async function createCatalogOrder(input: CreateOrderInput): Promise<{ ord
   const ref = await db.collection('pedidos').add(orderData);
   const orderId = ref.id;
 
-  // 9. Notificação (respeita o template configurado).
+  // 9. Mercado Pago: cria a cobrança DIRETO na API do MP (external_reference = orderId,
+  //    pra a confirmação do pagamento achar o pedido depois). Atualiza o pedido com o payment_id.
+  let mpData: any = null;
+  if (input.paymentMethod === 'pix_mercadopago') {
+    try {
+      mpData = await createMercadoPagoCharge(companyId, storeId, items, total, input.customer.name, orderId);
+      if (mpData?.payment_id) {
+        await db.collection('pedidos').doc(orderId).update({ mpPaymentId: mpData.payment_id });
+      }
+    } catch (err) {
+      console.error('[orders] cobrança MP falhou:', err);
+    }
+  }
+
+  // 10. Notificação (respeita o template configurado).
   try {
     await notifyNewOrder(orderId);
   } catch (err) {
     console.error('[orders] notify falhou:', err);
   }
 
-  return { orderId, total };
+  return { orderId, total, mpData };
 }
