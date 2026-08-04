@@ -1111,7 +1111,7 @@ export const Orders = async () => {
             btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Arquivando...';
 
             try {
-                await dbService.update('pedidos', order.id, { arquivado: true });
+                await orderService.archiveOrder(order.id);
                 order.arquivado = true;
                 updateOrderInList(order);
                 toast.success('Pedido arquivado com sucesso!');
@@ -1145,7 +1145,7 @@ export const Orders = async () => {
         if (!ok) return;
 
         try {
-            await dbService.update('pedidos', order.id, { arquivado: true });
+            await orderService.archiveOrder(order.id);
             order.arquivado = true;
             updateOrderInList(order);
             toast.success('Pedido arquivado com sucesso!');

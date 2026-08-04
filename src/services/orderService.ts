@@ -2,6 +2,17 @@ import { dbService } from './db';
 import { evolutionApi } from './evolutionApi';
 import { Timestamp } from 'firebase/firestore';
 import { API_BASE_URL } from './api';
+import { auth } from '../firebase/config';
+
+// Headers autenticados (ID token do Firebase) pros endpoints protegidos do backend.
+async function authHeaders(): Promise<Record<string, string>> {
+    const h: Record<string, string> = { 'Content-Type': 'application/json' };
+    const user = auth.currentUser;
+    if (user) {
+        try { h['Authorization'] = `Bearer ${await user.getIdToken()}`; } catch { /* ignore */ }
+    }
+    return h;
+}
 
 // ─── Novo fluxo oficial de statusPedido ───────────────────────────────────────
 // em_montagem → aguardando_pagamento → em_preparo → saiu_para_entrega → finalizado
@@ -66,52 +77,42 @@ export const orderService = {
         extraUpdates?: any
     ) {
         try {
-            // Apply extra updates so the order object reflects the new values
+            // Reflete os extraUpdates no objeto local (a UI atualiza na hora)
             if (extraUpdates) {
                 Object.assign(order, extraUpdates);
             }
 
-            // Status ANTES da mudança — o backend usa pra escolher a variação
-            // certa de "pedido aceito".
-            const prevStatus = order.status;
-
-            // 1. Atualiza o status no Firestore (ainda client-side nesta fase)
-            let updates: any = { status: newStatus, updatedAt: Timestamp.now() };
-            if (reason) updates.rejectionReason = reason;
-            if (extraUpdates) {
-                updates = { ...updates, ...extraUpdates };
-            }
-            await dbService.update('pedidos', order.id, updates);
-
-            // 2. Ao finalizar → atualiza statusAtendimento do lead
-            if (newStatus === 'finalizado' && order.leadId) {
-                await dbService.update('leads', order.leadId, {
-                    statusAtendimento: 'finalizado',
-                    updatedAt: Timestamp.now()
-                });
-            }
-
-            // 3. Envio da mensagem via backend (server-side; chave da Evolution
-            //    fica no servidor). O backend lê o pedido, monta a mensagem certa
-            //    e envia — inclusive salva o log em `messages`.
-            let sent = false;
-            try {
-                const resp = await fetch(`${API_BASE_URL}/api/notify-status`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ orderId: order.id, newStatus, prevStatus, reason }),
-                });
-                const data = await resp.json().catch(() => ({}));
-                sent = !!data.sent;
-            } catch (err) {
-                console.error('OrderService - Error notifying status change:', err);
-            }
-
-            return sent;
+            // Tudo server-side: o backend atualiza o status no Firestore (Admin SDK),
+            // finaliza o lead, envia a mensagem e — se cancelar pedido pago — estorna.
+            // O cliente não escreve mais direto no pedido.
+            const resp = await fetch(`${API_BASE_URL}/api/orders/status`, {
+                method: 'POST',
+                headers: await authHeaders(),
+                body: JSON.stringify({ orderId: order.id, newStatus, reason, extraUpdates }),
+            });
+            const data = await resp.json().catch(() => ({}));
+            if (!resp.ok) throw new Error(data.error || 'erro_ao_mudar_status');
+            return !!data.sent;
         } catch (error) {
             console.error('OrderService - Error updating status:', error);
             throw error;
         }
+    },
+
+    /**
+     * Arquiva um pedido (server-side, autenticado).
+     */
+    async archiveOrder(orderId: string) {
+        const resp = await fetch(`${API_BASE_URL}/api/orders/archive`, {
+            method: 'POST',
+            headers: await authHeaders(),
+            body: JSON.stringify({ orderId }),
+        });
+        if (!resp.ok) {
+            const d = await resp.json().catch(() => ({}));
+            throw new Error(d.error || 'erro_ao_arquivar');
+        }
+        return true;
     },
 
     /**

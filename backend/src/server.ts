@@ -4,7 +4,10 @@ import { PORT, ALLOWED_ORIGINS } from './config.js';
 import { notifyNewOrder, notifyStatusChange } from './notify.js';
 import { requireAuth } from './auth.js';
 import * as wa from './evolution.js';
-import { createCatalogOrder, handleMpPaymentApproved } from './orders.js';
+import {
+  createCatalogOrder, handleMpPaymentApproved,
+  changeOrderStatus, archiveOrder, setComprovante,
+} from './orders.js';
 import { saveProduct, deleteProduct, updateProductFields } from './products.js';
 
 const app = express();
@@ -86,6 +89,44 @@ app.post('/api/orders', async (req, res) => {
   }
 });
 
+// ── Mudança de status do pedido (autenticado; painel) ──
+app.post('/api/orders/status', requireAuth, async (req, res) => {
+  const { orderId, newStatus, reason, extraUpdates } = req.body || {};
+  if (!orderId || !newStatus) return res.status(400).json({ error: 'orderId e newStatus obrigatórios' });
+  try {
+    const result = await changeOrderStatus((req as any).uid, { orderId, newStatus, reason, extraUpdates });
+    console.log(`[orders/status] ${orderId} -> ${newStatus} (msg ${result.sent ? 'ok' : 'nao'})`);
+    res.json(result);
+  } catch (err: any) {
+    console.warn(`[orders/status] recusado ${orderId}: ${err?.message}`);
+    res.status(400).json({ error: err?.message || 'erro' });
+  }
+});
+
+app.post('/api/orders/archive', requireAuth, async (req, res) => {
+  const orderId = String(req.body?.orderId || '');
+  if (!orderId) return res.status(400).json({ error: 'orderId obrigatório' });
+  try {
+    const result = await archiveOrder((req as any).uid, orderId);
+    res.json(result);
+  } catch (err: any) {
+    console.warn(`[orders/archive] recusado ${orderId}: ${err?.message}`);
+    res.status(400).json({ error: err?.message || 'erro' });
+  }
+});
+
+// Anexar comprovante (PIX manual) — público (o cliente do catálogo não tem login).
+app.post('/api/orders/comprovante', async (req, res) => {
+  const { orderId, comprovanteUrl } = req.body || {};
+  if (!orderId || !comprovanteUrl) return res.status(400).json({ error: 'orderId e comprovanteUrl obrigatórios' });
+  try {
+    const result = await setComprovante(String(orderId), String(comprovanteUrl));
+    res.json(result);
+  } catch (err: any) {
+    res.status(400).json({ error: err?.message || 'erro' });
+  }
+});
+
 // ── Gestão de produtos (autenticado; valida dono) ──
 app.post('/api/products/save', requireAuth, async (req, res) => {
   const { id, data, companyId } = req.body || {};
@@ -118,9 +159,10 @@ app.post('/api/products/update-fields', requireAuth, async (req, res) => {
   if (!id || !fields) return res.status(400).json({ error: 'id e fields obrigatórios' });
   try {
     const result = await updateProductFields((req as any).uid, String(id), fields);
+    console.log(`[products/update-fields] ${id} ${JSON.stringify(fields)}`);
     res.json(result);
   } catch (err: any) {
-    console.warn(`[products/update-fields] recusado: ${err?.message}`);
+    console.warn(`[products/update-fields] recusado ${id}: ${err?.message}`);
     res.status(400).json({ error: err?.message || 'erro' });
   }
 });

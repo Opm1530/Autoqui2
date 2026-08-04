@@ -963,8 +963,13 @@ export const Catalog = async (storeId: string) => {
                         const fileRef = storageRef(storage, path);
                         await uploadBytes(fileRef, file);
                         comprovanteUrl = await getDownloadURL(fileRef);
-                        
-                        await dbService.update('pedidos', orderId, { comprovanteUrl });
+
+                        // Anexa o comprovante pelo backend (o cliente não escreve mais no pedido).
+                        await fetch(`${API_BASE_URL}/api/orders/comprovante`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ orderId, comprovanteUrl }),
+                        });
                     }
 
                     closeModal('pix-manual-modal');

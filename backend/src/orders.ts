@@ -4,8 +4,9 @@
 // cria o pedido e dispara a notificação. O cliente não controla os valores.
 
 import { getAll, getDoc, db } from './firebase.js';
-import { notifyNewOrder, notifyPaymentReceived } from './notify.js';
+import { notifyNewOrder, notifyPaymentReceived, notifyStatusChange } from './notify.js';
 import { createPixCharge, getPayment } from './mercadopago.js';
+import { Timestamp } from 'firebase-admin/firestore';
 
 type CartLine = { id: string; qty: number; isCombo?: boolean };
 
@@ -282,4 +283,69 @@ export async function handleMpPaymentApproved(
     console.error('[mp-webhook] notifyPaymentReceived falhou:', err);
   }
   return { handled: true, orderId: order.id, status, novo: true };
+}
+
+// ── Mudança de status pelo painel (autenticado, valida dono) ──
+// Só o dono/admin muda status. Campos extras são whitelist (o dono pode ajustar
+// itens/total ao aceitar; NUNCA mexe em pago/estornado/mpPaymentId).
+const STATUS_EXTRA_WHITELIST = new Set([
+  'value', 'total', 'itens', 'taxaAplicada', 'taxaEntrega', 'manuallyConfirmed',
+]);
+
+async function assertOrderOwner(uid: string, orderId: string): Promise<{ user: any; order: any }> {
+  const user = await getDoc('users', uid);
+  if (!user) throw new Error('user_not_found');
+  const order = await getDoc('pedidos', orderId);
+  if (!order) throw new Error('not_found');
+  if (user.role !== 'admin' && order.empresaId !== user.companyId) throw new Error('forbidden');
+  return { user, order };
+}
+
+export async function changeOrderStatus(
+  uid: string,
+  payload: { orderId: string; newStatus: string; reason?: string; extraUpdates?: any }
+): Promise<{ ok: boolean; sent: boolean }> {
+  const { orderId, newStatus, reason, extraUpdates } = payload;
+  const { order } = await assertOrderOwner(uid, orderId);
+  const prevStatus = order.status;
+
+  const updates: any = { status: newStatus, updatedAt: Timestamp.now() };
+  if (reason) updates.rejectionReason = reason;
+  if (extraUpdates && typeof extraUpdates === 'object') {
+    for (const [k, v] of Object.entries(extraUpdates)) {
+      if (STATUS_EXTRA_WHITELIST.has(k)) updates[k] = v;
+    }
+  }
+  await db.collection('pedidos').doc(orderId).update(updates);
+
+  if (newStatus === 'finalizado' && order.leadId) {
+    await db.collection('leads').doc(order.leadId).update({
+      statusAtendimento: 'finalizado',
+      updatedAt: Timestamp.now(),
+    });
+  }
+
+  // Notifica (mensagem + estorno se cancelar pedido pago). Lê o pedido já atualizado.
+  const result = await notifyStatusChange(orderId, newStatus as any, prevStatus, reason);
+  return { ok: true, sent: result.sent };
+}
+
+export async function archiveOrder(uid: string, orderId: string): Promise<{ ok: boolean }> {
+  await assertOrderOwner(uid, orderId);
+  await db.collection('pedidos').doc(orderId).update({ arquivado: true });
+  return { ok: true };
+}
+
+// Anexa o comprovante (PIX manual). Público — o cliente do catálogo não tem login.
+// Só grava a URL do comprovante, nada mais.
+export async function setComprovante(
+  orderId: string,
+  comprovanteUrl: string
+): Promise<{ ok: boolean }> {
+  const order = await getDoc('pedidos', orderId);
+  if (!order) throw new Error('not_found');
+  await db.collection('pedidos').doc(orderId).update({
+    comprovanteUrl: String(comprovanteUrl).slice(0, 2000),
+  });
+  return { ok: true };
 }
