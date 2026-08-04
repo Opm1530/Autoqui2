@@ -4,6 +4,7 @@ import { PORT, ALLOWED_ORIGINS } from './config.js';
 import { notifyNewOrder, notifyStatusChange } from './notify.js';
 import { requireAuth } from './auth.js';
 import * as wa from './evolution.js';
+import { createCatalogOrder } from './orders.js';
 
 const app = express();
 
@@ -64,6 +65,23 @@ app.post('/api/notify-status', async (req, res) => {
   } catch (err: any) {
     console.error('[notify-status] erro:', err?.message || err);
     return res.status(500).json({ error: 'internal_error' });
+  }
+});
+
+// ── Criação de pedido do catálogo (público; preço recalculado no servidor) ──
+app.post('/api/orders', async (req, res) => {
+  const b = req.body || {};
+  if (!b.storeId || !Array.isArray(b.cart) || !b.customer?.name || !b.customer?.phone) {
+    return res.status(400).json({ error: 'dados_incompletos' });
+  }
+  try {
+    const result = await createCatalogOrder(b);
+    console.log(`[orders] criado ${result.orderId} total=${result.total.toFixed(2)}`);
+    return res.json(result);
+  } catch (err: any) {
+    const reason = err?.message || 'erro';
+    console.warn(`[orders] recusado: ${reason}`);
+    return res.status(400).json({ error: reason });
   }
 });
 

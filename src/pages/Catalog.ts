@@ -2,6 +2,7 @@ import { dbService } from '../services/db';
 import { notifications } from '../services/notifications';
 import { storage } from '../firebase/config';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { API_BASE_URL } from '../services/api';
 
 export const Catalog = async (storeId: string) => {
     try {
@@ -203,6 +204,38 @@ export const Catalog = async (storeId: string) => {
                     }
                 }
             }
+        };
+
+        // Envia o pedido pro backend, que recalcula preço/taxa/cupom e valida estoque.
+        // O navegador manda só o carrinho e as escolhas — não os valores.
+        const buildCartPayload = () => Array.from(cart.entries()).map(([id, { qty, product }]) =>
+            (product as any).isCombo
+                ? { id: id.replace(/^combo_/, ''), qty, isCombo: true }
+                : { id, qty }
+        );
+
+        const postOrder = async (paymentMethod: string, extra: any = {}) => {
+            const customer = (window as any).catCustomer || {};
+            const resp = await fetch(`${API_BASE_URL}/api/orders`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    storeId,
+                    cart: buildCartPayload(),
+                    deliveryType: (window as any).catDeliveryType,
+                    bairro: (window as any).catSelectedBairro || customer.bairro || '',
+                    couponCode: appliedCoupon?.codigo || null,
+                    customer: {
+                        name: customer.name, phone: customer.phone,
+                        address: customer.address, bairro: customer.bairro,
+                    },
+                    paymentMethod,
+                    ...extra,
+                }),
+            });
+            const data = await resp.json().catch(() => ({}));
+            if (!resp.ok) throw new Error(data.error || 'erro_ao_criar_pedido');
+            return data as { orderId: string; total: number };
         };
 
         const getTaxaValue = () => {
@@ -907,46 +940,12 @@ export const Catalog = async (storeId: string) => {
                         return;
                     }
 
-                    const { name, phone, address } = customer;
-                    // deliveryType já declarado acima para verificação de horário
-                    const items = Array.from(cart.entries()).map(([id, { product, qty }]) => {
-                        const price = product.promotionalActive ? (product.promotionalPrice || product.price) : product.price;
-                        if ((product as any).isCombo) {
-                            const inclui = ((product as any).produtos || []).map((p: any) => p.name).join(' + ');
-                            return { productId: id, name: product.name, qty, price, subtotal: price * qty, isCombo: true, itensCombo: inclui };
-                        }
-                        return { productId: id, name: product.name, qty, price, subtotal: price * qty };
-                    });
-                    await deductCartStock();
-                    const subtotal = getSubtotal();
-                    const taxaAplicada = getTaxaValue();
-                    const desconto = getDescontoValue(subtotal);
-                    const total = subtotal + taxaAplicada - desconto;
-                    const leadId = await findOrCreateLead(name, phone);
-                    
                     const paymentSubMethod = (window as any).catDeliveryPaymentMethod;
                     const trocoVal = (document.getElementById('cat-troco-input') as HTMLInputElement)?.value;
                     const troco = (paymentSubMethod === 'dinheiro' && trocoVal) ? parseFloat(trocoVal) : null;
 
-                    const orderData = {
-                        lojaId: storeId, storeId, companyId: company.id, empresaId: company.id,
-                        clientName: name, clientPhone: phone,
-                        endereco: address, bairro: customer.bairro || '', entrega: deliveryType,
-                        leadId, nome: name, items, total,
-                        taxaAplicada, taxaNome: getTaxaNome(),
-                        desconto, codigoCupom: appliedCoupon?.codigo || null,
-                        paymentMethod: 'na_entrega', pagamento: 'na_entrega',
-                        paymentSubMethod, troco,
-                        status: 'em_montagem', source: 'catalog',
-                        criadoEm: new Date().toISOString()
-                    };
-                    const orderId = await dbService.create('pedidos', orderData);
-
-                    // Trigger operator notification AND message to customer
-                    try {
-                        const { orderService } = await import('../services/orderService');
-                        await orderService.notifyNewOrder({ id: orderId, ...orderData }, company.id);
-                    } catch (err) { console.error('Error in order notification:', err); }
+                    // Backend recalcula preço/taxa/cupom, valida/baixa estoque, cria o pedido e notifica.
+                    const { orderId } = await postOrder('na_entrega', { paymentSubMethod, troco });
 
                     cart.clear(); appliedCoupon = null; closeModal('payment-modal'); updateCartUI();
                     const confirmModal = document.getElementById('confirmation-modal');
@@ -987,41 +986,13 @@ export const Catalog = async (storeId: string) => {
                         openModal('customer-modal');
                         return;
                     }
-                    const { name, phone, address } = customer;
-                    const items = Array.from(cart.entries()).map(([id, { product, qty }]) => {
-                        const price = product.promotionalActive ? (product.promotionalPrice || product.price) : product.price;
-                        if ((product as any).isCombo) {
-                            const inclui = ((product as any).produtos || []).map((p: any) => p.name).join(' + ');
-                            return { productId: id, name: product.name, qty, price, subtotal: price * qty, isCombo: true, itensCombo: inclui };
-                        }
-                        return { productId: id, name: product.name, qty, price, subtotal: price * qty };
-                    });
-                    await deductCartStock();
-                    const subtotal = getSubtotal();
-                    const taxaAplicada = getTaxaValue();
-                    const desconto = getDescontoValue(subtotal);
-                    const total = subtotal + taxaAplicada - desconto;
-                    const leadId = await findOrCreateLead(name, phone);
-                    const orderData = {
-                        lojaId: storeId, storeId, companyId: company.id, empresaId: company.id,
-                        clientName: name, clientPhone: phone,
-                        endereco: address, bairro: customer.bairro || '', entrega: deliveryType,
-                        leadId, nome: name, items, total,
-                        taxaAplicada, taxaNome: getTaxaNome(),
-                        desconto, codigoCupom: appliedCoupon?.codigo || null,
-                        paymentMethod: 'pix_manual', pagamento: 'pagamento_no_pix',
-                        status: 'em_montagem', source: 'catalog',
-                        criadoEm: new Date().toISOString()
-                    };
-                    const orderId = await dbService.create('pedidos', orderData);
-                    (window as any).currentPixOrderId = orderId;
-                    
-                    try {
-                        const { orderService } = await import('../services/orderService');
-                        await orderService.notifyNewOrder({ id: orderId, ...orderData }, company.id);
-                    } catch (err) { console.error('Error in order notification:', err); }
-
+                    // Resumo montado a partir do carrinho ANTES de limpar (visual apenas).
                     const summaryHTML = renderOrderSummary();
+
+                    // Backend recalcula preço/taxa/cupom, valida/baixa estoque, cria o pedido e notifica.
+                    const { orderId } = await postOrder('pix_manual');
+                    (window as any).currentPixOrderId = orderId;
+
                     cart.clear(); appliedCoupon = null; updateCartUI();
 
                     closeModal('payment-modal');
