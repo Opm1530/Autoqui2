@@ -254,7 +254,7 @@ export async function createCatalogOrder(
 // aguardando a loja aceitar (o dono decide aceitar ou recusar/estornar).
 export async function handleMpPaymentApproved(
   paymentId: string
-): Promise<{ handled: boolean; orderId?: string; status?: string }> {
+): Promise<{ handled: boolean; orderId?: string; status?: string; novo?: boolean }> {
   const orders = await getAll('pedidos', { field: 'mpPaymentId', operator: '==', value: paymentId });
   const order = orders[0];
   if (!order) return { handled: false };
@@ -274,12 +274,12 @@ export async function handleMpPaymentApproved(
     return true;
   });
 
-  if (!primeiraVez) return { handled: true, orderId: order.id, status };
+  if (!primeiraVez) return { handled: true, orderId: order.id, status, novo: false };
 
   try {
     await notifyPaymentReceived(order.id);
   } catch (err) {
     console.error('[mp-webhook] notifyPaymentReceived falhou:', err);
   }
-  return { handled: true, orderId: order.id, status };
+  return { handled: true, orderId: order.id, status, novo: true };
 }

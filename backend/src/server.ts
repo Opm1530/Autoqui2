@@ -99,7 +99,10 @@ app.post('/api/mp/webhook', async (req, res) => {
   if (!paymentId) return;
   try {
     const result = await handleMpPaymentApproved(paymentId);
-    console.log(`[mp-webhook] pagamento ${paymentId} -> ${result.handled ? 'PAGO ' + result.orderId : 'ignorado (' + (result.status || 'sem pedido') + ')'}`);
+    const label = result.handled
+      ? `PAGO ${result.orderId}${result.novo ? ' (notificado)' : ' (ja processado)'}`
+      : `ignorado (${result.status || 'sem pedido'})`;
+    console.log(`[mp-webhook] pagamento ${paymentId} -> ${label}`);
   } catch (err: any) {
     console.error('[mp-webhook] erro:', err?.message || err);
   }
