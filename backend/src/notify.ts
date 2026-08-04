@@ -6,6 +6,15 @@ import { getAll, getDoc, db } from './firebase.js';
 import { sendText } from './evolution.js';
 import { Timestamp } from 'firebase-admin/firestore';
 
+type OrderStatus =
+  | 'em_montagem'
+  | 'aguardando_pagamento'
+  | 'em_preparo'
+  | 'pedido_pronto'
+  | 'saiu_para_entrega'
+  | 'finalizado'
+  | 'cancelado';
+
 function substituirVariaveis(template: string, vars: Record<string, string>): string {
   return template.replace(/\{\{(\w+)\}\}/g, (match, key) =>
     vars[key] !== undefined ? vars[key] : match
@@ -59,22 +68,34 @@ const DEFAULT_MESSAGES: Record<string, string> = {
     'Olá {{nome_lead}}! Seu pedido #{{numero_pedido}} foi aceito e já está sendo preparado. O pagamento será feito na entrega. \n\n📦 Itens: {{lista_produtos}}\n💰 Total: R$ {{valor_total}}',
   pedido_aceito_retirada:
     'Olá {{nome_lead}}! Pedido #{{numero_pedido}} aceito para retirada. Valor: R$ {{valor_total}}. Aguardamos você!',
+  pagamento_confirmado:
+    'Olá {{nome_lead}}! Pagamento do pedido #{{numero_pedido}} confirmado. Já estamos preparando!',
+  pedido_pronto: 'Olá {{nome_lead}}! Seu pedido #{{numero_pedido}} está pronto para retirada!',
+  saiu_para_entrega:
+    'Olá {{nome_lead}}! Pedido #{{numero_pedido}} saiu para entrega: {{endereco_entrega}}',
+  pedido_entregue:
+    'Olá {{nome_lead}}! Pedido #{{numero_pedido}} finalizado. Obrigado pela preferência!',
+  pedido_cancelado: 'Olá {{nome_lead}}! Seu pedido #{{numero_pedido}} foi cancelado.',
 };
 
-// Escolhe a variação de "pedido aceito" conforme entrega/retirada e forma de pagamento.
-function pickAceitoKey(order: any): string {
-  const isWithdrawal = order.entrega === 'retirada' || order.deliveryType === 'retirada';
-  const paymentMethod = String(
-    order.formaPagamento || order.paymentMethod || order.pagamento || ''
-  );
-  const isPayOnDelivery =
-    paymentMethod.includes('entrega') ||
-    paymentMethod.includes('dinheiro') ||
-    paymentMethod.includes('maquininha') ||
-    paymentMethod === 'na_entrega';
-
-  if (isWithdrawal) return 'pedido_aceito_retirada';
-  return isPayOnDelivery ? 'pedido_aceito_entrega_pendente' : 'pedido_aceito_entrega_pago';
+// Mapa base status → chave de mensagem.
+function getMsgKey(newStatus: OrderStatus): string | null {
+  switch (newStatus) {
+    case 'aguardando_pagamento':
+      return 'pedido_aceito_entrega_pago';
+    case 'em_preparo':
+      return 'pagamento_confirmado';
+    case 'pedido_pronto':
+      return 'pedido_pronto';
+    case 'saiu_para_entrega':
+      return 'saiu_para_entrega';
+    case 'finalizado':
+      return 'pedido_entregue';
+    case 'cancelado':
+      return 'pedido_cancelado';
+    default:
+      return null;
+  }
 }
 
 async function fetchMensagensConfig(
@@ -105,26 +126,50 @@ async function fetchMensagensConfig(
   return {};
 }
 
-// Resolve o nome da instância vinculada à loja.
-async function resolveInstanceName(companyId: string, sid: string): Promise<string | null> {
+// Resolve o nome da instância vinculada à loja (ou fallbacks).
+async function resolveInstanceName(companyId: string, order: any): Promise<string | null> {
+  if (order.instancia) return order.instancia;
+
+  const sid = order.storeId || order.lojaId;
+  if (!sid) return null;
+
   const lojaConfigs = await getAll('loja_config', [
     { field: 'empresaId', operator: '==', value: companyId },
     { field: 'lojaId', operator: '==', value: sid },
   ]);
   let targetInstId = lojaConfigs[0]?.instancia_id;
 
+  const company = await getDoc('companies', companyId);
   if (!targetInstId) {
-    const company = await getDoc('companies', companyId);
     const storeInfo = company?.stores?.find((s: any) => s.id === sid);
     targetInstId = storeInfo?.instancia_id;
   }
-  if (!targetInstId) return null;
 
-  const instDoc = await getDoc('instancias', targetInstId);
-  return instDoc?.nome || null;
+  let instanceName: string | null = null;
+  if (targetInstId) {
+    const instDoc = await getDoc('instancias', targetInstId);
+    instanceName = instDoc?.nome || null;
+  }
+  if (!instanceName && company?.whatsappInstance?.instanceName) {
+    instanceName = company.whatsappInstance.instanceName;
+  }
+  return instanceName;
 }
 
-// Envia a mensagem de "pedido recebido". Retorna o motivo caso não envie.
+function getPhone(order: any, lead: any): string | null {
+  return (
+    lead?.telefone ||
+    lead?.whatsapp ||
+    (order.clientPhone ? order.clientPhone.replace(/\D/g, '') : null) ||
+    order.telefone ||
+    order.leadId ||
+    null
+  );
+}
+
+// ── Envio na criação do pedido (checkout do catálogo) ──
+// Usa o template "pedido_recebido". A loja bonsprecosexpress deixa vazio de
+// propósito (não avisa no recebimento — só quando o atendente aceita).
 export async function notifyNewOrder(
   orderId: string
 ): Promise<{ sent: boolean; reason?: string }> {
@@ -135,35 +180,88 @@ export async function notifyNewOrder(
   const sid = order.storeId || order.lojaId;
   if (!companyId || !sid) return { sent: false, reason: 'missing_company_or_store' };
 
-  const instanceName = await resolveInstanceName(companyId, sid);
-  if (!instanceName) return { sent: false, reason: 'instance_not_resolved' };
-
   const customMsgs = await fetchMensagensConfig(companyId, sid);
-  // Usa a mensagem de "pedido aceito" (variação conforme entrega/pagamento),
-  // caindo no texto padrão se a loja não personalizou.
-  const msgKey = pickAceitoKey(order);
-  const template = customMsgs[msgKey] || DEFAULT_MESSAGES[msgKey];
+  const template = customMsgs['pedido_recebido'];
   if (!template) return { sent: false, reason: 'template_empty' };
 
-  const lead = order.leadId ? await getDoc('leads', order.leadId) : null;
-  const vars = buildVars(order, lead);
-  const message = substituirVariaveis(template, vars);
+  const instanceName = await resolveInstanceName(companyId, order);
+  if (!instanceName) return { sent: false, reason: 'instance_not_resolved' };
 
-  const phone = order.clientPhone || order.telefone || lead?.telefone;
+  const lead = order.leadId ? await getDoc('leads', order.leadId) : null;
+  const message = substituirVariaveis(template, buildVars(order, lead));
+  const phone = getPhone(order, lead);
   if (!phone || !message) return { sent: false, reason: 'missing_phone_or_message' };
 
   const ok = await sendText(instanceName, phone, message);
+  if (ok && order.leadId) await saveMessageLog(companyId, order.leadId, message);
+  return { sent: ok, reason: ok ? undefined : 'evolution_failed' };
+}
 
-  if (ok && order.leadId) {
-    await db.collection('messages').add({
-      conteudo: message,
-      createdAt: Timestamp.now(),
-      empresaId: companyId,
-      leadId: order.leadId,
-      role: 'assistente',
-      tipo: 'conversation',
-    });
+// ── Envio na mudança de status (aceitar, pronto, saiu, finalizado, cancelado) ──
+// prevStatus é o status ANTES da mudança — necessário pra escolher a variação
+// certa de "pedido aceito".
+export async function notifyStatusChange(
+  orderId: string,
+  newStatus: OrderStatus,
+  prevStatus?: string,
+  reason?: string
+): Promise<{ sent: boolean; reason?: string }> {
+  const order = await getDoc('pedidos', orderId);
+  if (!order) return { sent: false, reason: 'order_not_found' };
+
+  const companyId = order.empresaId;
+  if (!companyId) return { sent: false, reason: 'missing_company' };
+
+  const instanceName = await resolveInstanceName(companyId, order);
+  if (!instanceName) return { sent: false, reason: 'instance_not_resolved' };
+
+  const lead = order.leadId ? await getDoc('leads', order.leadId) : null;
+  const vars = buildVars(order, lead);
+  const customMsgs = await fetchMensagensConfig(companyId, order.lojaId || order.storeId);
+
+  // Escolhe a chave da mensagem.
+  let msgKey = getMsgKey(newStatus);
+  const isWithdrawal = order.entrega === 'retirada' || order.deliveryType === 'retirada';
+  const paymentMethod = String(
+    order.formaPagamento || order.paymentMethod || order.pagamento || ''
+  );
+  const isPayOnDelivery =
+    paymentMethod.includes('entrega') ||
+    paymentMethod.includes('dinheiro') ||
+    paymentMethod.includes('maquininha') ||
+    paymentMethod === 'na_entrega';
+
+  if (newStatus === 'aguardando_pagamento' || newStatus === 'em_preparo') {
+    if (isPayOnDelivery) {
+      msgKey = isWithdrawal ? 'pedido_aceito_retirada' : 'pedido_aceito_entrega_pendente';
+    } else if (prevStatus === 'em_montagem' || !prevStatus) {
+      msgKey = isWithdrawal ? 'pedido_aceito_retirada' : 'pedido_aceito_entrega_pago';
+    }
   }
 
+  if (!msgKey) return { sent: false, reason: 'no_message_for_status' };
+
+  const template = customMsgs[msgKey] || DEFAULT_MESSAGES[msgKey] || '';
+  if (!template) return { sent: false, reason: 'template_empty' };
+
+  let message = substituirVariaveis(template, vars);
+  if (newStatus === 'cancelado' && reason) message = `${message} Motivo: ${reason}`;
+
+  const phone = getPhone(order, lead);
+  if (!phone || !message) return { sent: false, reason: 'missing_phone_or_message' };
+
+  const ok = await sendText(instanceName, phone, message);
+  if (ok && order.leadId) await saveMessageLog(companyId, order.leadId, message);
   return { sent: ok, reason: ok ? undefined : 'evolution_failed' };
+}
+
+async function saveMessageLog(companyId: string, leadId: string, message: string) {
+  await db.collection('messages').add({
+    conteudo: message,
+    createdAt: Timestamp.now(),
+    empresaId: companyId,
+    leadId,
+    role: 'assistente',
+    tipo: 'conversation',
+  });
 }

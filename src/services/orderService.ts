@@ -16,13 +16,9 @@ export type OrderStatus =
     | 'finalizado'
     | 'cancelado';
 
-// ─── Variable substitution ────────────────────────────────────────────────────
-
-function substituirVariaveis(template: string, vars: Record<string, string>): string {
-    return template.replace(/\{\{(\w+)\}\}/g, (match, key) => {
-        return vars[key] !== undefined ? vars[key] : match;
-    });
-}
+// Nota: a montagem de mensagens (buildVars, templates, escolha por status)
+// e o envio pela Evolution foram movidos para o backend (/api/notify-*).
+// Aqui ficam só helpers ainda usados no frontend.
 
 function isToday(date: any): boolean {
     if (!date) return false;
@@ -33,93 +29,6 @@ function isToday(date: any): boolean {
         d.getFullYear() === now.getFullYear();
 }
 
-function buildVars(order: any, lead: any): Record<string, string> {
-    // Normalize: catalog orders use `items` with {name, qty, price} while legacy uses `itens` with {item, quantidade, preco}
-    const rawItems = Array.isArray(order.itens) ? order.itens : Array.isArray(order.items) ? order.items : [];
-    const itens = rawItems.map((i: any) => ({
-        item: i.item || i.name || '',
-        quantidade: i.quantidade || i.qty || 1,
-        preco: i.preco || i.price || 0,
-    }));
-    const lista = itens.map((i: any) => `${i.quantidade}x ${i.item}`).join(', ');
-    return {
-        nome_lead: lead?.nome || lead?.name || order.clientName || order.nome || 'Cliente',
-        telefone_lead: (lead?.telefone || '').split('@')[0] || order.clientPhone || '',
-        numero_pedido: order.id?.slice(-6).toUpperCase() || '',
-        lista_produtos: lista,
-        valor_total: (Number(order.value || order.total) || 0).toFixed(2),
-        endereco_entrega: order.endereco || order.clientAddress || 'Não informado',
-        forma_pagamento: (() => {
-            const base = order.formaPagamento || order.paymentMethod || order.pagamento || 'Não informado';
-            if (base === 'na_entrega' || base === 'pagamento_na_entrega') {
-                const sub = order.paymentSubMethod === 'dinheiro' ? 'Dinheiro' : order.paymentSubMethod === 'cartao' ? 'Cartão' : '';
-                const troco = order.troco ? ` (Troco para R$ ${parseFloat(order.troco).toFixed(2)})` : '';
-                if (sub) return `Na Entrega (${sub}${troco})`;
-            }
-            return base;
-        })(),
-    };
-}
-
-// ─── Default messages (fallback) ──────────────────────────────────────────────
-
-const DEFAULT_MESSAGES: Record<string, string> = {
-    pedido_aceito_entrega_pago: '✅ Pedido aceito e em preparo! (Pagamento Adiantado)',
-    pedido_aceito_entrega_pendente: '✅ Pedido aceito e em preparo! Pagamento na entrega.',
-    pedido_aceito_retirada: '✅ Pedido confirmado para retirada! Já está sendo preparado.',
-    pagamento_confirmado: '💳 Pagamento confirmado! Seu pedido já está sendo preparado.',
-    pedido_pronto: '📦 Seu pedido já está pronto para retirada!',
-    saiu_para_entrega: '🚚 Boa notícia! Seu pedido saiu para entrega.',
-    pedido_entregue: '🏁 Seu pedido foi entregue e finalizado. Obrigado pela preferência!',
-    pedido_cancelado: '❌ Seu pedido foi cancelado.',
-};
-
-// ─── Map OrderStatus → message key ───────────────────────────────────────────
-
-function getMsgKey(newStatus: OrderStatus): string | null {
-    switch (newStatus) {
-        case 'aguardando_pagamento': return 'pedido_aceito_entrega_pago'; // Fallback generic case
-        case 'em_preparo': return 'pagamento_confirmado';
-        case 'pedido_pronto': return 'pedido_pronto';
-        case 'saiu_para_entrega': return 'saiu_para_entrega';
-        case 'finalizado': return 'pedido_entregue';
-        case 'cancelado': return 'pedido_cancelado';
-        default: return null;
-    }
-}
-
-// ─── Fetch empresa_config messages ───────────────────────────────────────────
-
-async function fetchMensagensConfig(companyId: string, lojaId?: string): Promise<Record<string, string>> {
-    try {
-        // 1. Try to fetch from loja_config first (specific store config)
-        if (lojaId) {
-            const lojaConfigs = await dbService.getAll('loja_config', [
-                { field: 'empresaId', operator: '==', value: companyId },
-                { field: 'lojaId', operator: '==', value: lojaId }
-            ]);
-            if (lojaConfigs && lojaConfigs.length > 0) {
-                const config = lojaConfigs[0] as any;
-                if (config.mensagens_automaticas) {
-                    return config.mensagens_automaticas;
-                }
-            }
-        }
-
-        // 2. Fallback to old empresa_config (if it exists)
-        const configs = await dbService.getAll('empresa_config', {
-            field: 'empresaId',
-            operator: '==',
-            value: companyId
-        });
-        if (configs && configs.length > 0) {
-            return (configs[0] as any).mensagens_automaticas || {};
-        }
-    } catch (err) {
-        console.error('Error fetching message config:', err);
-    }
-    return {};
-}
 
 async function notifyNewOrder(order: any, _companyId: string) {
     // Fase 1 da migração: o envio da mensagem de "pedido recebido" passou pro backend.
@@ -151,104 +60,22 @@ export const orderService = {
      */
     async updateOrderStatus(
         order: any,
-        companyId: string,
+        _companyId: string,
         newStatus: OrderStatus,
         reason?: string,
         extraUpdates?: any
     ) {
         try {
-            // Apply extra updates so buildVars uses the correct new values
+            // Apply extra updates so the order object reflects the new values
             if (extraUpdates) {
                 Object.assign(order, extraUpdates);
             }
 
-            // 1. Get instance name — try order.instancia, then loja_config, then company stores, then company fallback
-            let instanceName = order.instancia || null;
-            if (!instanceName) {
-                const sid = order.storeId || order.lojaId;
-                if (sid) {
-                    try {
-                        // a. Check loja_config
-                        const lojaConfigs = await dbService.getAll('loja_config', [
-                            { field: 'empresaId', operator: '==', value: companyId },
-                            { field: 'lojaId', operator: '==', value: sid }
-                        ]) as any[];
-                        const lojaConf = lojaConfigs[0];
-                        let targetInstId = lojaConf?.instancia_id;
+            // Status ANTES da mudança — o backend usa pra escolher a variação
+            // certa de "pedido aceito".
+            const prevStatus = order.status;
 
-                        // b. Check company stores array if not found in loja_config
-                        const company = await dbService.get('companies', companyId) as any;
-                        if (!targetInstId && company?.stores) {
-                            const storeInfo = company.stores.find((s: any) => s.id === sid);
-                            targetInstId = storeInfo?.instancia_id;
-                        }
-
-                        if (targetInstId) {
-                            const instDoc = await dbService.get('instancias', targetInstId) as any;
-                            instanceName = instDoc?.nome || null;
-                        }
-
-                        // c. Fallback to global if still not found
-                        if (!instanceName && company?.whatsappInstance?.instanceName) {
-                            instanceName = company.whatsappInstance.instanceName;
-                        }
-                    } catch (err) { console.error('Error fetching instance for store:', err); }
-                }
-            }
-
-            if (!instanceName) {
-                const company = await dbService.get('companies', companyId) as any;
-                instanceName = company?.whatsappInstance?.instanceName || null;
-            }
-
-            // 2. Get lead data (catalog orders have no leadId — guard this)
-            const lead = order.leadId ? await dbService.get('leads', order.leadId) as any : null;
-            // Phone: prefer lead, fallback to clientPhone (catalog orders)
-            const phone = lead?.telefone || lead?.whatsapp ||
-                (order.clientPhone ? order.clientPhone.replace(/\D/g, '') : null) ||
-                order.leadId || null;
-
-            // 3. Build variables map
-            const vars = buildVars(order, lead);
-
-            // 4. Fetch custom messages (prioritizing specific store config)
-            const customMsgs = await fetchMensagensConfig(companyId, order.lojaId || order.storeId);
-
-            // 5. Build message
-            let message = '';
-            let msgKey = getMsgKey(newStatus);
-
-            // Differentiate between Delivery and Pickup messages during acceptance
-            const isWithdrawal = order.entrega === 'retirada' || order.deliveryType === 'retirada';
-            const paymentMethod = order.formaPagamento || order.paymentMethod || order.pagamento || '';
-            const isPayOnDelivery = paymentMethod.includes('entrega') || paymentMethod.includes('dinheiro') || paymentMethod.includes('maquininha') || paymentMethod === 'na_entrega';
-
-            // If we're accepting it (moving from wait payment or prep)
-            if (newStatus === 'aguardando_pagamento' || newStatus === 'em_preparo') {
-                // Se for pagamento na entrega, NUNCA disparar "pagamento_confirmado"
-                if (isPayOnDelivery) {
-                    msgKey = isWithdrawal ? 'pedido_aceito_retirada' : 'pedido_aceito_entrega_pendente';
-                } else if (order.status === 'em_montagem' || !order.status) {
-                    if (isWithdrawal) {
-                        msgKey = 'pedido_aceito_retirada';
-                    } else {
-                        msgKey = 'pedido_aceito_entrega_pago';
-                    }
-                }
-            }
-
-            if (msgKey) {
-                if (newStatus === 'cancelado') {
-                    const template = customMsgs[msgKey] || DEFAULT_MESSAGES[msgKey] || '';
-                    const baseMsg = template ? substituirVariaveis(template, vars) : DEFAULT_MESSAGES[msgKey];
-                    message = reason ? `${baseMsg} Motivo: ${reason}` : baseMsg;
-                } else {
-                    const template = customMsgs[msgKey] || DEFAULT_MESSAGES[msgKey] || '';
-                    message = template ? substituirVariaveis(template, vars) : '';
-                }
-            }
-
-            // 6. Update order in Firestore (only statusPedido)
+            // 1. Atualiza o status no Firestore (ainda client-side nesta fase)
             let updates: any = { status: newStatus, updatedAt: Timestamp.now() };
             if (reason) updates.rejectionReason = reason;
             if (extraUpdates) {
@@ -256,7 +83,7 @@ export const orderService = {
             }
             await dbService.update('pedidos', order.id, updates);
 
-            // 7. ÚNICA EXCEÇÃO: ao finalizar → atualiza statusAtendimento do lead
+            // 2. Ao finalizar → atualiza statusAtendimento do lead
             if (newStatus === 'finalizado' && order.leadId) {
                 await dbService.update('leads', order.leadId, {
                     statusAtendimento: 'finalizado',
@@ -264,11 +91,20 @@ export const orderService = {
                 });
             }
 
-            // 8. Send WhatsApp message (only if we have both instance and phone)
+            // 3. Envio da mensagem via backend (server-side; chave da Evolution
+            //    fica no servidor). O backend lê o pedido, monta a mensagem certa
+            //    e envia — inclusive salva o log em `messages`.
             let sent = false;
-            if (message && instanceName && phone) {
-                sent = await evolutionApi.sendText(instanceName, phone, message);
-                if (order.leadId) await this.saveMessageLog(companyId, order.leadId, message);
+            try {
+                const resp = await fetch(`${API_BASE_URL}/api/notify-status`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ orderId: order.id, newStatus, prevStatus, reason }),
+                });
+                const data = await resp.json().catch(() => ({}));
+                sent = !!data.sent;
+            } catch (err) {
+                console.error('OrderService - Error notifying status change:', err);
             }
 
             return sent;

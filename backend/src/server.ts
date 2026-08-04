@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import { PORT, ALLOWED_ORIGINS } from './config.js';
-import { notifyNewOrder } from './notify.js';
+import { notifyNewOrder, notifyStatusChange } from './notify.js';
 
 const app = express();
 
@@ -35,6 +35,29 @@ app.post('/api/notify-order', async (req, res) => {
     return res.json(result);
   } catch (err: any) {
     console.error('[notify-order] erro:', err?.message || err);
+    return res.status(500).json({ error: 'internal_error' });
+  }
+});
+
+// Notificação de mudança de status (aceitar, pronto, saiu, finalizado, cancelado).
+// O painel manda { orderId, newStatus, prevStatus?, reason? }. O servidor lê o
+// pedido, monta a mensagem certa e envia pela Evolution.
+app.post('/api/notify-status', async (req, res) => {
+  const orderId = String(req.body?.orderId || '').trim();
+  const newStatus = String(req.body?.newStatus || '').trim();
+  const prevStatus = req.body?.prevStatus ? String(req.body.prevStatus) : undefined;
+  const reason = req.body?.reason ? String(req.body.reason) : undefined;
+
+  if (!orderId || !newStatus) {
+    return res.status(400).json({ error: 'orderId e newStatus obrigatórios' });
+  }
+
+  try {
+    const result = await notifyStatusChange(orderId, newStatus as any, prevStatus, reason);
+    if (!result.sent) console.warn('[notify-status] não enviado:', orderId, newStatus, result.reason);
+    return res.json(result);
+  } catch (err: any) {
+    console.error('[notify-status] erro:', err?.message || err);
     return res.status(500).json({ error: 'internal_error' });
   }
 });
