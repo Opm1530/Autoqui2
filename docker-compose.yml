@@ -8,6 +8,18 @@ services:
     networks:
       - docker_internal
 
+  autoqui-api:
+    build: ./backend
+    container_name: autoqui-api
+    restart: always
+    env_file:
+      - ./backend/.env
+    volumes:
+      # A service account fica no host e é montada só-leitura no container.
+      - ./backend/service-account.json:/app/service-account.json:ro
+    networks:
+      - docker_internal
+
 networks:
   docker_internal:
     external: true

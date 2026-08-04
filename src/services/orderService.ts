@@ -1,6 +1,7 @@
 import { dbService } from './db';
 import { evolutionApi } from './evolutionApi';
 import { Timestamp } from 'firebase/firestore';
+import { API_BASE_URL } from './api';
 
 // ─── Novo fluxo oficial de statusPedido ───────────────────────────────────────
 // em_montagem → aguardando_pagamento → em_preparo → saiu_para_entrega → finalizado
@@ -120,59 +121,19 @@ async function fetchMensagensConfig(companyId: string, lojaId?: string): Promise
     return {};
 }
 
-async function notifyNewOrder(order: any, companyId: string) {
+async function notifyNewOrder(order: any, _companyId: string) {
+    // Fase 1 da migração: o envio da mensagem de "pedido recebido" passou pro backend.
+    // O navegador manda só o orderId; o servidor lê o pedido no Firestore e envia
+    // pela Evolution (a chave da Evolution não fica mais no frontend).
     try {
-        const sid = order.storeId || order.lojaId;
-        if (!sid) return;
+        const orderId = order?.id;
+        if (!orderId) return;
 
-        // 1. Get instance
-        let instanceName = null;
-        const lojaConfigs = await dbService.getAll('loja_config', [
-            { field: 'empresaId', operator: '==', value: companyId },
-            { field: 'lojaId', operator: '==', value: sid }
-        ]) as any[];
-        const lojaConf = lojaConfigs[0];
-        let targetInstId = lojaConf?.instancia_id;
-
-        if (!targetInstId) {
-            const company = await dbService.get('companies', companyId) as any;
-            const storeInfo = company?.stores?.find((s: any) => s.id === sid);
-            targetInstId = storeInfo?.instancia_id;
-        }
-
-        if (targetInstId) {
-            const instDoc = await dbService.get('instancias', targetInstId) as any;
-            instanceName = instDoc?.nome;
-        }
-
-        if (!instanceName) return;
-
-        // 2. Get message template (optional)
-        const customMsgs = await fetchMensagensConfig(companyId, sid);
-        const template = customMsgs['pedido_recebido'];
-        
-        if (!template) return; // Non-existent or empty string -> don't send
-
-        // 3. Prepare variables
-        const lead = order.leadId ? await dbService.get('leads', order.leadId) : null;
-        const vars = buildVars(order, lead);
-        const message = substituirVariaveis(template, vars);
-
-        // 4. Send
-        const phone = order.clientPhone || order.telefone || (lead as any)?.telefone;
-        if (phone && message) {
-            await evolutionApi.sendText(instanceName, phone, message);
-            if (order.leadId) {
-                await dbService.create('messages', {
-                    conteudo: message,
-                    createdAt: Timestamp.now(),
-                    empresaId: companyId,
-                    leadId: order.leadId,
-                    role: 'assistente',
-                    tipo: 'conversation',
-                });
-            }
-        }
+        await fetch(`${API_BASE_URL}/api/notify-order`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ orderId }),
+        });
     } catch (error) {
         console.error('OrderService - Error in notifyNewOrder:', error);
     }

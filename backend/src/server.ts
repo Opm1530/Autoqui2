@@ -1,0 +1,44 @@
+import express from 'express';
+import cors from 'cors';
+import { PORT, ALLOWED_ORIGINS } from './config.js';
+import { notifyNewOrder } from './notify.js';
+
+const app = express();
+
+app.use(express.json({ limit: '256kb' }));
+app.use(
+  cors({
+    origin(origin, cb) {
+      // Permite requisições sem Origin (curl/health) e as origens autorizadas.
+      if (!origin || ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
+      cb(new Error('Origin não permitida'));
+    },
+  })
+);
+
+// Healthcheck
+app.get('/health', (_req, res) => {
+  res.json({ ok: true });
+});
+
+// Notificação de novo pedido.
+// O cliente manda só { orderId }. O servidor lê o pedido no Firestore e resolve
+// instância, telefone e mensagem — nada disso vem do navegador.
+app.post('/api/notify-order', async (req, res) => {
+  const orderId = String(req.body?.orderId || '').trim();
+  if (!orderId) return res.status(400).json({ error: 'orderId obrigatório' });
+
+  try {
+    const result = await notifyNewOrder(orderId);
+    // Sempre 200: o front não precisa tratar erro de entrega, mas logamos o motivo.
+    if (!result.sent) console.warn('[notify-order] não enviado:', orderId, result.reason);
+    return res.json(result);
+  } catch (err: any) {
+    console.error('[notify-order] erro:', err?.message || err);
+    return res.status(500).json({ error: 'internal_error' });
+  }
+});
+
+app.listen(PORT, () => {
+  console.log(`[autoqui-backend] ouvindo na porta ${PORT}`);
+});
