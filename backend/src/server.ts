@@ -30,8 +30,9 @@ app.post('/api/notify-order', async (req, res) => {
 
   try {
     const result = await notifyNewOrder(orderId);
-    // Sempre 200: o front não precisa tratar erro de entrega, mas logamos o motivo.
-    if (!result.sent) console.warn('[notify-order] não enviado:', orderId, result.reason);
+    console.log(
+      `[notify-order] ${orderId} -> ${result.sent ? 'ENVIADO' : 'nao (' + result.reason + ')'}`
+    );
     return res.json(result);
   } catch (err: any) {
     console.error('[notify-order] erro:', err?.message || err);
@@ -54,7 +55,9 @@ app.post('/api/notify-status', async (req, res) => {
 
   try {
     const result = await notifyStatusChange(orderId, newStatus as any, prevStatus, reason);
-    if (!result.sent) console.warn('[notify-status] não enviado:', orderId, newStatus, result.reason);
+    console.log(
+      `[notify-status] ${orderId} ${newStatus} -> ${result.sent ? 'ENVIADO' : 'nao (' + result.reason + ')'}`
+    );
     return res.json(result);
   } catch (err: any) {
     console.error('[notify-status] erro:', err?.message || err);
