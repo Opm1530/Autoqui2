@@ -1,4 +1,4 @@
-import { EVOLUTION_API_URL, EVOLUTION_API_KEY } from '../services/evolutionApi';
+import { evolutionApi } from '../services/evolutionApi';
 
 export const QRPage = async (instanceName: string) => {
     // Logic to run after render
@@ -19,22 +19,12 @@ export const QRPage = async (instanceName: string) => {
 
         const fetchQR = async () => {
             try {
-                const response = await fetch(`${EVOLUTION_API_URL}/instance/connect/${instanceName}`, {
-                    headers: { 'apikey': EVOLUTION_API_KEY }
-                });
-                const result = await response.json();
-
-                if (result && (result.base64 || result.qrcode?.base64)) {
-                    const b64 = result.base64 || result.qrcode.base64;
-                    qrContainer.innerHTML = `<img src="${b64}" style="width: 250px; height: 250px; display: block; border-radius: 8px;">`;
+                const qr = await evolutionApi.getQRCode(instanceName);
+                if (qr && qr.base64) {
+                    qrContainer.innerHTML = `<img src="${qr.base64}" style="width: 250px; height: 250px; display: block; border-radius: 8px;">`;
                 } else {
-                    const statusResp = await fetch(`${EVOLUTION_API_URL}/instance/connectionState/${instanceName}`, {
-                        headers: { 'apikey': EVOLUTION_API_KEY }
-                    });
-                    const status = await statusResp.json();
-                    if (status.instance?.state === 'open' || status.state === 'open') {
-                        handleConnected();
-                    }
+                    const status = await evolutionApi.getInstanceStatus(instanceName);
+                    if (status.connected) handleConnected();
                 }
             } catch (e) {
                 console.error('Error fetching QR:', e);
@@ -43,13 +33,8 @@ export const QRPage = async (instanceName: string) => {
 
         const checkStatus = async () => {
             try {
-                const statusResp = await fetch(`${EVOLUTION_API_URL}/instance/connectionState/${instanceName}`, {
-                    headers: { 'apikey': EVOLUTION_API_KEY }
-                });
-                const status = await statusResp.json();
-                if (status.instance?.state === 'open' || status.state === 'open') {
-                    handleConnected();
-                }
+                const status = await evolutionApi.getInstanceStatus(instanceName);
+                if (status.connected) handleConnected();
             } catch (e) {
                 console.error('Error checking status:', e);
             }

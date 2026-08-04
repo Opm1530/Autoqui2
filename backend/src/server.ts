@@ -2,6 +2,8 @@ import express from 'express';
 import cors from 'cors';
 import { PORT, ALLOWED_ORIGINS } from './config.js';
 import { notifyNewOrder, notifyStatusChange } from './notify.js';
+import { requireAuth } from './auth.js';
+import * as wa from './evolution.js';
 
 const app = express();
 
@@ -63,6 +65,76 @@ app.post('/api/notify-status', async (req, res) => {
     console.error('[notify-status] erro:', err?.message || err);
     return res.status(500).json({ error: 'internal_error' });
   }
+});
+
+// ── WhatsApp / Evolution (proxy server-side; a chave não sai daqui) ──
+
+// Públicos (a página de QR é acessada sem login):
+app.get('/api/wa/status/:name', async (req, res) => {
+  const name = String(req.params.name);
+  const result = await wa.getInstanceStatus(name);
+  console.log(`[wa/status] ${name} -> ${result.state}`);
+  res.json(result);
+});
+
+app.get('/api/wa/qrcode/:name', async (req, res) => {
+  const name = String(req.params.name);
+  const result = await wa.getQRCode(name);
+  console.log(`[wa/qrcode] ${name} -> ${result ? 'qr gerado' : 'sem qr'}`);
+  res.json(result);
+});
+
+// Protegidos por ID token (gestão de instâncias e envio):
+app.post('/api/wa/send-text', requireAuth, async (req, res) => {
+  const { instanceName, number, text } = req.body || {};
+  if (!instanceName || !number || !text) {
+    return res.status(400).json({ error: 'instanceName, number e text obrigatórios' });
+  }
+  const ok = await wa.sendText(instanceName, number, text);
+  console.log(`[wa/send-text] ${instanceName} -> ${ok ? 'ENVIADO' : 'falhou'}`);
+  res.json({ sent: ok });
+});
+
+app.post('/api/wa/create-instance', requireAuth, async (req, res) => {
+  const { instanceName } = req.body || {};
+  if (!instanceName) return res.status(400).json({ error: 'instanceName obrigatório' });
+  try {
+    const result = await wa.createInstance(instanceName);
+    console.log(`[wa/create-instance] ${instanceName} -> ok`);
+    res.json(result);
+  } catch (err: any) {
+    console.log(`[wa/create-instance] ${instanceName} -> erro: ${err?.message}`);
+    res.status(500).json({ error: err?.message || 'erro' });
+  }
+});
+
+app.post('/api/wa/set-webhook', requireAuth, async (req, res) => {
+  const { instanceName, url, enabled } = req.body || {};
+  if (!instanceName) return res.status(400).json({ error: 'instanceName obrigatório' });
+  const ok = await wa.setWebhook(instanceName, url || '', enabled !== false);
+  console.log(`[wa/set-webhook] ${instanceName} -> ${ok ? 'ok' : 'falhou'}`);
+  res.json({ ok });
+});
+
+app.delete('/api/wa/instance/:name', requireAuth, async (req, res) => {
+  const name = String(req.params.name);
+  const ok = await wa.deleteInstance(name);
+  console.log(`[wa/delete] ${name} -> ${ok ? 'ok' : 'falhou'}`);
+  res.json({ ok });
+});
+
+app.post('/api/wa/logout/:name', requireAuth, async (req, res) => {
+  const name = String(req.params.name);
+  const ok = await wa.logoutInstance(name);
+  console.log(`[wa/logout] ${name} -> ${ok ? 'ok' : 'falhou'}`);
+  res.json({ ok });
+});
+
+app.get('/api/wa/instance-exists/:name', requireAuth, async (req, res) => {
+  const name = String(req.params.name);
+  const exists = await wa.instanceExists(name);
+  console.log(`[wa/exists] ${name} -> ${exists}`);
+  res.json({ exists });
 });
 
 app.listen(PORT, () => {

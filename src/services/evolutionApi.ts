@@ -1,242 +1,131 @@
-// Evolution API v2.3.7 Integration
-// Documentation: https://doc.evolution-api.com/
+// Cliente fino da Evolution — agora fala com o BACKEND (api.autoqui.com.br),
+// não mais com a Evolution direto. A chave da Evolution não fica mais no bundle.
+// As assinaturas dos métodos são as mesmas de antes (os call sites não mudam).
 
-export const EVOLUTION_API_URL = 'https://evolution.vps.pequi.digital';
-export const EVOLUTION_API_KEY = '1120d381afc6900754fc87d8264ed6335aeab3223b4d24810a17145399c16e46';
+import { API_BASE_URL } from './api';
+import { auth } from '../firebase/config';
 
 interface CreateInstanceResponse {
-    instance: {
-        instanceName: string;
-        status: string;
-    };
-    qrcode?: {
-        base64: string;
-        code: string;
-    };
+    instance: { instanceName: string; status: string };
+    qrcode?: { base64: string; code: string };
+}
+
+// Anexa o ID token do Firebase quando há usuário logado (endpoints de gestão).
+async function authHeaders(json = false): Promise<Record<string, string>> {
+    const h: Record<string, string> = {};
+    if (json) h['Content-Type'] = 'application/json';
+    const user = auth.currentUser;
+    if (user) {
+        try { h['Authorization'] = `Bearer ${await user.getIdToken()}`; } catch { /* ignore */ }
+    }
+    return h;
 }
 
 export const evolutionApi = {
-    /**
-     * Create a new WhatsApp instance
-     */
     async createInstance(instanceName: string): Promise<CreateInstanceResponse> {
-        try {
-            const response = await fetch(`${EVOLUTION_API_URL}/instance/create`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'apikey': EVOLUTION_API_KEY
-                },
-                body: JSON.stringify({
-                    instanceName: instanceName,
-                    qrcode: true,
-                    integration: 'WHATSAPP-BAILEYS'
-                })
-            });
-
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.message || 'Failed to create instance');
-            }
-
-            return await response.json();
-        } catch (error) {
-            console.error('Evolution API - Create Instance Error:', error);
-            throw error;
+        const resp = await fetch(`${API_BASE_URL}/api/wa/create-instance`, {
+            method: 'POST',
+            headers: await authHeaders(true),
+            body: JSON.stringify({ instanceName }),
+        });
+        if (!resp.ok) {
+            const error = await resp.json().catch(() => ({}));
+            throw new Error(error.error || 'Falha ao criar instância');
         }
+        return resp.json();
     },
 
-    /**
-     * Set Webhook for instance
-     */
     async setWebhook(instanceName: string, url: string, enabled: boolean = true): Promise<boolean> {
         try {
-            const response = await fetch(`${EVOLUTION_API_URL}/webhook/set/${instanceName}`, {
+            const resp = await fetch(`${API_BASE_URL}/api/wa/set-webhook`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'apikey': EVOLUTION_API_KEY
-                },
-                body: JSON.stringify({
-                    webhook: {
-                        enabled: enabled,
-                        url: url,
-                        byEvents: false,
-                        base64: true,
-                        events: [
-                            "MESSAGES_UPSERT",
-                        ]
-                    }
-                })
+                headers: await authHeaders(true),
+                body: JSON.stringify({ instanceName, url, enabled }),
             });
-
-            if (!response.ok) {
-                console.error('Evolution API - Set Webhook Error:', await response.text());
-                return false;
-            }
-
-            return true;
+            const data = await resp.json().catch(() => ({}));
+            return !!data.ok;
         } catch (error) {
-            console.error('Evolution API - Set Webhook Exception:', error);
+            console.error('Evolution - setWebhook erro:', error);
             return false;
         }
     },
 
-    /**
-     * Get instance connection status
-     */
     async getInstanceStatus(instanceName: string): Promise<{ state: string; connected: boolean }> {
         try {
-            const response = await fetch(`${EVOLUTION_API_URL}/instance/connectionState/${instanceName}`, {
-                method: 'GET',
-                headers: {
-                    'apikey': EVOLUTION_API_KEY
-                }
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to get instance status');
-            }
-
-            const data = await response.json();
-            return {
-                state: data.state || data.instance?.state || 'close',
-                connected: data.state === 'open' || data.instance?.state === 'open'
-            };
+            const resp = await fetch(`${API_BASE_URL}/api/wa/status/${encodeURIComponent(instanceName)}`);
+            if (!resp.ok) throw new Error('status falhou');
+            return await resp.json();
         } catch (error) {
-            console.error('Evolution API - Get Status Error:', error);
+            console.error('Evolution - getInstanceStatus erro:', error);
             return { state: 'close', connected: false };
         }
     },
 
-    /**
-     * Get QR Code for instance connection
-     */
     async getQRCode(instanceName: string): Promise<{ base64: string } | null> {
         try {
-            const response = await fetch(`${EVOLUTION_API_URL}/instance/connect/${instanceName}`, {
-                method: 'GET',
-                headers: {
-                    'apikey': EVOLUTION_API_KEY
-                }
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to get QR code');
-            }
-
-            const data = await response.json();
-
-            // Evolution API v2 returns QR in different formats
-            if (data.qrcode?.base64) {
-                return { base64: data.qrcode.base64 };
-            } else if (data.base64) {
-                return { base64: data.base64 };
-            }
-
-            return null;
+            const resp = await fetch(`${API_BASE_URL}/api/wa/qrcode/${encodeURIComponent(instanceName)}`);
+            if (!resp.ok) throw new Error('qrcode falhou');
+            const data = await resp.json();
+            return data && data.base64 ? { base64: data.base64 } : null;
         } catch (error) {
-            console.error('Evolution API - Get QR Code Error:', error);
+            console.error('Evolution - getQRCode erro:', error);
             return null;
         }
     },
 
-    /**
-     * Delete an instance
-     */
     async deleteInstance(instanceName: string): Promise<boolean> {
         try {
-            const response = await fetch(`${EVOLUTION_API_URL}/instance/delete/${instanceName}`, {
+            const resp = await fetch(`${API_BASE_URL}/api/wa/instance/${encodeURIComponent(instanceName)}`, {
                 method: 'DELETE',
-                headers: {
-                    'apikey': EVOLUTION_API_KEY
-                }
+                headers: await authHeaders(),
             });
-
-            return response.ok;
+            const data = await resp.json().catch(() => ({}));
+            return !!data.ok;
         } catch (error) {
-            console.error('Evolution API - Delete Instance Error:', error);
+            console.error('Evolution - deleteInstance erro:', error);
             return false;
         }
     },
 
-    /**
-     * Logout from instance (disconnect WhatsApp)
-     */
     async logoutInstance(instanceName: string): Promise<boolean> {
         try {
-            const response = await fetch(`${EVOLUTION_API_URL}/instance/logout/${instanceName}`, {
-                method: 'DELETE',
-                headers: {
-                    'apikey': EVOLUTION_API_KEY
-                }
+            const resp = await fetch(`${API_BASE_URL}/api/wa/logout/${encodeURIComponent(instanceName)}`, {
+                method: 'POST',
+                headers: await authHeaders(),
             });
-
-            return response.ok;
+            const data = await resp.json().catch(() => ({}));
+            return !!data.ok;
         } catch (error) {
-            console.error('Evolution API - Logout Instance Error:', error);
+            console.error('Evolution - logoutInstance erro:', error);
             return false;
         }
     },
 
-    /**
-     * Check if instance exists
-     */
     async instanceExists(instanceName: string): Promise<boolean> {
         try {
-            const response = await fetch(`${EVOLUTION_API_URL}/instance/fetchInstances`, {
-                method: 'GET',
-                headers: {
-                    'apikey': EVOLUTION_API_KEY
-                }
+            const resp = await fetch(`${API_BASE_URL}/api/wa/instance-exists/${encodeURIComponent(instanceName)}`, {
+                headers: await authHeaders(),
             });
-
-            if (!response.ok) return false;
-
-            const instances = await response.json();
-            return Array.isArray(instances) && instances.some((i: any) => i.instance?.instanceName === instanceName);
+            const data = await resp.json().catch(() => ({}));
+            return !!data.exists;
         } catch (error) {
-            console.error('Evolution API - Check Instance Exists Error:', error);
+            console.error('Evolution - instanceExists erro:', error);
             return false;
         }
     },
 
-    /**
-     * Send a text message
-     */
     async sendText(instanceName: string, number: string, text: string): Promise<boolean> {
         try {
-            // Ensure number is in correct format (remove special characters, add 55 prefix if missing)
-            let cleanNumber = number.replace(/\D/g, '');
-            if (cleanNumber.length <= 11 && !cleanNumber.startsWith('55')) {
-                cleanNumber = '55' + cleanNumber;
-            }
-            const remoteJid = cleanNumber;
-
-            const response = await fetch(`${EVOLUTION_API_URL}/message/sendText/${instanceName}`, {
+            const resp = await fetch(`${API_BASE_URL}/api/wa/send-text`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'apikey': EVOLUTION_API_KEY
-                },
-                body: JSON.stringify({
-                    number: remoteJid,
-                    text: text,
-                    delay: 1200,
-                    linkPreview: true
-                })
+                headers: await authHeaders(true),
+                body: JSON.stringify({ instanceName, number, text }),
             });
-
-            if (!response.ok) {
-                const error = await response.json();
-                console.error('Evolution API - Send Text Error:', error);
-                return false;
-            }
-
-            return true;
+            const data = await resp.json().catch(() => ({}));
+            return !!data.sent;
         } catch (error) {
-            console.error('Evolution API - Send Text Exception:', error);
+            console.error('Evolution - sendText erro:', error);
             return false;
         }
-    }
+    },
 };
