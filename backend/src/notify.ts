@@ -51,6 +51,32 @@ function buildVars(order: any, lead: any): Record<string, string> {
   };
 }
 
+// Textos padrão (mesmos do painel) — usados quando a loja não personalizou.
+const DEFAULT_MESSAGES: Record<string, string> = {
+  pedido_aceito_entrega_pago:
+    'Olá {{nome_lead}}! Seu pedido #{{numero_pedido}} foi aceito e já está sendo preparado (Pagamento Adiantado). \n\n📦 Itens: {{lista_produtos}}\n💰 Total: R$ {{valor_total}}',
+  pedido_aceito_entrega_pendente:
+    'Olá {{nome_lead}}! Seu pedido #{{numero_pedido}} foi aceito e já está sendo preparado. O pagamento será feito na entrega. \n\n📦 Itens: {{lista_produtos}}\n💰 Total: R$ {{valor_total}}',
+  pedido_aceito_retirada:
+    'Olá {{nome_lead}}! Pedido #{{numero_pedido}} aceito para retirada. Valor: R$ {{valor_total}}. Aguardamos você!',
+};
+
+// Escolhe a variação de "pedido aceito" conforme entrega/retirada e forma de pagamento.
+function pickAceitoKey(order: any): string {
+  const isWithdrawal = order.entrega === 'retirada' || order.deliveryType === 'retirada';
+  const paymentMethod = String(
+    order.formaPagamento || order.paymentMethod || order.pagamento || ''
+  );
+  const isPayOnDelivery =
+    paymentMethod.includes('entrega') ||
+    paymentMethod.includes('dinheiro') ||
+    paymentMethod.includes('maquininha') ||
+    paymentMethod === 'na_entrega';
+
+  if (isWithdrawal) return 'pedido_aceito_retirada';
+  return isPayOnDelivery ? 'pedido_aceito_entrega_pendente' : 'pedido_aceito_entrega_pago';
+}
+
 async function fetchMensagensConfig(
   companyId: string,
   lojaId?: string
@@ -113,7 +139,10 @@ export async function notifyNewOrder(
   if (!instanceName) return { sent: false, reason: 'instance_not_resolved' };
 
   const customMsgs = await fetchMensagensConfig(companyId, sid);
-  const template = customMsgs['pedido_recebido'];
+  // Usa a mensagem de "pedido aceito" (variação conforme entrega/pagamento),
+  // caindo no texto padrão se a loja não personalizou.
+  const msgKey = pickAceitoKey(order);
+  const template = customMsgs[msgKey] || DEFAULT_MESSAGES[msgKey];
   if (!template) return { sent: false, reason: 'template_empty' };
 
   const lead = order.leadId ? await getDoc('leads', order.leadId) : null;
