@@ -49,36 +49,43 @@ service cloud.firestore {
       allow update, delete: if ownsDoc('empresaId');
     }
 
-    // ── Produtos e pedidos: escrita SÓ pelo backend (Admin SDK ignora regras) ──
+    // ── Produtos: escrita só backend; leitura pública (catálogo) ──
     match /products/{id} { allow read: if true; }
-    match /pedidos/{id}  { allow read: if true; }
 
-    // ── Coleções do painel (leitura autenticada; escrita escopada) ────────────
-    match /messages/{id} { allow read: if signedIn(); } // criado só pelo backend
+    // ── Pedidos: escrita só backend; leitura escopada por empresa ──
+    // (o catálogo NÃO lê pedidos; o painel filtra por empresaId)
+    match /pedidos/{id} {
+      allow read: if isAdmin() || (signedIn() && resource.data.empresaId == myCompany());
+    }
+
+    // ── Coleções do painel (leitura + escrita escopadas por empresa) ──────────
+    match /messages/{id} {
+      allow read: if isAdmin() || (signedIn() && resource.data.empresaId == myCompany());
+    } // criado só pelo backend
     match /leads/{id} {
-      allow read: if signedIn();
+      allow read: if isAdmin() || (signedIn() && resource.data.empresaId == myCompany());
       allow create: if ownsCreate('empresaId');
       allow update, delete: if ownsDoc('empresaId');
     }
     match /campanhas/{id} {
-      allow read: if signedIn();
+      allow read: if isAdmin() || (signedIn() && resource.data.cliente_id == myCompany());
       allow create: if ownsCreate('cliente_id');
       allow update, delete: if ownsDoc('cliente_id');
     }
     match /agendamentos/{id} {
-      allow read: if signedIn();
+      allow read: if isAdmin() || (signedIn() && resource.data.companyId == myCompany());
       allow create: if ownsCreate('companyId');
       allow update, delete: if ownsDoc('companyId');
     }
     match /clientes/{id} {
-      allow read: if signedIn();
+      allow read: if isAdmin() || (signedIn() && resource.data.companyId == myCompany());
       allow create: if ownsCreate('companyId');
       allow update, delete: if ownsDoc('companyId');
     }
 
-    // ── Usuários ──────────────────────────────────────────────────────────────
+    // ── Usuários (ler o próprio doc, os da mesma empresa, ou admin) ──
     match /users/{uid} {
-      allow read: if signedIn();
+      allow read: if isAdmin() || (signedIn() && (uid == request.auth.uid || resource.data.companyId == myCompany()));
       allow create: if isAdmin() || (signedIn() && request.resource.data.companyId == myCompany());
       allow update, delete: if isAdmin() || (signedIn() && (uid == request.auth.uid || resource.data.companyId == myCompany()));
     }
