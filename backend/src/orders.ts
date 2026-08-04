@@ -211,29 +211,39 @@ export async function createCatalogOrder(
     orderData.paymentSubMethod = input.paymentSubMethod || null;
     orderData.troco = input.troco != null ? num(input.troco) : null;
   }
+  // Pré-pago (MP): pedido nasce PENDENTE — fica invisível no painel e não apita
+  // até o pagamento cair (o webhook marca pago:true).
+  const isPrePago = input.paymentMethod === 'pix_mercadopago';
+  if (isPrePago) {
+    orderData.pendentePagamento = true;
+    orderData.pago = false;
+  }
 
   const ref = await db.collection('pedidos').add(orderData);
   const orderId = ref.id;
 
   // 9. Mercado Pago: cria a cobrança DIRETO na API do MP (external_reference = orderId,
-  //    pra a confirmação do pagamento achar o pedido depois). Atualiza o pedido com o payment_id.
+  //    pra a confirmação do pagamento achar o pedido depois). Atualiza com o payment_id.
   let mpData: any = null;
-  if (input.paymentMethod === 'pix_mercadopago') {
+  if (isPrePago) {
     try {
       mpData = await createPixCharge(companyId, total, input.customer.name, orderId);
       if (mpData?.payment_id) {
-        await db.collection('pedidos').doc(orderId).update({ mpPaymentId: mpData.payment_id, pago: false });
+        await db.collection('pedidos').doc(orderId).update({ mpPaymentId: mpData.payment_id });
       }
     } catch (err) {
       console.error('[orders] cobrança MP falhou:', err);
     }
   }
 
-  // 10. Notificação (respeita o template configurado).
-  try {
-    await notifyNewOrder(orderId);
-  } catch (err) {
-    console.error('[orders] notify falhou:', err);
+  // 10. Notificação — só pra pedidos NÃO pré-pagos. No MP, quem avisa é o webhook
+  //     quando o pagamento cair (senão apitaria antes de pagar).
+  if (!isPrePago) {
+    try {
+      await notifyNewOrder(orderId);
+    } catch (err) {
+      console.error('[orders] notify falhou:', err);
+    }
   }
 
   return { orderId, total, mpData };

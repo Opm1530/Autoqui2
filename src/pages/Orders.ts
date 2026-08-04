@@ -197,12 +197,16 @@ export const Orders = async () => {
     // ── active filter ──
     let activeFilter = 'todos';
 
+    // Pedido pré-pago (MP) ainda não pago fica OCULTO — só aparece quando o
+    // pagamento cair (evita pedido fantasma no painel).
+    const isPendingPayment = (o: any) => o.pendentePagamento === true && o.pago !== true;
+
     const filterOrders = (filter: string) => {
         if (filter === 'arquivados') {
             return orders.filter(o => isOrderArchived(o));
         }
-        // Pelas regras, qualquer outra tab só mostra quem NÃO está arquivado
-        const nonArchived = orders.filter(o => !isOrderArchived(o));
+        // Pelas regras, qualquer outra tab só mostra quem NÃO está arquivado nem aguardando pagamento
+        const nonArchived = orders.filter(o => !isOrderArchived(o) && !isPendingPayment(o));
         if (filter === 'todos') return nonArchived;
         return nonArchived.filter(o => (o.status || 'em_montagem').toLowerCase() === filter);
     };
@@ -244,8 +248,8 @@ export const Orders = async () => {
         const count = key === 'arquivados'
             ? orders.filter(o => isOrderArchived(o)).length
             : (key === 'todos'
-                ? orders.filter(o => !isOrderArchived(o)).length
-                : orders.filter(o => !isOrderArchived(o) && (o.status || 'em_montagem').toLowerCase() === key).length);
+                ? orders.filter(o => !isOrderArchived(o) && !isPendingPayment(o)).length
+                : orders.filter(o => !isOrderArchived(o) && !isPendingPayment(o) && (o.status || 'em_montagem').toLowerCase() === key).length);
         return `<span class="filter-count" id="count-${key}">${count}</span>`;
     };
 
@@ -369,8 +373,8 @@ export const Orders = async () => {
                     const count = f.key === 'arquivados'
                         ? orders.filter(o => isOrderArchived(o)).length
                         : (f.key === 'todos'
-                            ? orders.filter(o => !isOrderArchived(o)).length
-                            : orders.filter(o => !isOrderArchived(o) && (o.status || 'em_montagem').toLowerCase() === f.key).length);
+                            ? orders.filter(o => !isOrderArchived(o) && !isPendingPayment(o)).length
+                            : orders.filter(o => !isOrderArchived(o) && !isPendingPayment(o) && (o.status || 'em_montagem').toLowerCase() === f.key).length);
                     badge.textContent = count.toString();
                 }
             });
@@ -807,12 +811,15 @@ export const Orders = async () => {
                         <i class="fa-solid fa-check"></i> Aceitar Pedido
                     </button>
                     <button id="btn-cancel" class="btn-lead-action danger" data-stage="init">
-                        <i class="fa-solid fa-xmark"></i> Cancelar Pedido
+                        <i class="fa-solid fa-xmark"></i> ${order.pago ? 'Recusar e Estornar' : 'Cancelar Pedido'}
                     </button>`;
             case 'aguardando_pagamento':
                 return `
                     <button id="btn-main-action" class="btn-lead-action" data-target="em_preparo">
                         <i class="fa-solid fa-credit-card"></i> Confirmar Pagamento
+                    </button>
+                    <button id="btn-cancel" class="btn-lead-action danger" data-stage="init">
+                        <i class="fa-solid fa-xmark"></i> ${order.pago ? 'Recusar e Estornar' : 'Cancelar Pedido'}
                     </button>`;
             case 'em_preparo':
                 if (isWithdrawal) {

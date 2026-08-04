@@ -27,6 +27,7 @@ class OrderNotificationService {
     private paymentSound: HTMLAudioElement;
     private humanSupportSound: HTMLAudioElement;
     private notifiedSupportIds = new Set<string>();
+    private notifiedNewOrderIds = new Set<string>();
     private isInitialLoad = true;
     private listenerStartTime = 0;
     private isLeadsInitialLoad = true;
@@ -620,8 +621,14 @@ class OrderNotificationService {
                 const id = change.doc.id;
                 const prevStatus = this.orderStatusMap.get(id);
 
+                const isPrePagoPendente = data.pendentePagamento === true && data.pago !== true;
+                const isPrePagoPago = data.pendentePagamento === true && data.pago === true;
+
                 if (this.isInitialLoad) {
                     this.orderStatusMap.set(id, status);
+                    // Marca como já-notificado tudo que existia no load, EXCETO pré-pago
+                    // ainda não pago (esse deve apitar quando o pagamento cair).
+                    if (!isPrePagoPendente) this.notifiedNewOrderIds.add(id);
                     return;
                 }
 
@@ -657,16 +664,15 @@ class OrderNotificationService {
                     return;
                 }
 
-                if (change.type === 'added') {
-                    const finalStatuses = ['cancelado', 'finalizado'];
+                const finalStatuses = ['cancelado', 'finalizado'];
+
+                // Pré-pago ainda não pago: NÃO apita (fica invisível até pagar).
+                if (isPrePagoPendente) return;
+
+                const emitirNovoPedido = () => {
+                    if (this.notifiedNewOrderIds.has(id)) return;
                     if (finalStatuses.includes(status)) return;
-
-                    // Só notifica pedidos criados DEPOIS que o listener iniciou.
-                    // Evita que pedidos antigos disparem como novos (cache do Firestore
-                    // ou reentrada na janela limit(50)).
-                    const createdMs = this.getCreatedMs(data);
-                    if (createdMs != null && createdMs < this.listenerStartTime - 60000) return;
-
+                    this.notifiedNewOrderIds.add(id);
                     this.showNewOrder({
                         id: change.doc.id,
                         ...data,
@@ -679,6 +685,21 @@ class OrderNotificationService {
                         instancia: data.instancia,
                         itens: data.itens
                     } as OrderData);
+                };
+
+                // Pré-pago que ACABOU de ser pago → apita agora (o pagamento é o gatilho).
+                if (isPrePagoPago) {
+                    emitirNovoPedido();
+                    return;
+                }
+
+                // Pedido normal (não pré-pago) → apita ao ser criado.
+                if (change.type === 'added') {
+                    // Só notifica pedidos criados DEPOIS que o listener iniciou (evita
+                    // pedidos antigos disparando por cache/reentrada na janela limit(50)).
+                    const createdMs = this.getCreatedMs(data);
+                    if (createdMs != null && createdMs < this.listenerStartTime - 60000) return;
+                    emitirNovoPedido();
                 }
             });
             if (this.isInitialLoad) this.isInitialLoad = false;
@@ -700,6 +721,7 @@ class OrderNotificationService {
             this.isLeadsInitialLoad = true;
         }
         this.notifiedSupportIds.clear();
+        this.notifiedNewOrderIds.clear();
         this.orderStatusMap.clear();
     }
 }
