@@ -4,6 +4,7 @@ import { Shell } from './Shell';
 import { Login } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
 import { Orders } from './pages/Orders/Orders';
+import { Products } from './pages/Products/Products';
 
 // Placeholder para páginas ainda não migradas.
 function EmBreve({ nome }: { nome: string }) {
@@ -52,7 +53,7 @@ export function App() {
           <Route element={<Protected />}>
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/orders" element={<Orders />} />
-            <Route path="/products" element={<EmBreve nome="Produtos" />} />
+            <Route path="/products" element={<Products />} />
             <Route path="/leads" element={<EmBreve nome="Leads" />} />
             <Route path="/stores" element={<EmBreve nome="Lojas" />} />
             <Route path="/users" element={<EmBreve nome="Equipe" />} />
