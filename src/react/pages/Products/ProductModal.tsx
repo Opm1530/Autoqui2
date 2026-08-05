@@ -251,7 +251,7 @@ function StoreMultiSelect({ stores, storeIds, onToggle }: { stores: any[]; store
       </button>
 
       {open && (
-        <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 20, background: 'var(--surface)', border: '1px solid var(--border-color)', borderRadius: 8, boxShadow: '0 10px 30px rgba(0,0,0,0.4)', maxHeight: 240, overflowY: 'auto', padding: 6 }}>
+        <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 20, background: 'var(--surface-color)', border: '1px solid var(--border-color)', borderRadius: 8, boxShadow: '0 10px 30px rgba(0,0,0,0.4)', maxHeight: 240, overflowY: 'auto', padding: 6 }}>
           {stores.length === 0 && <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem', padding: '0.75rem 0', margin: 0 }}>Nenhuma loja disponível.</p>}
           {stores.map((s) => {
             const on = storeIds.includes(s.id);
