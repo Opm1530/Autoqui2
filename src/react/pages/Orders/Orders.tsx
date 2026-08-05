@@ -6,7 +6,7 @@ import { toast } from '../../../services/toast';
 import { useAuth } from '../../useAuth';
 import { OrderModal } from './OrderModal';
 import {
-  StatusBadge, DeliveryBadge, PaymentBadge, formatDate,
+  StatusBadge, DeliveryBadge, PaymentBadge, relativeDate,
   isOrderArchived, isPendingPayment, FILTERS,
 } from './helpers';
 
@@ -20,6 +20,13 @@ export function Orders() {
   const [lojaConfigs, setLojaConfigs] = useState<any[]>([]);
   const [activeFilter, setActiveFilter] = useState('todos');
   const [selected, setSelected] = useState<any | null>(null);
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+
+  const toggleExpanded = (id: string) => setExpanded((prev) => {
+    const next = new Set(prev);
+    next.has(id) ? next.delete(id) : next.add(id);
+    return next;
+  });
 
   // Dados de apoio (lojas, leads, config)
   useEffect(() => {
@@ -94,7 +101,7 @@ export function Orders() {
       {/* Filtros */}
       <div className="leads-page-header">
         <div className="leads-filter-bar">
-          {FILTERS.map((f) => (
+          {FILTERS.filter((f) => f.key === 'todos' || f.key === 'arquivados' || count(f.key) > 0).map((f) => (
             <button key={f.key} className={'filter-btn' + (activeFilter === f.key ? ' active' : '')} onClick={() => setActiveFilter(f.key)}>
               {f.icon && <i className={`fa-solid ${f.icon}`} />} {f.label}
               {f.key !== 'arquivados' && <span className="filter-count">{count(f.key)}</span>}
@@ -155,13 +162,20 @@ export function Orders() {
                         </div>
                       </div>
                     </td>
-                    <td style={{ fontWeight: 600 }}>R$ {(order.value || order.total || 0).toFixed(2)}</td>
+                    <td style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>R$ {(order.value || order.total || 0).toFixed(2)}</td>
                     <td>
-                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-                        <StatusBadge status={status} /> <DeliveryBadge entrega={order.entrega || 'entrega'} /> <PaymentBadge order={order} />
+                      <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: expanded.has(order.id) ? 'wrap' : 'nowrap' }}>
+                        <StatusBadge status={status} />
+                        <button
+                          title={expanded.has(order.id) ? 'Recolher' : 'Ver entrega e pagamento'}
+                          onClick={() => toggleExpanded(order.id)}
+                          style={{ background: 'var(--surface-hover)', border: '1px solid var(--border-color)', color: 'var(--text-muted)', width: 24, height: 24, borderRadius: 6, cursor: 'pointer', flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem' }}>
+                          <i className={`fa-solid ${expanded.has(order.id) ? 'fa-chevron-left' : 'fa-ellipsis'}`} />
+                        </button>
+                        {expanded.has(order.id) && <><DeliveryBadge entrega={order.entrega || 'entrega'} /> <PaymentBadge order={order} /></>}
                       </div>
                     </td>
-                    <td style={{ color: 'var(--text-muted)', fontSize: '0.82rem' }}>{formatDate(order.criadoEm || order.createdAt)}</td>
+                    <td style={{ color: 'var(--text-muted)', fontSize: '0.82rem', whiteSpace: 'nowrap' }}>{relativeDate(order.criadoEm || order.createdAt)}</td>
                     <td>
                       <div className="actions">
                         <button className="action-btn view" title="Ver detalhes" onClick={() => setSelected(order)}>

@@ -64,6 +64,22 @@ export function formatDate(date: any): string {
   return new Date(date).toLocaleString('pt-BR');
 }
 
+// Data relativa: "Hoje 15:58", "Ontem 09:12", "3 dias atrás".
+export function relativeDate(date: any): string {
+  if (!date) return '-';
+  const d = date.toDate ? date.toDate() : new Date(date);
+  if (isNaN(d.getTime())) return '-';
+  const now = new Date();
+  const startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const startDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const diffDays = Math.round((startToday.getTime() - startDate.getTime()) / 86400000);
+  const hhmm = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  if (diffDays === 0) return `Hoje ${hhmm}`;
+  if (diffDays === 1) return `Ontem ${hhmm}`;
+  if (diffDays > 1) return `${diffDays} dias atrás`;
+  return d.toLocaleDateString('pt-BR');
+}
+
 function isToday(date: any): boolean {
   if (!date) return false;
   const d = date.toDate ? date.toDate() : new Date(date);
