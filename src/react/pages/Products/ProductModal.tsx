@@ -100,6 +100,9 @@ export function ProductModal({ companyId, isOwner, isAgendamento, labelSingular,
     readPreview(file, tempId);
   };
 
+  const toggleStore = (id: string) =>
+    setStoreIds((prev) => (prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]));
+
   async function save() {
     if (items.length === 0) { toast.warning(`Adicione pelo menos um ${labelSingular.toLowerCase()}.`); return; }
 
@@ -161,12 +164,19 @@ export function ProductModal({ companyId, isOwner, isAgendamento, labelSingular,
         <div style={{ overflowY: 'auto', paddingRight: 10, flex: 1 }}>
           {isOwner && (
             <div className="form-group">
-              <label>Loja de Destino</label>
-              <select value={storeIds[0] || ''} onChange={(e) => setStoreIds(e.target.value ? [e.target.value] : [])}
-                style={{ width: '100%', background: 'var(--bg-color)', border: '1px solid var(--border-color)', color: 'white', padding: '12px 14px', borderRadius: 8, fontSize: '0.95rem' }}>
-                <option value="">Selecione uma loja</option>
-                {stores.map((s: any) => <option key={s.id} value={s.id}>{s.name}</option>)}
-              </select>
+              <label>Lojas de Destino <span style={{ color: 'var(--text-dim)', fontWeight: 400, textTransform: 'none' }}>(clique para selecionar uma ou mais)</span></label>
+              <div className="multi-select-grid">
+                {stores.map((s: any) => {
+                  const on = storeIds.includes(s.id);
+                  return (
+                    <button type="button" key={s.id} onClick={() => toggleStore(s.id)}
+                      className="store-checkbox-card" style={{ border: on ? '1px solid var(--primary)' : undefined, background: on ? 'rgba(99,102,241,0.15)' : undefined }}>
+                      <i className={`fa-solid ${on ? 'fa-square-check' : 'fa-square'}`} style={{ color: on ? 'var(--primary)' : 'var(--text-dim)' }} />
+                      <span className="checkbox-label">{s.name}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           )}
 
