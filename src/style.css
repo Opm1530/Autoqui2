@@ -2350,3 +2350,8 @@ ul {
 .cfg-switch input:checked + .cfg-slider:before { transform: translateX(20px); }
 .btn-store-tab { padding: 0.5rem 1rem; background: var(--surface-hover); color: var(--text-main); border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; white-space: nowrap; }
 .btn-store-tab.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+/* Sub-navegação da Configuração */
+.config-subnav-btn { display: inline-flex; align-items: center; gap: 8px; padding: 0.55rem 1.1rem; background: var(--surface-hover); color: var(--text-muted); border: 1px solid var(--border-color); border-radius: 10px; font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: all .2s; }
+.config-subnav-btn:hover { color: var(--text-main); border-color: rgba(99,102,241,.4); }
+.config-subnav-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); box-shadow: 0 4px 12px var(--primary-glow); }

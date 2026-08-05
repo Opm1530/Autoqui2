@@ -18,6 +18,7 @@ export function CatalogSettings() {
   const [lojaConfigs, setLojaConfigs] = useState<any[]>([]);
   const [hasMercadoPago, setHasMercadoPago] = useState(false);
   const [activeStoreId, setActiveStoreId] = useState('');
+  const [section, setSection] = useState<'geral' | 'design' | 'mensagens' | 'pagamento'>('geral');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -95,7 +96,7 @@ export function CatalogSettings() {
       <div className="page-header"><h2 className="page-title">Configuração do Catálogo</h2></div>
 
       {/* Abas por loja */}
-      <div style={{ display: 'flex', gap: 10, marginBottom: 20, overflowX: 'auto' }}>
+      <div style={{ display: 'flex', gap: 10, marginBottom: 16, overflowX: 'auto' }}>
         {stores.map((s) => (
           <button key={s.id} className={'btn-store-tab' + (s.id === activeStoreId ? ' active' : '')} onClick={() => setActiveStoreId(s.id)}>
             <i className="fa-solid fa-store" style={{ marginRight: 5 }} /> {s.name}
@@ -103,37 +104,57 @@ export function CatalogSettings() {
         ))}
       </div>
 
-      {/* Link do catálogo */}
-      <div className="card" style={{ marginBottom: '1.5rem' }}>
-        <div className="config-section-title"><i className="fa-solid fa-link" style={{ color: 'var(--primary)' }} /> Link do Catálogo</div>
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center', background: 'rgba(99,102,241,0.06)', border: '1px dashed rgba(99,102,241,0.3)', borderRadius: 'var(--radius-md)', padding: '0.75rem 1rem' }}>
-          <i className="fa-solid fa-store" style={{ color: 'var(--primary)' }} />
-          <input type="text" value={currentLink} readOnly style={{ flex: 1, background: 'transparent', border: 'none', color: 'var(--text-main)', fontSize: '0.9rem', outline: 'none' }} />
-          <button className="btn-save-msg" onClick={() => navigator.clipboard.writeText(currentLink).then(() => toast.success('Link copiado!'))}><i className="fa-solid fa-copy" /> Copiar</button>
-          <a href={currentLink} target="_blank" rel="noreferrer" className="btn-secondary" style={{ padding: '0.4rem 0.75rem', fontSize: '0.85rem' }}><i className="fa-solid fa-arrow-up-right-from-square" /></a>
-        </div>
+      {/* Navegação de seções */}
+      <div className="config-subnav" style={{ display: 'flex', gap: 6, marginBottom: 24, flexWrap: 'wrap', borderBottom: '1px solid var(--border-color)', paddingBottom: 12 }}>
+        {SECTIONS.map((s) => (
+          <button key={s.key} onClick={() => setSection(s.key as any)}
+            className={'config-subnav-btn' + (section === s.key ? ' active' : '')}>
+            <i className={`fa-solid ${s.icon}`} /> {s.label}
+          </button>
+        ))}
       </div>
 
-      {/* Instância */}
-      <div className="card" style={{ marginBottom: '1.5rem' }}>
-        <div className="config-section-title"><i className="fa-brands fa-whatsapp" style={{ color: '#25d366' }} /> Vinculação da Instância</div>
-        <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '1rem' }}>Selecione a instância de WhatsApp que enviará mensagens automáticas para esta loja.</p>
-        <select className="config-select" value={currentInstanciaId} onChange={(e) => bindInstance(e.target.value)}>
-          <option value="">-- Nenhuma instância --</option>
-          {instances.map((inst) => <option key={inst.id} value={inst.id}>{inst.nome} ({inst.status})</option>)}
-        </select>
-      </div>
+      {/* GERAL: link + instância + horários */}
+      {section === 'geral' && (
+        <>
+          <div className="card" style={{ marginBottom: '1.5rem' }}>
+            <div className="config-section-title"><i className="fa-solid fa-link" style={{ color: 'var(--primary)' }} /> Link do Catálogo</div>
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center', background: 'rgba(99,102,241,0.06)', border: '1px dashed rgba(99,102,241,0.3)', borderRadius: 'var(--radius-md)', padding: '0.75rem 1rem' }}>
+              <i className="fa-solid fa-store" style={{ color: 'var(--primary)' }} />
+              <input type="text" value={currentLink} readOnly style={{ flex: 1, background: 'transparent', border: 'none', color: 'var(--text-main)', fontSize: '0.9rem', outline: 'none' }} />
+              <button className="btn-save-msg" onClick={() => navigator.clipboard.writeText(currentLink).then(() => toast.success('Link copiado!'))}><i className="fa-solid fa-copy" /> Copiar</button>
+              <a href={currentLink} target="_blank" rel="noreferrer" className="btn-secondary" style={{ padding: '0.4rem 0.75rem', fontSize: '0.85rem' }}><i className="fa-solid fa-arrow-up-right-from-square" /></a>
+            </div>
+          </div>
 
-      {/* Seções — key força reinicialização ao trocar de loja */}
-      <Appearance key={`ap-${activeStoreId}`} companyId={companyId} storeId={activeStoreId} design={design} onSave={save} />
-      <Schedules key={`func-${activeStoreId}`} title="Horário de Funcionamento" icon="fa-clock"
-        description="Defina os dias e horários em que a loja aceita pedidos." campo="horario_funcionamento"
-        saveLabel="Salvar Horários" openLabel="Aberto" closedLabel="Fechado" initial={config?.horario_funcionamento} onSave={save} />
-      <Schedules key={`entrega-${activeStoreId}`} title="Horário de Entrega" icon="fa-truck"
-        description="Defina especificamente em quais horários a loja realiza entregas." campo="horario_entrega"
-        saveLabel="Salvar Horários de Entrega" openLabel="Disponível" closedLabel="Indisponível" initial={config?.horario_entrega} onSave={save} />
-      <Messages key={`msg-${activeStoreId}`} initial={config?.mensagens_automaticas || {}} onSave={save} />
-      <Payment key={`pay-${activeStoreId}`} config={config} hasMercadoPago={hasMercadoPago} onSave={save} />
+          <div className="card" style={{ marginBottom: '1.5rem' }}>
+            <div className="config-section-title"><i className="fa-brands fa-whatsapp" style={{ color: '#25d366' }} /> Vinculação da Instância</div>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '1rem' }}>Selecione a instância de WhatsApp que enviará mensagens automáticas para esta loja.</p>
+            <select className="config-select" value={currentInstanciaId} onChange={(e) => bindInstance(e.target.value)}>
+              <option value="">-- Nenhuma instância --</option>
+              {instances.map((inst) => <option key={inst.id} value={inst.id}>{inst.nome} ({inst.status})</option>)}
+            </select>
+          </div>
+
+          <Schedules key={`func-${activeStoreId}`} title="Horário de Funcionamento" icon="fa-clock"
+            description="Defina os dias e horários em que a loja aceita pedidos." campo="horario_funcionamento"
+            saveLabel="Salvar Horários" openLabel="Aberto" closedLabel="Fechado" initial={config?.horario_funcionamento} onSave={save} />
+          <Schedules key={`entrega-${activeStoreId}`} title="Horário de Entrega" icon="fa-truck"
+            description="Defina especificamente em quais horários a loja realiza entregas." campo="horario_entrega"
+            saveLabel="Salvar Horários de Entrega" openLabel="Disponível" closedLabel="Indisponível" initial={config?.horario_entrega} onSave={save} />
+        </>
+      )}
+
+      {section === 'design' && <Appearance key={`ap-${activeStoreId}`} companyId={companyId} storeId={activeStoreId} design={design} onSave={save} />}
+      {section === 'mensagens' && <Messages key={`msg-${activeStoreId}`} initial={config?.mensagens_automaticas || {}} onSave={save} />}
+      {section === 'pagamento' && <Payment key={`pay-${activeStoreId}`} config={config} hasMercadoPago={hasMercadoPago} onSave={save} />}
     </div>
   );
 }
+
+const SECTIONS = [
+  { key: 'geral', label: 'Geral', icon: 'fa-sliders' },
+  { key: 'design', label: 'Design', icon: 'fa-palette' },
+  { key: 'mensagens', label: 'Mensagens', icon: 'fa-message' },
+  { key: 'pagamento', label: 'Pagamento', icon: 'fa-credit-card' },
+];
