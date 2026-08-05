@@ -6,6 +6,7 @@ import { Dashboard } from './pages/Dashboard';
 import { Orders } from './pages/Orders/Orders';
 import { Products } from './pages/Products/Products';
 import { MercadoPago } from './pages/MercadoPago';
+import { Users } from './pages/Users';
 
 // Placeholder para páginas ainda não migradas.
 function EmBreve({ nome }: { nome: string }) {
@@ -57,7 +58,7 @@ export function App() {
             <Route path="/products" element={<Products />} />
             <Route path="/leads" element={<EmBreve nome="Leads" />} />
             <Route path="/stores" element={<EmBreve nome="Lojas" />} />
-            <Route path="/users" element={<EmBreve nome="Equipe" />} />
+            <Route path="/users" element={<Users />} />
             <Route path="/instances" element={<EmBreve nome="Instâncias" />} />
             <Route path="/catalog-settings" element={<EmBreve nome="Configuração" />} />
             <Route path="/mercado-pago" element={<MercadoPago />} />
