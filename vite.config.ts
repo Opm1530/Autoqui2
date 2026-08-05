@@ -7,6 +7,17 @@ import react from '@vitejs/plugin-react';
 // Quando o React estiver pronto, o index.html passa a apontar pro entry React.
 export default defineConfig({
   plugins: [react()],
+  // Em dev, repassa /api pro backend real (evita CORS no localhost:5173).
+  // O proxy é server-side, então o backend não recebe Origin de navegador.
+  server: {
+    proxy: {
+      '/api': {
+        target: 'https://api.autoqui.com.br',
+        changeOrigin: true,
+        secure: true,
+      },
+    },
+  },
   build: {
     rollupOptions: {
       input: {
