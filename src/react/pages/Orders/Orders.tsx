@@ -141,16 +141,16 @@ export function Orders() {
         <div className="table-container">
           <table className="data-table">
             <thead>
-              <tr><th>TAG</th><th>Loja</th><th>Cliente</th><th>Total</th><th>Status</th><th>Data/Hora</th><th>Ações</th></tr>
+              <tr><th>TAG</th><th>Loja</th><th>Cliente</th><th>Total</th><th>Status</th><th>Data/Hora</th></tr>
             </thead>
             <tbody>
               {visible.length === 0 ? (
-                <tr><td colSpan={7} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>Nenhum pedido encontrado.</td></tr>
+                <tr><td colSpan={6} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>Nenhum pedido encontrado.</td></tr>
               ) : visible.map((order) => {
                 const status = (order.status || 'em_montagem').toLowerCase();
                 const nome = leadName(order.leadId, order.nome || order.leadName);
                 return (
-                  <tr key={order.id}>
+                  <tr key={order.id} onClick={() => setSelected(order)} style={{ cursor: 'pointer' }}>
                     <td><span style={{ fontFamily: 'monospace', fontWeight: 600, color: 'var(--primary)' }}>#{order.id.slice(-6).toUpperCase()}</span></td>
                     <td style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>{storeName(order.lojaId)}</td>
                     <td>
@@ -173,7 +173,7 @@ export function Orders() {
                             <PaymentBadge order={order} compact={!isExp} />
                             <button
                               title={isExp ? 'Recolher' : 'Expandir'}
-                              onClick={() => toggleExpanded(order.id)}
+                              onClick={(e) => { e.stopPropagation(); toggleExpanded(order.id); }}
                               style={{ background: 'var(--surface-hover)', border: '1px solid var(--border-color)', color: 'var(--text-muted)', width: 24, height: 24, borderRadius: 6, cursor: 'pointer', flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem' }}>
                               <i className={`fa-solid ${isExp ? 'fa-chevron-left' : 'fa-chevron-right'}`} />
                             </button>
@@ -182,13 +182,6 @@ export function Orders() {
                       })()}
                     </td>
                     <td style={{ color: 'var(--text-muted)', fontSize: '0.82rem', whiteSpace: 'nowrap' }}>{relativeDate(order.criadoEm || order.createdAt)}</td>
-                    <td>
-                      <div className="actions">
-                        <button className="action-btn view" title="Ver detalhes" onClick={() => setSelected(order)}>
-                          <i style={{ color: '#fff' }} className="fa-solid fa-eye" />
-                        </button>
-                      </div>
-                    </td>
                   </tr>
                 );
               })}
