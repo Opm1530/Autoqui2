@@ -54,33 +54,38 @@ export function CategoryModal({ companyId, labelPlural, categories, onChange, on
 
   return (
     <div className="modal" style={{ display: 'flex' }} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="modal-content glass" style={{ maxWidth: 500 }}>
+      <div className="modal-content glass" style={{ maxWidth: 820, width: '94vw' }}>
         <span className="close-modal" onClick={onClose}>&times;</span>
         <h2>Gerenciar Categorias</h2>
         <p className="text-muted">Crie categorias para organizar seus {labelPlural.toLowerCase()}.</p>
 
-        <form style={{ marginTop: 20 }} onSubmit={create}>
-          <div className="form-group">
-            <label>Nome da Categoria</label>
-            <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex: Bebidas, Sobremesas..." required />
-          </div>
-          <div className="form-group">
-            <label>Ícone (Selecione um)</label>
-            <div className="icon-picker-grid">
-              {availableIcons.map((ic) => (
-                <div key={ic} className={'icon-option' + (icon === ic ? ' selected' : '')} onClick={() => setIcon(ic)}>
-                  <i className={`fa-solid ${ic}`} />
-                </div>
-              ))}
+        <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', alignItems: 'flex-start', marginTop: 20 }}>
+          {/* Coluna esquerda: formulário */}
+          <form style={{ flex: '1 1 320px', minWidth: 0 }} onSubmit={create}>
+            <div className="form-group">
+              <label>Nome da Categoria</label>
+              <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex: Bebidas, Sobremesas..." required />
             </div>
-          </div>
-          <button type="submit" className="btn-primary full-width">Salvar Categoria</button>
-        </form>
+            <div className="form-group">
+              <label>Ícone (Selecione um)</label>
+              <div className="icon-picker-grid">
+                {availableIcons.map((ic) => (
+                  <div key={ic} className={'icon-option' + (icon === ic ? ' selected' : '')} onClick={() => setIcon(ic)}>
+                    <i className={`fa-solid ${ic}`} />
+                  </div>
+                ))}
+              </div>
+            </div>
+            <button type="submit" className="btn-primary full-width">Salvar Categoria</button>
+          </form>
 
-        <div style={{ marginTop: 30, borderTop: '1px solid var(--border-color)', paddingTop: 20, maxHeight: 250, overflowY: 'auto', paddingRight: 5 }}>
-          {categories.length === 0 ? (
-            <p style={{ textAlign: 'center', color: 'var(--text-dim)' }}>Nenhuma categoria criada.</p>
-          ) : categories.map((c) => (
+          {/* Coluna direita: categorias existentes */}
+          <div style={{ flex: '1 1 320px', minWidth: 0 }}>
+            <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 12 }}>Categorias existentes</div>
+            <div style={{ maxHeight: 340, overflowY: 'auto', paddingRight: 5 }}>
+              {categories.length === 0 ? (
+                <p style={{ textAlign: 'center', color: 'var(--text-dim)' }}>Nenhuma categoria criada.</p>
+              ) : categories.map((c) => (
             <div key={c.id} className="category-item">
               {editing?.id === c.id ? (
                 <input autoFocus value={editing.name} onChange={(e) => setEditing({ id: c.id, name: e.target.value })}
@@ -106,7 +111,9 @@ export function CategoryModal({ companyId, labelPlural, categories, onChange, on
                 )}
               </div>
             </div>
-          ))}
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     </div>

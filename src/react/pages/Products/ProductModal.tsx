@@ -100,9 +100,6 @@ export function ProductModal({ companyId, isOwner, isAgendamento, labelSingular,
     readPreview(file, tempId);
   };
 
-  const toggleStore = (id: string) =>
-    setStoreIds((prev) => (prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]));
-
   async function save() {
     if (items.length === 0) { toast.warning(`Adicione pelo menos um ${labelSingular.toLowerCase()}.`); return; }
 
@@ -164,15 +161,12 @@ export function ProductModal({ companyId, isOwner, isAgendamento, labelSingular,
         <div style={{ overflowY: 'auto', paddingRight: 10, flex: 1 }}>
           {isOwner && (
             <div className="form-group">
-              <label>Lojas de Destino (selecione uma ou mais)</label>
-              <div className="multi-select-grid">
-                {stores.map((s: any) => (
-                  <label key={s.id} className="store-checkbox-card">
-                    <input type="checkbox" checked={storeIds.includes(s.id)} onChange={() => toggleStore(s.id)} />
-                    <span className="checkbox-label">{s.name}</span>
-                  </label>
-                ))}
-              </div>
+              <label>Loja de Destino</label>
+              <select value={storeIds[0] || ''} onChange={(e) => setStoreIds(e.target.value ? [e.target.value] : [])}
+                style={{ width: '100%', background: 'var(--bg-color)', border: '1px solid var(--border-color)', color: 'white', padding: '12px 14px', borderRadius: 8, fontSize: '0.95rem' }}>
+                <option value="">Selecione uma loja</option>
+                {stores.map((s: any) => <option key={s.id} value={s.id}>{s.name}</option>)}
+              </select>
             </div>
           )}
 
@@ -201,8 +195,8 @@ export function ProductModal({ companyId, isOwner, isAgendamento, labelSingular,
           </div>
 
           {items.length === 0 && (
-            <div style={{ textAlign: 'center', color: 'var(--text-dim)', padding: '40px 20px', border: '1px dashed var(--border-color)', borderRadius: 12, marginTop: 10 }}>
-              <i className="fa-solid fa-box-open" style={{ fontSize: '2rem', marginBottom: 10, display: 'block' }} />
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', color: 'var(--text-dim)', padding: '40px 20px', border: '1px dashed var(--border-color)', borderRadius: 12, marginTop: 10 }}>
+              <i className="fa-solid fa-box-open" style={{ fontSize: '2rem', marginBottom: 10 }} />
               Nenhum {labelSingular.toLowerCase()} na lista de envio.
             </div>
           )}

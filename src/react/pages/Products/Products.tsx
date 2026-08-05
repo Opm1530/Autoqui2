@@ -256,9 +256,9 @@ export function Products() {
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                         {img ? <img src={img} style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 4 }} />
                           : <div style={{ width: 40, height: 40, background: '#333', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><i className="fa-solid fa-box" /></div>}
-                        <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                          <span style={{ fontWeight: 600 }}>{p.name}</span>
-                          {isAgendamento && p.observation && <span title={p.observation} style={{ fontSize: '0.75rem', color: '#94a3b8', maxWidth: 250, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.observation}</span>}
+                        <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, maxWidth: 220 }}>
+                          <span title={p.name} style={{ fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</span>
+                          {isAgendamento && p.observation && <span title={p.observation} style={{ fontSize: '0.75rem', color: '#94a3b8', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.observation}</span>}
                         </div>
                       </div>
                     </td>
@@ -267,12 +267,12 @@ export function Products() {
                     <td>
                       {isAgendamento
                         ? (p.duration ? <span className="badge info">{p.duration} min</span> : <span className="badge" style={{ background: 'rgba(100,116,139,0.15)', color: '#94a3b8' }}>—</span>)
-                        : (p.stock == null ? <span className="badge info" title="Sem controle">∞ Ilimitado</span>
+                        : (p.stock == null ? <span className="badge info" title="Estoque ilimitado"><i className="fa-solid fa-infinity" /></span>
                           : p.stock > 10 ? <span className="badge success">{p.stock} un.</span>
                           : p.stock > 0 ? <span className="badge" style={{ background: 'rgba(234,179,8,0.15)', color: '#eab308', border: '1px solid rgba(234,179,8,0.3)' }}>{p.stock} un.</span>
                           : <span className="badge danger">Esgotado</span>)}
                     </td>
-                    <td><span className={`badge ${p.active ? 'success' : 'danger'}`}>{p.active ? 'Ativo' : 'Inativo'}</span></td>
+                    <td><span className={`badge ${p.active ? 'success' : 'danger'}`} title={p.active ? 'Ativo' : 'Inativo'}><i className={`fa-solid ${p.active ? 'fa-circle-check' : 'fa-circle-xmark'}`} /></span></td>
                     <td>
                       <div className="actions" style={{ display: 'flex', gap: 6 }}>
                         <button className="action-btn" title="Editar" onClick={() => { setEditProduct(p); setShowProductModal(true); }}><i style={{ color: '#FFF' }} className="fa-solid fa-pen-to-square" /></button>
