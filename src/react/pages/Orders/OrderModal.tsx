@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { orderService } from '../../../services/orderService';
 import { toast } from '../../../services/toast';
-import { StatusBadge, DeliveryBadge, PaymentBadge, nextAction } from './helpers';
+import { StatusBadge, DeliveryBadge, PaymentBadge, nextAction, isOrderArchived } from './helpers';
 
 interface Props {
   order: any;
@@ -161,7 +161,7 @@ export function OrderModal({ order, companyId, storeName, clientName, clientPhon
               <i className="fa-brands fa-whatsapp" /> WhatsApp
             </a>
           )}
-          {isTerminal && !order.arquivado && (
+          {isTerminal && !isOrderArchived(order) && (
             <button className="btn-lead-action" disabled={busy} onClick={archive}>
               <i className="fa-solid fa-box-archive" /> Arquivar
             </button>
