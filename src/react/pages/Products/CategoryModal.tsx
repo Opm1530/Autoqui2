@@ -101,11 +101,11 @@ export function CategoryModal({ companyId, labelPlural, categories, onChange, on
                 {editing?.id === c.id ? (
                   <>
                     <button className="action-btn" style={{ background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.3)', color: '#34d399' }} onClick={saveName}><i className="fa-solid fa-check" /></button>
-                    <button className="action-btn" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-color)' }} onClick={() => setEditing(null)}><i className="fa-solid fa-times" /></button>
+                    <button className="action-btn" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-color)' }} onClick={() => setEditing(null)}><i className="fa-solid fa-times" style={{ color: '#fff' }} /></button>
                   </>
                 ) : (
                   <>
-                    <button className="action-btn" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-color)' }} onClick={() => setEditing({ id: c.id, name: c.name })}><i className="fa-solid fa-pen" /></button>
+                    <button className="action-btn" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-color)' }} onClick={() => setEditing({ id: c.id, name: c.name })}><i className="fa-solid fa-pen" style={{ color: '#fff' }} /></button>
                     <button className="action-btn" style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#ef4444' }} onClick={() => remove(c.id)}><i className="fa-solid fa-trash" /></button>
                   </>
                 )}
