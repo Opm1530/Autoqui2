@@ -111,10 +111,6 @@ export function Dashboard() {
 
   return (
     <div>
-      <div className="page-header">
-        <h2 className="page-title">Visão Geral</h2>
-      </div>
-
       <div className="dashboard-grid">
         {modulos.includes('atendimento') && <StatCard icon="fa-message" iconCls="primary" label="Mensagens pela IA" value={String(metrics.messages)} />}
         {hasVenda && <>
