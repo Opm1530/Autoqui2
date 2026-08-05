@@ -164,16 +164,22 @@ export function Orders() {
                     </td>
                     <td style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>R$ {(order.value || order.total || 0).toFixed(2)}</td>
                     <td>
-                      <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: expanded.has(order.id) ? 'wrap' : 'nowrap' }}>
-                        <StatusBadge status={status} />
-                        <button
-                          title={expanded.has(order.id) ? 'Recolher' : 'Ver entrega e pagamento'}
-                          onClick={() => toggleExpanded(order.id)}
-                          style={{ background: 'var(--surface-hover)', border: '1px solid var(--border-color)', color: 'var(--text-muted)', width: 24, height: 24, borderRadius: 6, cursor: 'pointer', flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem' }}>
-                          <i className={`fa-solid ${expanded.has(order.id) ? 'fa-chevron-left' : 'fa-ellipsis'}`} />
-                        </button>
-                        {expanded.has(order.id) && <><DeliveryBadge entrega={order.entrega || 'entrega'} /> <PaymentBadge order={order} /></>}
-                      </div>
+                      {(() => {
+                        const isExp = expanded.has(order.id);
+                        return (
+                          <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: isExp ? 'wrap' : 'nowrap' }}>
+                            <StatusBadge status={status} compact={!isExp} />
+                            <DeliveryBadge entrega={order.entrega || 'entrega'} compact={!isExp} />
+                            <PaymentBadge order={order} compact={!isExp} />
+                            <button
+                              title={isExp ? 'Recolher' : 'Expandir'}
+                              onClick={() => toggleExpanded(order.id)}
+                              style={{ background: 'var(--surface-hover)', border: '1px solid var(--border-color)', color: 'var(--text-muted)', width: 24, height: 24, borderRadius: 6, cursor: 'pointer', flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem' }}>
+                              <i className={`fa-solid ${isExp ? 'fa-chevron-left' : 'fa-chevron-right'}`} />
+                            </button>
+                          </div>
+                        );
+                      })()}
                     </td>
                     <td style={{ color: 'var(--text-muted)', fontSize: '0.82rem', whiteSpace: 'nowrap' }}>{relativeDate(order.criadoEm || order.createdAt)}</td>
                     <td>

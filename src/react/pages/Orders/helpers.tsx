@@ -11,51 +11,58 @@ export const STATUS_CONFIG: Record<string, { label: string; cls: string; icon: s
   cancelado: { label: 'Cancelado', cls: 'badge danger', icon: 'fa-xmark' },
 };
 
-export function StatusBadge({ status }: { status: string }) {
+// Estilo base compartilhado: no modo compacto mostra só o ícone (com tooltip).
+function badge(cls: string, style: any, icon: string, label: string, compact?: boolean, iconIsBrand = false) {
+  const iconCls = iconIsBrand ? icon : `fa-solid ${icon}`;
+  return (
+    <span className={cls} title={compact ? label : undefined}
+      style={{ fontSize: '0.7rem', padding: compact ? '0.28rem 0.42rem' : '0.2rem 0.5rem', ...style }}>
+      <i className={iconCls} style={{ fontSize: '0.7rem' }} />{!compact && <> {label}</>}
+    </span>
+  );
+}
+
+export function StatusBadge({ status, compact }: { status: string; compact?: boolean }) {
   const s = (status || 'em_montagem').toLowerCase();
   const cfg = STATUS_CONFIG[s] || { label: status || 'Pendente', cls: 'badge secondary', icon: 'fa-question' };
-  return <span className={cfg.cls}><i className={`fa-solid ${cfg.icon}`} /> {cfg.label}</span>;
+  return badge(cfg.cls, {}, cfg.icon, cfg.label, compact);
 }
 
-export function DeliveryBadge({ entrega }: { entrega: string }) {
+export function DeliveryBadge({ entrega, compact }: { entrega: string; compact?: boolean }) {
   if (entrega === 'retirada') {
-    return <span className="badge secondary" style={{ background: 'rgba(139,92,246,0.1)', color: '#a78bfa', border: '1px solid rgba(139,92,246,0.2)', fontSize: '0.7rem', padding: '0.2rem 0.5rem' }}><i className="fa-solid fa-store" style={{ fontSize: '0.6rem' }} /> Retirada</span>;
+    return badge('badge secondary', { background: 'rgba(139,92,246,0.1)', color: '#a78bfa', border: '1px solid rgba(139,92,246,0.2)' }, 'fa-store', 'Retirada', compact);
   }
-  return <span className="badge info" style={{ background: 'rgba(59,130,246,0.1)', color: '#60a5fa', border: '1px solid rgba(59,130,246,0.2)', fontSize: '0.7rem', padding: '0.2rem 0.5rem' }}><i className="fa-solid fa-truck" style={{ fontSize: '0.6rem' }} /> Entrega</span>;
+  return badge('badge info', { background: 'rgba(59,130,246,0.1)', color: '#60a5fa', border: '1px solid rgba(59,130,246,0.2)' }, 'fa-truck', 'Entrega', compact);
 }
 
-export function PaymentBadge({ order }: { order: any }): ReactNode {
+export function PaymentBadge({ order, compact }: { order: any; compact?: boolean }): ReactNode {
   const payment = (order.pagamento || order.formaPagamento || '').toLowerCase().trim();
-  if (!payment) return <span className="badge secondary" style={{ opacity: 0.5, fontSize: '0.7rem', padding: '0.2rem 0.5rem' }}>Pendente</span>;
+  if (!payment) return badge('badge secondary', { opacity: 0.5 }, 'fa-clock', 'Pendente', compact);
 
   const isLink = payment.includes('link');
   const isPix = payment.includes('pagamento_no_pix');
   const isEntrega = payment.includes('entrega') || payment.includes('dinheiro') || payment.includes('maquininha');
 
   if (isLink) {
-    return <span className="badge info" style={{ background: 'rgba(59,130,246,0.1)', color: '#60a5fa', border: '1px solid rgba(59,130,246,0.2)', fontSize: '0.7rem', padding: '0.2rem 0.5rem' }}><i className="fa-solid fa-link" style={{ fontSize: '0.6rem' }} /> Link</span>;
+    return badge('badge info', { background: 'rgba(59,130,246,0.1)', color: '#60a5fa', border: '1px solid rgba(59,130,246,0.2)' }, 'fa-link', 'Link', compact);
   }
   if (isPix) {
     return (
       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-        <span className="badge info" style={{ background: 'rgba(59,130,246,0.1)', color: '#60a5fa', border: '1px solid rgba(59,130,246,0.2)', fontSize: '0.7rem', padding: '0.2rem 0.5rem' }}><i className="fa-brands fa-pix" style={{ fontSize: '0.6rem' }} /> PIX</span>
-        {order.estornado === true ? (
-          <span className="badge" style={{ background: 'rgba(245,158,11,0.15)', color: '#fbbf24', border: '1px solid rgba(245,158,11,0.3)', fontSize: '0.65rem', padding: '0.2rem 0.5rem' }}><i className="fa-solid fa-rotate-left" style={{ fontSize: '0.6rem' }} /> ESTORNADO</span>
-        ) : order.pago === true ? (
-          <span className="badge success" style={{ background: 'rgba(16,185,129,0.15)', color: '#34d399', border: '1px solid rgba(16,185,129,0.3)', fontSize: '0.65rem', padding: '0.2rem 0.5rem' }}><i className="fa-solid fa-circle-check" style={{ fontSize: '0.6rem' }} /> PAGO</span>
-        ) : null}
+        {badge('badge info', { background: 'rgba(59,130,246,0.1)', color: '#60a5fa', border: '1px solid rgba(59,130,246,0.2)' }, 'fa-brands fa-pix', 'PIX', compact, true)}
+        {order.estornado === true
+          ? badge('badge', { background: 'rgba(245,158,11,0.15)', color: '#fbbf24', border: '1px solid rgba(245,158,11,0.3)' }, 'fa-rotate-left', 'ESTORNADO', compact)
+          : order.pago === true
+          ? badge('badge success', { background: 'rgba(16,185,129,0.15)', color: '#34d399', border: '1px solid rgba(16,185,129,0.3)' }, 'fa-circle-check', 'PAGO', compact)
+          : null}
       </span>
     );
   }
   if (isEntrega) {
     const sub = order.paymentSubMethod === 'dinheiro' ? 'Dinheiro' : order.paymentSubMethod === 'cartao' ? 'Cartão' : '';
-    return (
-      <span className="badge warning" style={{ background: 'rgba(245,158,11,0.1)', color: '#fbbf24', border: '1px solid rgba(245,158,11,0.2)', fontSize: '0.7rem', padding: '0.2rem 0.5rem' }}>
-        <i className="fa-solid fa-hand-holding-dollar" style={{ fontSize: '0.6rem' }} /> Na Entrega{sub ? ` · ${sub}` : ''}
-      </span>
-    );
+    return badge('badge warning', { background: 'rgba(245,158,11,0.1)', color: '#fbbf24', border: '1px solid rgba(245,158,11,0.2)' }, 'fa-hand-holding-dollar', `Na Entrega${sub ? ` · ${sub}` : ''}`, compact);
   }
-  return <span className="badge secondary" style={{ fontSize: '0.7rem', padding: '0.2rem 0.5rem' }}>{payment}</span>;
+  return badge('badge secondary', {}, 'fa-money-bill', payment, compact);
 }
 
 export function formatDate(date: any): string {
