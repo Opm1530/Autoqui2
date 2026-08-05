@@ -35,12 +35,20 @@ function Root() {
   return <Navigate to={user ? '/dashboard' : '/login'} replace />;
 }
 
+// Se já estiver logado, sai da tela de login direto pro painel.
+function LoginRoute() {
+  const { user, loading } = useAuth();
+  if (loading) return null;
+  if (user) return <Navigate to="/dashboard" replace />;
+  return <Login />;
+}
+
 export function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
         <Routes>
-          <Route path="/login" element={<Login />} />
+          <Route path="/login" element={<LoginRoute />} />
           <Route element={<Protected />}>
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/orders" element={<Orders />} />
