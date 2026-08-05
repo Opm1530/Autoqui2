@@ -250,8 +250,8 @@ export function Products() {
               ) : filtered.map((p) => {
                 const img = getProductImageUrl(p);
                 return (
-                  <tr key={p.id}>
-                    <td><input type="checkbox" checked={selected.has(p.id)} onChange={() => toggleSelect(p.id)} /></td>
+                  <tr key={p.id} onClick={() => { setEditProduct(p); setShowProductModal(true); }} style={{ cursor: 'pointer' }}>
+                    <td onClick={(e) => e.stopPropagation()}><input type="checkbox" checked={selected.has(p.id)} onChange={() => toggleSelect(p.id)} /></td>
                     <td>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                         {img ? <img src={img} style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 4 }} />
@@ -273,9 +273,8 @@ export function Products() {
                           : <span className="badge danger">Esgotado</span>)}
                     </td>
                     <td><span className={`badge ${p.active ? 'success' : 'danger'}`} title={p.active ? 'Ativo' : 'Inativo'}><i className={`fa-solid ${p.active ? 'fa-circle-check' : 'fa-circle-xmark'}`} /></span></td>
-                    <td>
+                    <td onClick={(e) => e.stopPropagation()}>
                       <div className="actions" style={{ display: 'flex', gap: 6 }}>
-                        <button className="action-btn" title="Editar" onClick={() => { setEditProduct(p); setShowProductModal(true); }}><i style={{ color: '#FFF' }} className="fa-solid fa-pen-to-square" /></button>
                         <button className="action-btn" title={p.active ? 'Desativar' : 'Ativar'} onClick={() => toggleStatus(p)}><i style={{ color: '#FFF' }} className={`fa-solid ${p.active ? 'fa-ban' : 'fa-check'}`} /></button>
                         <button className="action-btn" title="Excluir" onClick={() => deleteProduct(p)}><i style={{ color: '#FFF' }} className="fa-solid fa-trash" /></button>
                       </div>
