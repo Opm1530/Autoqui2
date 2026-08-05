@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from './useAuth';
 import { Shell } from './Shell';
 import { Login } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
+import { Orders } from './pages/Orders/Orders';
 
 // Placeholder para páginas ainda não migradas.
 function EmBreve({ nome }: { nome: string }) {
@@ -42,7 +43,7 @@ export function App() {
           <Route path="/login" element={<Login />} />
           <Route element={<Protected />}>
             <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/orders" element={<EmBreve nome="Pedidos" />} />
+            <Route path="/orders" element={<Orders />} />
             <Route path="/products" element={<EmBreve nome="Produtos" />} />
             <Route path="/leads" element={<EmBreve nome="Leads" />} />
             <Route path="/stores" element={<EmBreve nome="Lojas" />} />
