@@ -9,6 +9,7 @@ import { MercadoPago } from './pages/MercadoPago';
 import { Users } from './pages/Users';
 import { Instances } from './pages/Instances';
 import { Leads } from './pages/Leads/Leads';
+import { CatalogSettings } from './pages/Configuration/CatalogSettings';
 
 // Placeholder para páginas ainda não migradas.
 function EmBreve({ nome }: { nome: string }) {
@@ -62,7 +63,7 @@ export function App() {
             <Route path="/stores" element={<EmBreve nome="Lojas" />} />
             <Route path="/users" element={<Users />} />
             <Route path="/instances" element={<Instances />} />
-            <Route path="/catalog-settings" element={<EmBreve nome="Configuração" />} />
+            <Route path="/catalog-settings" element={<CatalogSettings />} />
             <Route path="/mercado-pago" element={<MercadoPago />} />
           </Route>
           <Route path="/" element={<Root />} />

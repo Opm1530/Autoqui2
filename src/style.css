@@ -2303,3 +2303,50 @@ ul {
 .bulk-actions-bar { display: flex; align-items: center; gap: 15px; background: var(--primary); color: white; padding: 12px 20px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 10px 20px var(--primary-glow); flex-wrap: wrap; }
 .bulk-select-cat { background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 6px 12px; border-radius: 8px; font-size: 0.9rem; outline: none; }
 .bulk-select-cat option { background: var(--surface); color: white; }
+
+/* ===== Configuração do Catálogo (React) ===== */
+.config-section-title { font-size: 1.1rem; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 10px; margin-bottom: 1.25rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--border-color); }
+.config-select { width: 100%; padding: 0.75rem 1rem; background-color: var(--surface-hover); border: 1px solid var(--border-color); border-radius: var(--radius-md); color: var(--text-main); font-size: 0.9rem; cursor: pointer; transition: border-color .2s; }
+.config-select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 2px rgba(99,102,241,.15); }
+.config-input { width: 100%; padding: 0.75rem 1rem; background: var(--surface-hover); border: 1px solid var(--border-color); border-radius: var(--radius-md); color: var(--text-main); font-size: 0.9rem; box-sizing: border-box; transition: border-color .2s; height: 44px; }
+.config-input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 2px rgba(99,102,241,.15); }
+.config-input::placeholder { color: var(--text-dim); }
+.config-label { display: block; font-size: 0.75rem; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
+.cat-field-hint { font-size: 0.75rem; color: var(--text-dim); margin-top: 4px; }
+.cat-field { margin-bottom: 1.25rem; }
+.theme-card-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin-bottom: 1.25rem; }
+@media(max-width:600px) { .theme-card-grid { grid-template-columns: 1fr; } }
+.theme-card { border: 2px solid var(--border-color); border-radius: 12px; padding: 14px; cursor: pointer; transition: all .2s; background: rgba(255,255,255,0.02); }
+.theme-card:hover { border-color: rgba(99,102,241,.5); background: rgba(99,102,241,.04); }
+.theme-card.active { border-color: var(--primary); background: rgba(99,102,241,.08); }
+.theme-card-preview { height: 72px; border-radius: 8px; margin-bottom: 8px; overflow: hidden; background: var(--surface-hover); display: flex; flex-direction: column; gap: 4px; padding: 6px; }
+.theme-card-name { font-size: 0.85rem; font-weight: 700; text-align: center; }
+.theme-card-desc { font-size: 0.75rem; color: var(--text-dim); text-align: center; margin-top: 2px; }
+.vars-grid { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1.5rem; padding: 1rem; background: rgba(99,102,241,0.04); border: 1px dashed rgba(99,102,241,0.25); border-radius: var(--radius-md); }
+.var-chip { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.35rem 0.75rem; background: rgba(99,102,241,0.12); border: 1px solid rgba(99,102,241,0.3); border-radius: 6px; font-size: 0.82rem; color: var(--primary); cursor: grab; user-select: none; }
+.var-chip code { font-size: 0.72rem; color: rgba(167,139,250,0.8); font-family: monospace; }
+.msg-card { background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: var(--radius-md); overflow: hidden; margin-bottom: 1rem; }
+.msg-card-header { display: flex; align-items: center; gap: 0.6rem; padding: 0.75rem 1rem; background: rgba(255,255,255,0.025); border-bottom: 1px solid var(--border-color); font-weight: 600; font-size: 0.9rem; }
+.msg-editor-wrap { padding: 1rem; }
+.msg-textarea { width: 100%; background: var(--surface-hover); border: 1px solid var(--border-color); border-radius: var(--radius-sm); color: var(--text-main); font-size: 0.9rem; padding: 0.75rem; resize: vertical; box-sizing: border-box; font-family: inherit; }
+.msg-textarea:focus { outline: none; border-color: var(--primary); }
+.msg-save-row { display: flex; align-items: center; justify-content: space-between; margin-top: 0.75rem; }
+.btn-save-msg { padding: 0.45rem 1rem; background: var(--primary); color: white; border: none; border-radius: var(--radius-sm); font-size: 0.85rem; font-weight: 600; cursor: pointer; }
+.btn-save-msg:hover { background: var(--primary-hover); }
+.btn-save-msg.saved { background: var(--success); pointer-events: none; }
+.horarios-grid { display: flex; flex-direction: column; gap: 0.75rem; margin-top: 1rem; }
+.horario-row { display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1rem; background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: var(--radius-md); transition: 0.2s; }
+.horario-row.inactive { opacity: 0.6; background: transparent; }
+.horario-info { display: flex; align-items: center; gap: 1rem; flex: 1; }
+.horario-label { font-weight: 600; min-width: 120px; }
+.horario-inputs { display: flex; align-items: center; gap: 0.5rem; }
+.time-input { background: var(--bg-color); border: 1px solid var(--border-color); color: white; padding: 0.4rem 0.6rem; border-radius: 6px; font-size: 0.85rem; outline: none; }
+.time-input:focus { border-color: var(--primary); }
+.cfg-switch { position: relative; display: inline-block; width: 40px; height: 20px; flex-shrink: 0; }
+.cfg-switch input { opacity: 0; width: 0; height: 0; }
+.cfg-slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #333; transition: .4s; border-radius: 20px; }
+.cfg-slider:before { position: absolute; content: ""; height: 14px; width: 14px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+.cfg-switch input:checked + .cfg-slider { background-color: var(--primary); }
+.cfg-switch input:checked + .cfg-slider:before { transform: translateX(20px); }
+.btn-store-tab { padding: 0.5rem 1rem; background: var(--surface-hover); color: var(--text-main); border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; white-space: nowrap; }
+.btn-store-tab.active { background: var(--primary); color: #fff; border-color: var(--primary); }
