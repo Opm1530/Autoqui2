@@ -2212,3 +2212,9 @@ ul {
     justify-content: center;
   }
 }
+
+/* ── Modal de pedido mais largo (React) ─────────────────────────────────── */
+.order-modal-wide {
+  max-width: 860px !important;
+  width: 94vw !important;
+}
