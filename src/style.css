@@ -2368,3 +2368,6 @@ ul {
 .pagination-btn:hover:not(:disabled) { border-color: rgba(99,102,241,.5); color: var(--primary); }
 .pagination-btn.active { background: var(--primary); border-color: var(--primary); color: #fff; }
 .pagination-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* Bottom nav escondida no desktop (media query mobile a exibe) */
+.mobile-bottom-nav { display: none; }
