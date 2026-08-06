@@ -28,7 +28,8 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'https://api.autoqui.com.br',
+        // Aponte pro backend local com: VITE_API_TARGET=http://localhost:3005 npm run dev
+        target: process.env.VITE_API_TARGET || 'https://api.autoqui.com.br',
         changeOrigin: true,
         secure: true,
         // O backend rejeita Origins fora da lista (autoqui.com.br) com erro 500.
