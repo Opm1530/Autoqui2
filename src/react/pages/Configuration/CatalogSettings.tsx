@@ -93,25 +93,30 @@ export function CatalogSettings() {
 
   return (
     <div>
-      <div className="page-header"><h2 className="page-title">Configuração do Catálogo</h2></div>
+      {/* Seletor de loja + seções */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', marginBottom: 28 }}>
+        <div className="config-subnav" style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          {SECTIONS.map((s) => (
+            <button key={s.key} onClick={() => setSection(s.key as any)}
+              className={'config-subnav-btn' + (section === s.key ? ' active' : '')}>
+              <i className={`fa-solid ${s.icon}`} /> {s.label}
+            </button>
+          ))}
+        </div>
 
-      {/* Abas por loja */}
-      <div style={{ display: 'flex', gap: 10, marginBottom: 16, overflowX: 'auto' }}>
-        {stores.map((s) => (
-          <button key={s.id} className={'btn-store-tab' + (s.id === activeStoreId ? ' active' : '')} onClick={() => setActiveStoreId(s.id)}>
-            <i className="fa-solid fa-store" style={{ marginRight: 5 }} /> {s.name}
-          </button>
-        ))}
-      </div>
-
-      {/* Navegação de seções */}
-      <div className="config-subnav" style={{ display: 'flex', gap: 6, marginBottom: 24, flexWrap: 'wrap', borderBottom: '1px solid var(--border-color)', paddingBottom: 12 }}>
-        {SECTIONS.map((s) => (
-          <button key={s.key} onClick={() => setSection(s.key as any)}
-            className={'config-subnav-btn' + (section === s.key ? ' active' : '')}>
-            <i className={`fa-solid ${s.icon}`} /> {s.label}
-          </button>
-        ))}
+        {stores.length > 1 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-dim)', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Loja</span>
+            <div style={{ position: 'relative' }}>
+              <i className="fa-solid fa-store" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--primary)', pointerEvents: 'none' }} />
+              <select value={activeStoreId} onChange={(e) => setActiveStoreId(e.target.value)}
+                style={{ appearance: 'none', padding: '0.6rem 2.2rem 0.6rem 34px', background: 'var(--surface-hover)', border: '1px solid var(--border-color)', borderRadius: 10, color: 'var(--text-main)', fontSize: '0.9rem', fontWeight: 600, cursor: 'pointer', minWidth: 220 }}>
+                {stores.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+              </select>
+              <i className="fa-solid fa-chevron-down" style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)', pointerEvents: 'none', fontSize: '0.75rem' }} />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* GERAL: link + instância + horários */}
