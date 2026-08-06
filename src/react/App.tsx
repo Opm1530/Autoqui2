@@ -16,6 +16,11 @@ import { Schedule } from './pages/Schedule/Schedule';
 import { ScheduleClients } from './pages/Schedule/ScheduleClients';
 import { Catalog } from './pages/Catalog/Catalog';
 import { QRPage } from './pages/QRPage';
+import { AdminDashboard } from './pages/Admin/AdminDashboard';
+import { Companies } from './pages/Admin/Companies';
+import { AdminUsers } from './pages/Admin/AdminUsers';
+import { Webhooks } from './pages/Admin/Webhooks';
+import { AdminMigration } from './pages/Admin/AdminMigration';
 
 function Protected() {
   const { user, loading } = useAuth();
@@ -30,17 +35,19 @@ function Protected() {
   return <Shell />;
 }
 
+const homeFor = (user: any) => !user ? '/login' : user.role === 'admin' ? '/admin/dashboard' : '/dashboard';
+
 function Root() {
   const { user, loading } = useAuth();
   if (loading) return null;
-  return <Navigate to={user ? '/dashboard' : '/login'} replace />;
+  return <Navigate to={homeFor(user)} replace />;
 }
 
 // Se já estiver logado, sai da tela de login direto pro painel.
 function LoginRoute() {
   const { user, loading } = useAuth();
   if (loading) return null;
-  if (user) return <Navigate to="/dashboard" replace />;
+  if (user) return <Navigate to={homeFor(user)} replace />;
   return <Login />;
 }
 
@@ -67,6 +74,12 @@ export function App() {
             <Route path="/campaigns" element={<Campaigns />} />
             <Route path="/schedule" element={<Schedule />} />
             <Route path="/schedule-clients" element={<ScheduleClients />} />
+            {/* Admin global */}
+            <Route path="/admin/dashboard" element={<AdminDashboard />} />
+            <Route path="/admin/companies" element={<Companies />} />
+            <Route path="/admin/users" element={<AdminUsers />} />
+            <Route path="/admin/webhooks" element={<Webhooks />} />
+            <Route path="/admin/migration" element={<AdminMigration />} />
           </Route>
           <Route path="/" element={<Root />} />
           <Route path="*" element={<Navigate to="/" replace />} />

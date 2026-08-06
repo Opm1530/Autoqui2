@@ -16,9 +16,20 @@ const TITLES: Record<string, string> = {
   '/instances': 'Instâncias', '/catalog-settings': 'Configuração',
   '/mercado-pago': 'Mercado Pago', '/campaigns': 'Campanhas',
   '/schedule': 'Agenda', '/schedule-clients': 'Clientes',
+  '/admin/dashboard': 'Dashboard', '/admin/companies': 'Clientes',
+  '/admin/users': 'Usuários', '/admin/webhooks': 'Webhooks', '/admin/migration': 'Migração',
 };
 
+const ADMIN_NAV: NavEntry[] = [
+  { to: '/admin/dashboard', label: 'Dashboard', icon: 'fa-chart-line' },
+  { to: '/admin/companies', label: 'Clientes', icon: 'fa-building' },
+  { to: '/admin/users', label: 'Usuários', icon: 'fa-users' },
+  { to: '/admin/webhooks', label: 'Webhooks', icon: 'fa-link' },
+  { to: '/admin/migration', label: 'Migração', icon: 'fa-clone' },
+];
+
 function buildNav(role: string | undefined, modulos: string[]): NavEntry[] {
+  if (role === 'admin') return ADMIN_NAV;
   const has = (m: string) => modulos.includes(m);
   const venda = has('venda');
   const agendamento = has('agendamento');
@@ -126,7 +137,7 @@ export function Shell() {
         <div className="sidebar-footer">
           <div className="user-profile">
             <div className="user-info">
-              <span className="name">{isEmployee ? 'Colaborador' : 'Dono da Empresa'}</span><br />
+              <span className="name">{user?.role === 'admin' ? 'Administrador' : isEmployee ? 'Colaborador' : 'Dono da Empresa'}</span><br />
               <span className="role">{user?.email}</span>
             </div>
           </div>
