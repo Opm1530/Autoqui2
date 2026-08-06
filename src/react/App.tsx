@@ -15,6 +15,7 @@ import { Campaigns } from './pages/Campaigns/Campaigns';
 import { Schedule } from './pages/Schedule/Schedule';
 import { ScheduleClients } from './pages/Schedule/ScheduleClients';
 import { Catalog } from './pages/Catalog/Catalog';
+import { QRPage } from './pages/QRPage';
 
 function Protected() {
   const { user, loading } = useAuth();
@@ -50,6 +51,7 @@ export function App() {
         <Routes>
           {/* Rotas públicas (sem login) */}
           <Route path="/catalog/:storeId" element={<Catalog />} />
+          <Route path="/qr/:instanceName" element={<QRPage />} />
 
           <Route path="/login" element={<LoginRoute />} />
           <Route element={<Protected />}>
