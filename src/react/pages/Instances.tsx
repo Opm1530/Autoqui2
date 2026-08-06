@@ -180,57 +180,74 @@ export function Instances() {
 
   return (
     <div>
-      <div className="page-header">
-        <h2 className="page-title">Gerenciar Instâncias</h2>
+      <div className="page-header" style={{ alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          <span className="badge secondary" style={{ fontSize: '0.85rem', padding: '0.4rem 0.8rem' }}><i className="fa-solid fa-layer-group" style={{ marginRight: 6 }} /> Limite: <strong style={{ marginLeft: 4 }}>{limit}</strong></span>
+          <span className="badge info" style={{ fontSize: '0.85rem', padding: '0.4rem 0.8rem' }}><i className="fa-solid fa-circle-nodes" style={{ marginRight: 6 }} /> Utilizadas: <strong style={{ marginLeft: 4 }}>{instances.length}</strong></span>
+        </div>
         <button className="btn-primary" disabled={atLimit} style={atLimit ? { opacity: 0.5, cursor: 'not-allowed' } : undefined}
           onClick={() => setShowNew(true)}>
           <i className="fa-solid fa-plus" /> Nova Instância
         </button>
       </div>
 
-      <div className="card">
-        <div style={{ marginBottom: 20, display: 'flex', gap: 20 }}>
-          <div><strong>Limite:</strong> {limit}</div>
-          <div><strong>Utilizadas:</strong> {instances.length}</div>
+      {instances.length === 0 ? (
+        <div className="card" style={{ textAlign: 'center', padding: '3rem 2rem', color: 'var(--text-muted)' }}>
+          <i className="fa-brands fa-whatsapp" style={{ fontSize: '2.5rem', color: 'var(--text-dim)', display: 'block', marginBottom: 12 }} />
+          Nenhuma instância criada ainda.
         </div>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.25rem', marginTop: '1.25rem' }}>
+          {instances.map((inst) => {
+            const connected = inst.status === 'conectado';
+            return (
+              <div key={inst.id} className="card" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                {/* Cabeçalho: avatar + nome + status */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ width: 44, height: 44, borderRadius: 12, flexShrink: 0, background: connected ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: connected ? '#34d399' : '#f87171', fontSize: '1.2rem' }}>
+                    <i className="fa-brands fa-whatsapp" />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={inst.nome}>{inst.nome}</div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{inst.numero ? inst.numero.split('@')[0] : 'Sem número'}</div>
+                  </div>
+                  <span className={`badge ${connected ? 'success' : 'danger'}`} style={{ flexShrink: 0 }}>
+                    <i className={`fa-solid ${connected ? 'fa-circle-check' : 'fa-circle-xmark'}`} style={{ marginRight: 4 }} />{connected ? 'Conectado' : 'Desconectado'}
+                  </span>
+                </div>
 
-        <div className="table-container">
-          <table className="data-table">
-            <thead>
-              <tr><th>Identificador</th><th>Número</th><th>Status</th><th>Loja</th><th>Função</th><th>Criado Em</th><th>Ações</th></tr>
-            </thead>
-            <tbody>
-              {instances.length === 0 ? (
-                <tr><td colSpan={7} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>Nenhuma instância criada.</td></tr>
-              ) : instances.map((inst) => {
-                const connected = inst.status === 'conectado';
-                return (
-                  <tr key={inst.id}>
-                    <td>{inst.nome}</td>
-                    <td>{inst.numero ? inst.numero.split('@')[0] : '-'}</td>
-                    <td><span className={`badge ${connected ? 'success' : 'danger'}`}>{connected ? 'Conectado' : 'Desconectado'}</span></td>
-                    <td><span className="badge info">{storeName(inst.lojaId)}</span></td>
-                    <td><span className="badge secondary">{inst.funcao || 'Nenhuma'}</span></td>
-                    <td>{inst.createdAt?.toDate ? inst.createdAt.toDate().toLocaleDateString('pt-BR') : 'N/A'}</td>
-                    <td>
-                      <div className="actions" style={{ display: 'flex', gap: 6 }}>
-                        {!connected && (
-                          <button className="action-btn" title="Conectar" onClick={() => connectInstance(inst.nome)}><i style={{ color: '#FFF' }} className="fa-solid fa-qrcode" /></button>
-                        )}
-                        <button className="action-btn" title="Compartilhar Link QR" style={{ background: '#6366f1', borderColor: '#6366f1' }} onClick={() => shareQR(inst.nome)}><i style={{ color: '#FFF' }} className="fa-solid fa-share-nodes" /></button>
-                        {connected && (
-                          <button className="action-btn" title="Desconectar" style={{ background: 'var(--warning)', borderColor: 'var(--warning)' }} onClick={() => logoutInstance(inst)}><i style={{ color: '#FFF' }} className="fa-solid fa-right-from-bracket" /></button>
-                        )}
-                        <button className="action-btn" title="Excluir" onClick={() => deleteInstance(inst)}><i style={{ color: '#FFF' }} className="fa-solid fa-trash" /></button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                {/* Infos */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: '0.85rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
+                    <span style={{ color: 'var(--text-dim)' }}><i className="fa-solid fa-store" style={{ width: 16, marginRight: 6 }} />Loja</span>
+                    <span style={{ fontWeight: 600, textAlign: 'right' }}>{storeName(inst.lojaId)}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
+                    <span style={{ color: 'var(--text-dim)' }}><i className="fa-solid fa-gear" style={{ width: 16, marginRight: 6 }} />Função</span>
+                    <span style={{ fontWeight: 600, textAlign: 'right' }}>{inst.funcao || 'Nenhuma'}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
+                    <span style={{ color: 'var(--text-dim)' }}><i className="fa-solid fa-calendar" style={{ width: 16, marginRight: 6 }} />Criada em</span>
+                    <span style={{ fontWeight: 600 }}>{inst.createdAt?.toDate ? inst.createdAt.toDate().toLocaleDateString('pt-BR') : 'N/A'}</span>
+                  </div>
+                </div>
+
+                {/* Ações */}
+                <div style={{ display: 'flex', gap: 8, borderTop: '1px solid var(--border-color)', paddingTop: 14 }}>
+                  {!connected && (
+                    <button className="btn-secondary" style={{ flex: 1, justifyContent: 'center' }} onClick={() => connectInstance(inst.nome)}><i className="fa-solid fa-qrcode" /> Conectar</button>
+                  )}
+                  {connected && (
+                    <button className="btn-secondary" style={{ flex: 1, justifyContent: 'center', color: '#fbbf24', borderColor: 'rgba(245,158,11,0.4)' }} onClick={() => logoutInstance(inst)}><i className="fa-solid fa-right-from-bracket" /> Desconectar</button>
+                  )}
+                  <button className="btn-secondary" title="Compartilhar link de conexão" style={{ color: '#818cf8', borderColor: 'rgba(99,102,241,0.4)' }} onClick={() => shareQR(inst.nome)}><i className="fa-solid fa-share-nodes" /></button>
+                  <button className="btn-secondary" title="Excluir" style={{ color: '#f87171', borderColor: 'rgba(239,68,68,0.35)' }} onClick={() => deleteInstance(inst)}><i className="fa-solid fa-trash" /></button>
+                </div>
+              </div>
+            );
+          })}
         </div>
-      </div>
+      )}
 
       {/* Modal nova instância */}
       {showNew && (
