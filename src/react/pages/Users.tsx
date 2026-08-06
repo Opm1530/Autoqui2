@@ -77,8 +77,7 @@ export function Users() {
 
   return (
     <div>
-      <div className="page-header">
-        <h2 className="page-title">Minha Equipe</h2>
+      <div className="page-header" style={{ justifyContent: 'flex-end' }}>
         <button className="btn-primary" onClick={() => { setEditing(null); setModalOpen(true); }}>
           <i style={{ color: '#fff' }} className="fa-solid fa-user-plus" /> Novo Colaborador
         </button>
