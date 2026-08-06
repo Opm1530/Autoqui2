@@ -52,7 +52,6 @@ export function Shell() {
         </nav>
         <div className="sidebar-footer">
           <div className="user-profile">
-            <div className="avatar">{(user?.email?.[0] || 'D').toUpperCase()}</div>
             <div className="user-info">
               <span className="name">{user?.role === 'owner' ? 'Dono da Empresa' : 'Usuário'}</span><br />
               <span className="role">{user?.email}</span>
