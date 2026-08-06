@@ -10,6 +10,7 @@ import { Users } from './pages/Users';
 import { Instances } from './pages/Instances';
 import { Leads } from './pages/Leads/Leads';
 import { CatalogSettings } from './pages/Configuration/CatalogSettings';
+import { Stores } from './pages/Stores';
 
 // Placeholder para páginas ainda não migradas.
 function EmBreve({ nome }: { nome: string }) {
@@ -60,7 +61,7 @@ export function App() {
             <Route path="/orders" element={<Orders />} />
             <Route path="/products" element={<Products />} />
             <Route path="/leads" element={<Leads />} />
-            <Route path="/stores" element={<EmBreve nome="Lojas" />} />
+            <Route path="/stores" element={<Stores />} />
             <Route path="/users" element={<Users />} />
             <Route path="/instances" element={<Instances />} />
             <Route path="/catalog-settings" element={<CatalogSettings />} />
