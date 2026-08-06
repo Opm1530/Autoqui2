@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { authService } from '../services/auth';
 import { dbService } from '../services/db';
+import { orderNotification } from '../services/orderNotification';
 import { useAuth } from './useAuth';
 
 interface NavItem { to: string; label: string; icon: string; }
@@ -92,6 +93,12 @@ export function Shell() {
       } catch { setModulos(['atendimento']); }
     })();
   }, [user?.companyId]);
+
+  // Apito/modal de novo pedido (mesmo serviço do app vanilla).
+  useEffect(() => {
+    orderNotification.startListening();
+    return () => orderNotification.stopListening();
+  }, []);
 
   const title = TITLES[location.pathname] || 'Painel';
   const nav = buildNav(user?.role, modulos || []);

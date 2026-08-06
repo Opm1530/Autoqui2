@@ -24,13 +24,20 @@ const labelStyle: React.CSSProperties = { display: 'block', fontSize: '0.8rem', 
 
 export function CheckoutModals({ cart, subtotal, storeId, companyId, data, onClose, onClearCart, onClosedAlert }: Props) {
   const { config, pixKey, isMpActive, flatBairros, taxaGenerica, cuponsList } = data;
+  // Dados salvos do cliente (preenche o formulário automaticamente)
+  const savedUser = useMemo(() => {
+    try { return JSON.parse(localStorage.getItem(`cat_user_${companyId}`) || '{}'); } catch { return {}; }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const savedBairroIsKnown = savedUser.bairro && flatBairros.some((b: any) => b.nome.toLowerCase() === String(savedUser.bairro).toLowerCase());
+
   const [step, setStep] = useState<Step>('delivery');
   const [deliveryType, setDeliveryType] = useState<'entrega' | 'retirada' | ''>('');
-  const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [address, setAddress] = useState('');
-  const [bairroSel, setBairroSel] = useState('');
-  const [bairroOutro, setBairroOutro] = useState('');
+  const [name, setName] = useState(savedUser.name || '');
+  const [phone, setPhone] = useState(savedUser.phone || '');
+  const [address, setAddress] = useState(savedUser.address || '');
+  const [bairroSel, setBairroSel] = useState(savedUser.bairro ? (savedBairroIsKnown ? flatBairros.find((b: any) => b.nome.toLowerCase() === String(savedUser.bairro).toLowerCase()).nome : '__outro__') : '');
+  const [bairroOutro, setBairroOutro] = useState(savedUser.bairro && !savedBairroIsKnown ? savedUser.bairro : '');
   const [coupon, setCoupon] = useState<{ codigo: string; desconto: number; tipo: string } | null>(null);
   const [couponInput, setCouponInput] = useState('');
   const [couponMsg, setCouponMsg] = useState<{ text: string; ok: boolean } | null>(null);
