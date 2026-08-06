@@ -15,6 +15,14 @@ export default defineConfig({
         target: 'https://api.autoqui.com.br',
         changeOrigin: true,
         secure: true,
+        // O backend rejeita Origins fora da lista (autoqui.com.br) com erro 500.
+        // Como o proxy é server-side, removemos o Origin do navegador (localhost)
+        // para o backend tratar como requisição sem Origin (permitida).
+        configure: (proxy) => {
+          proxy.on('proxyReq', (proxyReq) => {
+            proxyReq.removeHeader('origin');
+          });
+        },
       },
     },
   },
