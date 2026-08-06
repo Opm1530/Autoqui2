@@ -129,7 +129,7 @@ function NovaCampanha({ company, instances, allLeads, companyId, loaded }: { com
 
   const minDt = useMemo(() => { const d = new Date(); d.setMinutes(d.getMinutes() + 5); const p = (n: number) => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`; }, []);
 
-  async function start() {
+  async function startCampaign() {
     const isScheduled = sendMode === 'scheduled';
     const scheduledAt = isScheduled ? new Date(scheduleDt) : new Date();
     const msg = isScheduled
@@ -281,7 +281,7 @@ function NovaCampanha({ company, instances, allLeads, companyId, loaded }: { com
           )}
         </div>
         <div style={{ marginTop: '2rem' }}>
-          <button className="btn-primary full-width" disabled={!valid || busy} style={{ padding: '1rem', fontSize: '1.1rem', borderRadius: 12, justifyContent: 'center' }} onClick={start}>
+          <button className="btn-primary full-width" disabled={!valid || busy} style={{ padding: '1rem', fontSize: '1.1rem', borderRadius: 12, justifyContent: 'center' }} onClick={startCampaign}>
             {busy ? <><i className="fa-solid fa-spinner fa-spin" /> Salvando...</> : sendMode === 'scheduled' ? <><i className="fa-solid fa-calendar" style={{ marginRight: 8 }} /> Agendar Campanha</> : <><i className="fa-solid fa-paper-plane" style={{ marginRight: 8 }} /> Iniciar Campanha Agora</>}
           </button>
         </div>
