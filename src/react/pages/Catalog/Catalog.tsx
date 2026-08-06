@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { dbService } from '../../../services/db';
-import { getImageUrl, storeStatusLabel, isFreteAbertoAgora } from './helpers';
+import { getImageUrl, storeStatusLabel, isFreteAbertoAgora, isStoreOpen, getNextOpenTime, getStoreHorario, DIAS_NOME } from './helpers';
+import { CheckoutModals } from './CheckoutModals';
 import './catalog.css';
 
 interface CartEntry { product: any; qty: number }
@@ -12,6 +13,9 @@ export function Catalog() {
   const [data, setData] = useState<any | null>(null);
   const [cart, setCart] = useState<Map<string, CartEntry>>(new Map());
   const [cartOpen, setCartOpen] = useState(false);
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [closedAlert, setClosedAlert] = useState<'store' | 'delivery' | null>(null);
+  const [storeInfoOpen, setStoreInfoOpen] = useState(false);
   const [activeFilter, setActiveFilter] = useState('all');
   const [search, setSearch] = useState('');
 
@@ -53,6 +57,16 @@ export function Catalog() {
         }
         const isMpActive = (company.mercadoPagoAtivo === true || !!company.mercadoPagoToken) && (config.mercadoPagoActive !== false);
 
+        // Frete por bairro (achatado) + taxa genérica + cupons
+        const flatBairros: { nome: string; preco: number }[] = [];
+        (config?.bairrosEntrega || []).forEach((b: any) => {
+          (b.bairros || '').split(',').map((s: string) => s.trim()).filter(Boolean)
+            .forEach((n: string) => flatBairros.push({ nome: n, preco: parseFloat(b.preco) || 0 }));
+        });
+        flatBairros.sort((a, b) => a.nome.localeCompare(b.nome));
+        const taxaGenerica = parseFloat(config?.taxaGenerica ?? 0) || 0;
+        const cuponsList: any[] = config?.cupons || [];
+
         // meta tags
         document.title = store.name || 'Catálogo';
 
@@ -64,6 +78,7 @@ export function Catalog() {
           themeId: design.themeId || 'classico',
           bannerUrl: design.bannerUrl || '', bannerMobileUrl: design.bannerMobileUrl || '',
           logoUrl: design.logoUrl || '', pixKey: design.pixKey || '',
+          flatBairros, taxaGenerica, cuponsList,
         });
 
         // carrinho salvo
@@ -101,6 +116,27 @@ export function Catalog() {
     setCart((prev) => { const n = new Map(prev); const e = n.get(id); if (!e) return prev; const q = e.qty + delta; if (q <= 0) n.delete(id); else n.set(id, { ...e, qty: Math.min(q, e.product.stock ?? Infinity) }); return n; });
   }
   function removeItem(id: string) { setCart((prev) => { const n = new Map(prev); n.delete(id); return n; }); }
+
+  // Cart → checkout: valida loja aberta e estoque em tempo real
+  async function startCheckout() {
+    if (cart.size === 0 || !data) return;
+    if (!isStoreOpen(data.config, data.store)) { setCartOpen(false); setClosedAlert('store'); return; }
+    const toCheck: { id: string; qty: number; label: string }[] = [];
+    cart.forEach(({ product, qty }, id) => {
+      if (product.isCombo) (product.produtos || []).forEach((cp: any) => toCheck.push({ id: cp.id, qty, label: product.name }));
+      else toCheck.push({ id, qty, label: product.name });
+    });
+    for (const item of toCheck) {
+      try {
+        const fresh = (await dbService.get('products', item.id)) as any;
+        if (!fresh || fresh.active === false || (fresh.stock != null && fresh.stock < item.qty)) {
+          alert(`O item "${item.label}" não possui quantidade suficiente em estoque ou está indisponível.`);
+          return;
+        }
+      } catch { /* ignore falhas de leitura */ }
+    }
+    setCartOpen(false); setCheckoutOpen(true);
+  }
 
   if (loading) return <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0f172a', color: 'white' }}><i className="fa-solid fa-spinner fa-spin fa-2x" /></div>;
   if (!data || data.notFound) return (
@@ -215,6 +251,7 @@ export function Catalog() {
             : <div style={{ width: 90, height: 90, borderRadius: '50%', background: 'var(--primary-glow)', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', zIndex: 1 }}><i className="fa-solid fa-store" style={{ fontSize: '2rem', color: 'var(--primary-cat)' }} /></div>}
           <h1>{store.name}</h1>
           <p className="header-address"><i className="fa-solid fa-location-dot" style={{ marginRight: 4, opacity: 0.7 }} /> {store.address || 'Endereço não cadastrado'}</p>
+          <div className="store-info-btn" onClick={() => setStoreInfoOpen(true)}>Mais informações <i className="fa-solid fa-chevron-right" style={{ fontSize: '0.75rem', marginLeft: 4 }} /></div>
           <div className="store-status-card">
             <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}><StatusInline /></div>
             {status.open && <>
@@ -252,7 +289,7 @@ export function Catalog() {
             <div className="cat-moderno-info">
               <div className="cat-moderno-logo-wrap">{logoUrl ? <img src={logoUrl} alt={store.name} /> : <div className="fallback-logo"><i className="fa-solid fa-store" style={{ fontSize: '2rem', color: 'var(--primary-cat)' }} /></div>}</div>
               <h1>{store.name}</h1>
-              <p className="cat-moderno-address">{store.address || 'Endereço não cadastrado'}</p>
+              <p className="cat-moderno-address">{store.address || 'Endereço não cadastrado'} <span style={{ margin: '0 8px' }}>•</span> <span className="moderno-more-info" onClick={() => setStoreInfoOpen(true)}>Mais informações</span></p>
               <div className="cat-moderno-status-row"><StatusInline /></div>
             </div>
           </div>
@@ -341,7 +378,59 @@ export function Catalog() {
             </div>
             <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: 16, marginTop: 16 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}><span style={{ fontWeight: 700 }}>Total</span><span style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--primary-cat)' }}>R$ {subtotal.toFixed(2)}</span></div>
-              <button disabled style={{ width: '100%', padding: 14, borderRadius: 14, background: 'var(--primary-cat)', color: 'white', border: 'none', fontWeight: 700, fontSize: '1rem', opacity: 0.6 }}>Finalizar Pedido (em breve)</button>
+              <button disabled={cart.size === 0} onClick={startCheckout} style={{ width: '100%', padding: 14, borderRadius: 14, background: 'var(--primary-cat)', color: 'white', border: 'none', cursor: cart.size === 0 ? 'not-allowed' : 'pointer', fontWeight: 700, fontSize: '1rem', opacity: cart.size === 0 ? 0.6 : 1 }}><i className="fa-solid fa-arrow-right" /> Finalizar Pedido</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CHECKOUT */}
+      {checkoutOpen && (
+        <CheckoutModals cart={cart} subtotal={subtotal} storeId={storeId} companyId={data.company.id}
+          data={{ store, config, design, pixKey: data.pixKey, isMpActive: data.isMpActive, flatBairros: data.flatBairros, taxaGenerica: data.taxaGenerica, cuponsList: data.cuponsList }}
+          onClose={() => setCheckoutOpen(false)}
+          onClearCart={() => setCart(new Map())}
+          onClosedAlert={(t) => { setCheckoutOpen(false); setClosedAlert(t); }} />
+      )}
+
+      {/* ALERTA DE FECHADO */}
+      {closedAlert && (
+        <div className="cat-modal-base" style={{ alignItems: 'center', zIndex: 9999 }} onClick={(e) => { if (e.target === e.currentTarget) setClosedAlert(null); }}>
+          <div style={{ background: '#1e293b', borderRadius: 24, width: '92%', maxWidth: 460, padding: 28, textAlign: 'center' }}>
+            <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'rgba(239,68,68,0.15)', border: '2px solid rgba(239,68,68,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}><i className={`fa-solid ${closedAlert === 'store' ? 'fa-store-slash' : 'fa-motorcycle'}`} style={{ fontSize: '2.5rem', color: '#ef4444' }} /></div>
+            <h2 style={{ margin: '0 0 10px', fontSize: '1.4rem', fontWeight: 800, color: 'white' }}>{closedAlert === 'store' ? 'Loja Fechada' : 'Entrega Desativada'}</h2>
+            <p style={{ color: '#94a3b8', marginBottom: 20 }}>{closedAlert === 'store' ? 'No momento não estamos aceitando pedidos.' : 'O serviço de entrega está desativado no momento. Por favor, escolha a opção de Retirada se disponível.'}</p>
+            {closedAlert === 'store' && (
+              <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 20 }}>
+                <span style={{ fontSize: '0.8rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 700 }}><i className="fa-regular fa-clock" /> Voltamos</span>
+                <p style={{ margin: '6px 0 0', fontSize: '1.2rem', fontWeight: 800, color: 'var(--primary-cat)' }}>{getNextOpenTime(config, store)}</p>
+              </div>
+            )}
+            <button onClick={() => setClosedAlert(null)} style={{ width: '100%', padding: 14, borderRadius: 14, background: 'rgba(255,255,255,0.1)', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 700 }}>Entendi</button>
+          </div>
+        </div>
+      )}
+
+      {/* INFO DA LOJA */}
+      {storeInfoOpen && (
+        <div className="cat-modal-base" style={{ alignItems: 'center' }} onClick={(e) => { if (e.target === e.currentTarget) setStoreInfoOpen(false); }}>
+          <div style={{ background: '#1e293b', borderRadius: 24, width: '92%', maxWidth: 500, padding: 28, maxHeight: '90vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 10 }}><i className="fa-solid fa-circle-info" /> Informações da Loja</h3>
+              <button onClick={() => setStoreInfoOpen(false)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: 'white', width: 32, height: 32, borderRadius: '50%', cursor: 'pointer' }}><i className="fa-solid fa-xmark" /></button>
+            </div>
+            <h4 style={{ margin: '0 0 10px', color: 'var(--primary-cat)' }}><i className="fa-regular fa-clock" /> Horário de Funcionamento</h4>
+            <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 12, padding: '8px 16px', marginBottom: 20, fontSize: '0.9rem' }}>
+              {['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sab'].map((d) => {
+                const h = getStoreHorario(config, store, d);
+                return <div key={d} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}><span style={{ color: 'var(--text-muted)' }}>{DIAS_NOME[d]}</span>{h.ativo ? <span style={{ fontWeight: 600 }}>{h.inicio} às {h.fim}</span> : <span style={{ color: '#ef4444', fontSize: '0.8rem', fontWeight: 600 }}>Fechado</span>}</div>;
+              })}
+            </div>
+            <h4 style={{ margin: '0 0 10px', color: 'var(--primary-cat)' }}><i className="fa-solid fa-credit-card" /> Formas de Pagamento</h4>
+            <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 12, padding: 12, fontSize: '0.9rem', display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              <span style={{ background: 'rgba(59,130,246,0.1)', color: '#60a5fa', border: '1px solid rgba(59,130,246,0.2)', padding: '4px 8px', borderRadius: 6, fontSize: '0.8rem' }}><i className="fa-solid fa-money-bill" /> Na Entrega/Retirada</span>
+              {data.pixKey && <span style={{ background: 'rgba(16,185,129,0.1)', color: '#4ade80', border: '1px solid rgba(16,185,129,0.2)', padding: '4px 8px', borderRadius: 6, fontSize: '0.8rem' }}><i className="fa-brands fa-pix" /> PIX</span>}
+              {data.isMpActive && <span style={{ background: 'rgba(99,102,241,0.1)', color: '#818cf8', border: '1px solid rgba(99,102,241,0.2)', padding: '4px 8px', borderRadius: 6, fontSize: '0.8rem' }}><i className="fa-solid fa-credit-card" /> Mercado Pago</span>}
             </div>
           </div>
         </div>
