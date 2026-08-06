@@ -11,6 +11,7 @@ import { Instances } from './pages/Instances';
 import { Leads } from './pages/Leads/Leads';
 import { CatalogSettings } from './pages/Configuration/CatalogSettings';
 import { Stores } from './pages/Stores';
+import { Campaigns } from './pages/Campaigns/Campaigns';
 
 function Protected() {
   const { user, loading } = useAuth();
@@ -55,6 +56,7 @@ export function App() {
             <Route path="/instances" element={<Instances />} />
             <Route path="/catalog-settings" element={<CatalogSettings />} />
             <Route path="/mercado-pago" element={<MercadoPago />} />
+            <Route path="/campaigns" element={<Campaigns />} />
           </Route>
           <Route path="/" element={<Root />} />
           <Route path="*" element={<Navigate to="/" replace />} />
