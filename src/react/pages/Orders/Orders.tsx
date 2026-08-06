@@ -212,7 +212,9 @@ export function Orders() {
             </tbody>
           </table>
         </div>
-        <Pagination page={page} totalPages={totalPages} total={total} perPage={perPage} onChange={setPage} label="pedidos" />
+        <div style={{ padding: '0 1.25rem 0.75rem' }}>
+          <Pagination page={page} totalPages={totalPages} total={total} perPage={perPage} onChange={setPage} label="pedidos" />
+        </div>
       </div>
       )}
 
