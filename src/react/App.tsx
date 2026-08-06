@@ -14,6 +14,7 @@ import { Stores } from './pages/Stores';
 import { Campaigns } from './pages/Campaigns/Campaigns';
 import { Schedule } from './pages/Schedule/Schedule';
 import { ScheduleClients } from './pages/Schedule/ScheduleClients';
+import { Catalog } from './pages/Catalog/Catalog';
 
 function Protected() {
   const { user, loading } = useAuth();
@@ -47,6 +48,9 @@ export function App() {
     <AuthProvider>
       <BrowserRouter>
         <Routes>
+          {/* Rotas públicas (sem login) */}
+          <Route path="/catalog/:storeId" element={<Catalog />} />
+
           <Route path="/login" element={<LoginRoute />} />
           <Route element={<Protected />}>
             <Route path="/dashboard" element={<Dashboard />} />
