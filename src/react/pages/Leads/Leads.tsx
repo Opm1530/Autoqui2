@@ -15,6 +15,7 @@ export function Leads() {
   const [leads, setLeads] = useState<any[]>([]);
   const [isOnlyCatalog, setIsOnlyCatalog] = useState(false);
   const [activeFilter, setActiveFilter] = useState('todos');
+  const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<any | null>(null);
 
   useEffect(() => {
@@ -53,7 +54,16 @@ export function Leads() {
     bloqueado: filterLeads(leads, 'bloqueado').length,
   }), [leads]);
 
-  const visible = useMemo(() => filterLeads(leads, activeFilter), [leads, activeFilter]);
+  const visible = useMemo(() => {
+    const base = filterLeads(leads, activeFilter);
+    const term = search.trim().toLowerCase();
+    if (!term) return base;
+    return base.filter((l) => {
+      const nome = (l.nome || '').toLowerCase();
+      const phone = (l.telefone || '').toLowerCase();
+      return nome.includes(term) || phone.includes(term);
+    });
+  }, [leads, activeFilter, search]);
 
   const FILTERS = [
     { key: 'todos', label: 'Todos', icon: '', count: counts.todos, always: true },
@@ -64,13 +74,18 @@ export function Leads() {
 
   return (
     <div>
-      <div className="leads-page-header">
+      <div className="leads-page-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
         <div className="leads-filter-bar">
           {FILTERS.filter((f) => f.always || !isOnlyCatalog).map((f) => (
             <button key={f.key} className={'filter-btn' + (activeFilter === f.key ? ' active' : '')} onClick={() => setActiveFilter(f.key)}>
               {f.icon && <i className={`fa-solid ${f.icon}`} />} {f.label} <span className="filter-count">{f.count}</span>
             </button>
           ))}
+        </div>
+        <div style={{ position: 'relative', flex: '1 1 240px', maxWidth: 320 }}>
+          <i className="fa-solid fa-search" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)' }} />
+          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar por nome ou telefone..."
+            style={{ width: '100%', padding: '10px 10px 10px 35px', background: 'var(--surface-hover)', border: '1px solid var(--border-color)', borderRadius: 12, color: 'white', outline: 'none' }} />
         </div>
       </div>
 

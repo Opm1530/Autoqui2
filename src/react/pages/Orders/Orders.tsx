@@ -19,6 +19,7 @@ export function Orders() {
   const [leads, setLeads] = useState<any[]>([]);
   const [lojaConfigs, setLojaConfigs] = useState<any[]>([]);
   const [activeFilter, setActiveFilter] = useState('todos');
+  const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<any | null>(null);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
@@ -65,11 +66,22 @@ export function Orders() {
   const leadPhone = (o: any) => (o.clientPhone || lead(o.leadId)?.telefone || '').split('@')[0];
 
   const visible = useMemo(() => {
-    if (activeFilter === 'arquivados') return orders.filter(isOrderArchived);
-    const base = orders.filter((o) => !isOrderArchived(o) && !isPendingPayment(o));
-    if (activeFilter === 'todos') return base;
-    return base.filter((o) => (o.status || 'em_montagem').toLowerCase() === activeFilter);
-  }, [orders, activeFilter]);
+    let base: any[];
+    if (activeFilter === 'arquivados') base = orders.filter(isOrderArchived);
+    else {
+      base = orders.filter((o) => !isOrderArchived(o) && !isPendingPayment(o));
+      if (activeFilter !== 'todos') base = base.filter((o) => (o.status || 'em_montagem').toLowerCase() === activeFilter);
+    }
+    const term = search.trim().toLowerCase();
+    if (!term) return base;
+    return base.filter((o) => {
+      const nome = leadName(o.leadId, o.nome || o.leadName).toLowerCase();
+      const phone = leadPhone(o).toLowerCase();
+      const id = (o.id || '').slice(-6).toLowerCase();
+      return nome.includes(term) || phone.includes(term) || id.includes(term);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orders, activeFilter, search, leads]);
 
   const count = (key: string) => {
     if (key === 'arquivados') return orders.filter(isOrderArchived).length;
@@ -99,7 +111,7 @@ export function Orders() {
   return (
     <div>
       {/* Filtros */}
-      <div className="leads-page-header">
+      <div className="leads-page-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
         <div className="leads-filter-bar">
           {FILTERS.filter((f) => f.key === 'todos' || f.key === 'arquivados' || count(f.key) > 0).map((f) => (
             <button key={f.key} className={'filter-btn' + (activeFilter === f.key ? ' active' : '')} onClick={() => setActiveFilter(f.key)}>
@@ -107,6 +119,11 @@ export function Orders() {
               {f.key !== 'arquivados' && <span className="filter-count">{count(f.key)}</span>}
             </button>
           ))}
+        </div>
+        <div style={{ position: 'relative', flex: '1 1 240px', maxWidth: 320 }}>
+          <i className="fa-solid fa-search" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)' }} />
+          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar por cliente, telefone ou #pedido..."
+            style={{ width: '100%', padding: '10px 10px 10px 35px', background: 'var(--surface-hover)', border: '1px solid var(--border-color)', borderRadius: 12, color: 'white', outline: 'none' }} />
         </div>
       </div>
 
