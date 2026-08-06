@@ -12,17 +12,6 @@ import { Leads } from './pages/Leads/Leads';
 import { CatalogSettings } from './pages/Configuration/CatalogSettings';
 import { Stores } from './pages/Stores';
 
-// Placeholder para páginas ainda não migradas.
-function EmBreve({ nome }: { nome: string }) {
-  return (
-    <div className="card glass" style={{ padding: '2.5rem', textAlign: 'center' }}>
-      <i className="fa-solid fa-screwdriver-wrench" style={{ fontSize: '2rem', color: 'var(--primary)' }} />
-      <h3 style={{ marginTop: '1rem' }}>{nome}</h3>
-      <p style={{ color: 'var(--text-muted)' }}>Esta página ainda será migrada para a nova interface.</p>
-    </div>
-  );
-}
-
 function Protected() {
   const { user, loading } = useAuth();
   if (loading) {
