@@ -4,6 +4,7 @@ import { authService } from '../../services/auth';
 import { toast } from '../../services/toast';
 import { confirm } from '../../services/confirm';
 import { useAuth } from '../useAuth';
+import { SkeletonTable } from '../components/Skeleton';
 
 interface Employee {
   id: string;
@@ -70,9 +71,7 @@ export function Users() {
     setModalOpen(false); setEditing(null);
   }
 
-  if (loading) {
-    return <div style={{ display: 'flex', justifyContent: 'center', padding: '3rem' }}><i className="fa-solid fa-spinner fa-spin fa-2x" style={{ color: 'var(--primary)' }} /></div>;
-  }
+  if (loading) return <SkeletonTable rows={6} cols={6} />;
   if (!companyId) return <p>Erro: Usuário sem empresa associada.</p>;
 
   return (

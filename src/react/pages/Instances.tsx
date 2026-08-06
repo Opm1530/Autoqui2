@@ -4,6 +4,7 @@ import { evolutionApi } from '../../services/evolutionApi';
 import { toast } from '../../services/toast';
 import { confirm } from '../../services/confirm';
 import { useAuth } from '../useAuth';
+import { SkeletonCards } from '../components/Skeleton';
 
 interface Instance {
   id: string;
@@ -171,9 +172,7 @@ export function Instances() {
     } finally { setCreating(false); }
   }
 
-  if (loading) {
-    return <div style={{ display: 'flex', justifyContent: 'center', padding: '3rem' }}><i className="fa-solid fa-spinner fa-spin fa-2x" style={{ color: 'var(--primary)' }} /></div>;
-  }
+  if (loading) return <SkeletonCards count={3} lines={3} />;
   if (!companyId) return <p>Acesso negado.</p>;
 
   const atLimit = instances.length >= limit;

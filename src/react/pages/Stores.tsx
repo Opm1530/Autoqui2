@@ -3,6 +3,7 @@ import { dbService } from '../../services/db';
 import { toast } from '../../services/toast';
 import { confirm } from '../../services/confirm';
 import { useAuth } from '../useAuth';
+import { SkeletonCards } from '../components/Skeleton';
 
 export function Stores() {
   const { user } = useAuth();
@@ -41,7 +42,7 @@ export function Stores() {
     persist(stores.map((x) => (x.id === s.id ? { ...x, frete_ativo: novo } : x)), `Frete da loja atualizado para ${novo ? 'ativo' : 'inativo'}.`);
   }
 
-  if (loading) return <div style={{ display: 'flex', justifyContent: 'center', padding: '3rem' }}><i className="fa-solid fa-spinner fa-spin fa-2x" style={{ color: 'var(--primary)' }} /></div>;
+  if (loading) return <SkeletonCards count={4} lines={2} />;
   if (!companyId) return <p>Erro: Usuário sem empresa associada.</p>;
 
   return (

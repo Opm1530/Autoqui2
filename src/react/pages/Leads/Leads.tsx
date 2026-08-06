@@ -3,6 +3,8 @@ import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { db } from '../../../firebase/config';
 import { dbService } from '../../../services/db';
 import { useAuth } from '../../useAuth';
+import { usePagination, Pagination } from '../../components/Pagination';
+import { SkeletonTable } from '../../components/Skeleton';
 import { LeadStatusBadge, AtendimentoBadge, formatDate, normAtend, filterLeads } from './helpers';
 import { LeadModal } from './LeadModal';
 
@@ -17,6 +19,7 @@ export function Leads() {
   const [activeFilter, setActiveFilter] = useState('todos');
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<any | null>(null);
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     if (!companyId) return;
@@ -34,6 +37,7 @@ export function Leads() {
       let list = snap.docs.map((d) => ({ id: d.id, ...d.data() })) as any[];
       if (!isOwner) list = list.filter((l) => l.lojaId && userStoreIds.includes(l.lojaId));
       setLeads(list);
+      setLoaded(true);
     });
     return unsub;
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -65,6 +69,8 @@ export function Leads() {
     });
   }, [leads, activeFilter, search]);
 
+  const { page, setPage, totalPages, pageItems, total, perPage } = usePagination(visible, 20, `${activeFilter}|${search}`);
+
   const FILTERS = [
     { key: 'todos', label: 'Todos', icon: '', count: counts.todos, always: true },
     { key: 'bot', label: 'Bot', icon: 'fa-robot', count: counts.bot, always: false },
@@ -89,6 +95,7 @@ export function Leads() {
         </div>
       </div>
 
+      {!loaded ? <SkeletonTable rows={8} cols={isOnlyCatalog ? 3 : 4} /> : (
       <div className="card leads-card">
         <div className="table-container">
           <table className="data-table">
@@ -101,9 +108,9 @@ export function Leads() {
               </tr>
             </thead>
             <tbody>
-              {visible.length === 0 ? (
+              {total === 0 ? (
                 <tr><td colSpan={isOnlyCatalog ? 3 : 4} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>Nenhum lead encontrado.</td></tr>
-              ) : visible.map((lead) => {
+              ) : pageItems.map((lead) => {
                 const statusLead = (lead.statusLead || 'novo').toLowerCase();
                 const statusAtend = normAtend((lead.statusAtendimento || 'bot').toLowerCase());
                 const phone = (lead.telefone || '').split('@')[0];
@@ -127,7 +134,9 @@ export function Leads() {
             </tbody>
           </table>
         </div>
+        <Pagination page={page} totalPages={totalPages} total={total} perPage={perPage} onChange={setPage} label="leads" />
       </div>
+      )}
 
       {selected && (
         <LeadModal lead={selected} isOnlyCatalog={isOnlyCatalog}

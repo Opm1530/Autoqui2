@@ -4,6 +4,8 @@ import { db } from '../../../firebase/config';
 import { dbService } from '../../../services/db';
 import { toast } from '../../../services/toast';
 import { useAuth } from '../../useAuth';
+import { usePagination, Pagination } from '../../components/Pagination';
+import { SkeletonTable } from '../../components/Skeleton';
 import { OrderModal } from './OrderModal';
 import {
   StatusBadge, DeliveryBadge, PaymentBadge, relativeDate,
@@ -22,6 +24,7 @@ export function Orders() {
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<any | null>(null);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [loaded, setLoaded] = useState(false);
 
   const toggleExpanded = (id: string) => setExpanded((prev) => {
     const next = new Set(prev);
@@ -56,6 +59,7 @@ export function Orders() {
         return tb - ta;
       });
       setOrders(list);
+      setLoaded(true);
     });
     return unsub;
   }, [companyId]);
@@ -82,6 +86,8 @@ export function Orders() {
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orders, activeFilter, search, leads]);
+
+  const { page, setPage, totalPages, pageItems, total, perPage } = usePagination(visible, 20, `${activeFilter}|${search}`);
 
   const count = (key: string) => {
     if (key === 'arquivados') return orders.filter(isOrderArchived).length;
@@ -154,6 +160,7 @@ export function Orders() {
       )}
 
       {/* Tabela */}
+      {!loaded ? <SkeletonTable rows={8} cols={6} /> : (
       <div className="card leads-card">
         <div className="table-container">
           <table className="data-table">
@@ -161,9 +168,9 @@ export function Orders() {
               <tr><th>TAG</th><th>Loja</th><th>Cliente</th><th>Total</th><th>Status</th><th>Data/Hora</th></tr>
             </thead>
             <tbody>
-              {visible.length === 0 ? (
+              {total === 0 ? (
                 <tr><td colSpan={6} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>Nenhum pedido encontrado.</td></tr>
-              ) : visible.map((order) => {
+              ) : pageItems.map((order) => {
                 const status = (order.status || 'em_montagem').toLowerCase();
                 const nome = leadName(order.leadId, order.nome || order.leadName);
                 return (
@@ -205,7 +212,9 @@ export function Orders() {
             </tbody>
           </table>
         </div>
+        <Pagination page={page} totalPages={totalPages} total={total} perPage={perPage} onChange={setPage} label="pedidos" />
       </div>
+      )}
 
       {selected && (
         <OrderModal

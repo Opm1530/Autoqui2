@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { dbService } from '../../../services/db';
 import { toast } from '../../../services/toast';
 import { useAuth } from '../../useAuth';
+import { SkeletonCards } from '../../components/Skeleton';
 import { Appearance } from './Appearance';
 import { Schedules } from './Schedules';
 import { Messages } from './Messages';
@@ -85,7 +86,7 @@ export function CatalogSettings() {
     }
   }
 
-  if (loading) return <div style={{ display: 'flex', justifyContent: 'center', padding: '3rem' }}><i className="fa-solid fa-spinner fa-spin fa-2x" style={{ color: 'var(--primary)' }} /></div>;
+  if (loading) return <SkeletonCards count={3} lines={4} />;
   if (!companyId) return <p>Acesso negado.</p>;
   if (stores.length === 0) return <p style={{ padding: '2rem' }}>Nenhuma loja disponível para configuração.</p>;
 

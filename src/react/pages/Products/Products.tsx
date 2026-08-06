@@ -6,6 +6,8 @@ import { productsApi } from '../../../services/productsApi';
 import { toast } from '../../../services/toast';
 import { confirm } from '../../../services/confirm';
 import { useAuth } from '../../useAuth';
+import { usePagination, Pagination } from '../../components/Pagination';
+import { SkeletonTable } from '../../components/Skeleton';
 import { getProductImageUrl } from './helpers';
 import type { Product, Category, Combo } from './helpers';
 import { ProductModal } from './ProductModal';
@@ -88,6 +90,8 @@ export function Products() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [products, storeFilter, search, catFilter]);
 
+  const { page, setPage, totalPages, pageItems, total, perPage } = usePagination(filtered, 20, `${storeFilter}|${search}|${catFilter}`);
+
   const catalogLink = (storeFilter !== 'all' && storeFilter !== 'employee_all')
     ? `${window.location.origin}/catalog/${storeFilter}` : null;
 
@@ -145,9 +149,7 @@ export function Products() {
   // Categorias usadas no filtro (inclui "uncategorized" só se houver)
   const inputBase: React.CSSProperties = { padding: 10, background: 'var(--surface-hover)', border: '1px solid var(--border-color)', borderRadius: 12, color: 'white', outline: 'none' };
 
-  if (loading) {
-    return <div style={{ display: 'flex', justifyContent: 'center', padding: '3rem' }}><i className="fa-solid fa-spinner fa-spin fa-2x" style={{ color: 'var(--primary)' }} /></div>;
-  }
+  if (loading) return <SkeletonTable rows={8} cols={7} />;
   if (!enabled) {
     return (
       <div className="card">
@@ -245,9 +247,9 @@ export function Products() {
               </tr>
             </thead>
             <tbody>
-              {filtered.length === 0 ? (
+              {total === 0 ? (
                 <tr><td colSpan={7} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>Nenhum {labelSingular.toLowerCase()} encontrado.</td></tr>
-              ) : filtered.map((p) => {
+              ) : pageItems.map((p) => {
                 const img = getProductImageUrl(p);
                 return (
                   <tr key={p.id} onClick={() => { setEditProduct(p); setShowProductModal(true); }} style={{ cursor: 'pointer' }}>
@@ -285,6 +287,7 @@ export function Products() {
             </tbody>
           </table>
         </div>
+        <Pagination page={page} totalPages={totalPages} total={total} perPage={perPage} onChange={setPage} label={labelPlural.toLowerCase()} />
       </div>
 
       {showProductModal && (
