@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { dbService } from '../../services/db';
+import { adminApi } from '../../services/adminApi';
 import { toast } from '../../services/toast';
 import { confirm } from '../../services/confirm';
 import { useAuth } from '../useAuth';
@@ -24,10 +25,10 @@ export function Stores() {
 
   async function persist(updated: any[], msg: string) {
     try {
-      await dbService.update('companies', companyId, { stores: updated });
+      await adminApi.setCompanyStores(updated);
       setStores(updated);
       toast.success(msg);
-    } catch (e) { toast.error('Erro ao atualizar: ' + e); }
+    } catch (e: any) { toast.error('Erro ao atualizar: ' + (e.message || e)); }
   }
 
   async function toggleStatus(s: any) {

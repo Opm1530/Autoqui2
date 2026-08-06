@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { dbService } from '../../../services/db';
+import { adminApi } from '../../../services/adminApi';
 import { toast } from '../../../services/toast';
 
 const FIELDS = [
@@ -23,9 +24,9 @@ export function Webhooks() {
     e.preventDefault();
     setSaving(true);
     try {
-      await dbService.set('settings', 'webhooks', { ...values, updatedAt: new Date() });
+      await adminApi.saveWebhooks(values);
       toast.success('Webhooks atualizados com sucesso!');
-    } catch { toast.error('Erro ao salvar configurações.'); }
+    } catch (err: any) { toast.error('Erro ao salvar: ' + (err.message || err)); }
     finally { setSaving(false); }
   }
 

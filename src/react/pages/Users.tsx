@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { dbService } from '../../services/db';
-import { authService } from '../../services/auth';
+import { adminApi } from '../../services/adminApi';
 import { toast } from '../../services/toast';
 import { confirm } from '../../services/confirm';
 import { useAuth } from '../useAuth';
@@ -50,20 +50,20 @@ export function Users() {
   async function toggleStatus(u: Employee) {
     const cur = u.active !== false;
     try {
-      await dbService.update('users', u.id, { active: !cur });
+      await adminApi.setUserActive(u.id, !cur);
       setTeam((prev) => prev.map((x) => (x.id === u.id ? { ...x, active: !cur } : x)));
       toast.success(`Colaborador ${!cur ? 'ativado' : 'desativado'} com sucesso!`);
-    } catch (e) { toast.error('Erro ao atualizar status: ' + e); }
+    } catch (e: any) { toast.error('Erro ao atualizar status: ' + (e.message || e)); }
   }
 
   async function remove(u: Employee) {
     const ok = await confirm.danger('Excluir Colaborador', 'Tem certeza que deseja EXCLUIR este colaborador? Esta ação não pode ser desfeita.');
     if (!ok) return;
     try {
-      await dbService.delete('users', u.id);
+      await adminApi.deleteUser(u.id);
       setTeam((prev) => prev.filter((x) => x.id !== u.id));
       toast.success('Colaborador excluído com sucesso!');
-    } catch (e) { toast.error('Erro ao excluir: ' + e); }
+    } catch (e: any) { toast.error('Erro ao excluir: ' + (e.message || e)); }
   }
 
   function onSaved(emp: Employee, isNew: boolean) {
@@ -115,15 +115,15 @@ export function Users() {
       </div>
 
       {modalOpen && (
-        <EmployeeModal companyId={companyId} stores={stores} editing={editing}
+        <EmployeeModal stores={stores} editing={editing}
           onClose={() => { setModalOpen(false); setEditing(null); }} onSaved={onSaved} />
       )}
     </div>
   );
 }
 
-function EmployeeModal({ companyId, stores, editing, onClose, onSaved }: {
-  companyId: string; stores: any[]; editing: Employee | null; onClose: () => void; onSaved: (e: Employee, isNew: boolean) => void;
+function EmployeeModal({ stores, editing, onClose, onSaved }: {
+  stores: any[]; editing: Employee | null; onClose: () => void; onSaved: (e: Employee, isNew: boolean) => void;
 }) {
   const isEdit = !!editing;
   const [name, setName] = useState(editing?.name || '');
@@ -141,16 +141,13 @@ function EmployeeModal({ companyId, stores, editing, onClose, onSaved }: {
     setSaving(true);
     try {
       if (isEdit && editing) {
-        const updates = { name, storeIds };
-        await dbService.update('users', editing.id, updates);
+        await adminApi.updateUser(editing.id, { name, storeIds });
         toast.success('Colaborador atualizado com sucesso!');
-        onSaved({ ...editing, ...updates }, false);
+        onSaved({ ...editing, name, storeIds }, false);
       } else {
-        const uid = await authService.registerUser(email, password);
-        const userData: any = { uid, name, email, role: 'employee', companyId, storeIds, active: true, permissions: ['orders', 'products'] };
-        await dbService.set('users', uid, userData);
+        const { id } = await adminApi.createEmployee({ name, email, password, storeIds });
         toast.success('Colaborador adicionado com sucesso!');
-        onSaved({ id: uid, ...userData }, true);
+        onSaved({ id, name, email, role: 'employee', storeIds, active: true }, true);
       }
     } catch (err: any) {
       toast.error('Erro: ' + (err.message || err));

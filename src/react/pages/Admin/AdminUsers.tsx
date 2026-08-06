@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { dbService } from '../../../services/db';
+import { adminApi } from '../../../services/adminApi';
 import { toast } from '../../../services/toast';
 import { SkeletonTable } from '../../components/Skeleton';
 
@@ -19,11 +20,11 @@ export function AdminUsers() {
     if (!editing) return;
     setSaving(true);
     try {
-      await dbService.update('users', editing.id, { name });
+      await adminApi.updateUser(editing.id, { name });
       setUsers((prev) => prev.map((u) => (u.id === editing.id ? { ...u, name } : u)));
       toast.success('Usuário atualizado com sucesso!');
       setEditing(null);
-    } catch (err) { toast.error('Erro ao atualizar: ' + err); }
+    } catch (err: any) { toast.error('Erro ao atualizar: ' + (err.message || err)); }
     finally { setSaving(false); }
   }
 

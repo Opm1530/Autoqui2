@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { dbService } from '../../../services/db';
-import { authService } from '../../../services/auth';
+import { adminApi } from '../../../services/adminApi';
 import { toast } from '../../../services/toast';
 import { confirm } from '../../../services/confirm';
 import { SkeletonTable } from '../../components/Skeleton';
@@ -44,10 +44,10 @@ export function Companies() {
     const ok = await confirm.warning(`${action.charAt(0).toUpperCase() + action.slice(1)} Cliente`, msg);
     if (!ok) return;
     try {
-      await dbService.update('companies', c.id, { status: newStatus });
+      await adminApi.toggleCompanyStatus(c.id, newStatus);
       setCompanies((prev) => prev.map((x) => (x.id === c.id ? { ...x, status: newStatus } : x)));
       toast.success(`Cliente ${newStatus === 'inactive' ? 'desativado' : 'ativado'} com sucesso!`);
-    } catch (err) { toast.error('Erro ao atualizar status: ' + err); }
+    } catch (err: any) { toast.error('Erro ao atualizar status: ' + (err.message || err)); }
   }
 
   function onSaved(c: any, isNew: boolean) {
@@ -125,20 +125,17 @@ function CompanyModal({ editing, onClose, onSaved }: { editing: any | null; onCl
 
     setSaving(true);
     try {
+      const data = { name, stores: validStores, limite_instancias: parseInt(limit) || 1, modulos_ativos: modules };
       if (isEdit) {
-        const updates = { name, stores: validStores, limite_instancias: parseInt(limit) || 1, modulos_ativos: modules };
-        await dbService.update('companies', editing.id, updates);
+        await adminApi.saveCompany(data, editing.id);
         toast.success('Cliente atualizado com sucesso!');
-        onSaved({ id: editing.id, ...editing, ...updates }, false);
+        onSaved({ id: editing.id, ...editing, ...data }, false);
       } else {
-        const ownerUid = await authService.registerUser(email, password);
-        const companyData: any = { name, stores: validStores, limite_instancias: parseInt(limit) || 1, status: 'active', ownerId: ownerUid, modulos_ativos: modules, metrics: { totalMessages: 0, totalPayments: 0 } };
-        const companyId = await dbService.create('companies', companyData);
-        await dbService.set('users', ownerUid, { uid: ownerUid, email, role: 'owner', companyId });
+        const { id } = await adminApi.saveCompany(data, undefined, { email, password });
         toast.success('Cliente criado com sucesso!');
-        onSaved({ id: companyId, ...companyData }, true);
+        onSaved({ id, ...data, status: 'active', metrics: { totalMessages: 0, totalPayments: 0 } }, true);
       }
-    } catch (err) { toast.error('Erro: ' + err); setSaving(false); }
+    } catch (err: any) { toast.error('Erro: ' + (err.message || err)); setSaving(false); }
   }
 
   return (

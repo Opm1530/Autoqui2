@@ -10,6 +10,10 @@ import {
 } from './orders.js';
 import { saveProduct, deleteProduct, updateProductFields } from './products.js';
 import { connectMp, disconnectMp, mpStatus } from './mercadopago.js';
+import {
+  saveCompany, toggleCompanyStatus, setCompanyStores,
+  createEmployee, updateUser, setUserActive, deleteUser, saveWebhooks,
+} from './admin.js';
 import { getDoc } from './firebase.js';
 
 // Empresa do usuário logado (a partir do doc users/{uid}).
@@ -176,6 +180,23 @@ app.post('/api/products/update-fields', requireAuth, async (req, res) => {
     res.status(400).json({ error: err?.message || 'erro' });
   }
 });
+
+// ── Clientes (companies) / Usuários / Settings — grupo 1 (server-side) ──
+const wrap = (fn: (req: any) => Promise<any>) => async (req: any, res: any) => {
+  try { res.json(await fn(req)); }
+  catch (err: any) { console.warn(`[admin] recusado: ${err?.message}`); res.status(400).json({ error: err?.message || 'erro' }); }
+};
+
+app.post('/api/companies/save', requireAuth, wrap((req) => saveCompany(req.uid, { id: req.body?.id, data: req.body?.data, owner: req.body?.owner })));
+app.post('/api/companies/toggle-status', requireAuth, wrap((req) => toggleCompanyStatus(req.uid, String(req.body?.id), String(req.body?.status))));
+app.post('/api/companies/set-stores', requireAuth, wrap((req) => setCompanyStores(req.uid, req.body?.companyId, req.body?.stores)));
+
+app.post('/api/users/create-employee', requireAuth, wrap((req) => createEmployee(req.uid, req.body || {})));
+app.post('/api/users/update', requireAuth, wrap((req) => updateUser(req.uid, String(req.body?.id), req.body?.fields || {})));
+app.post('/api/users/set-active', requireAuth, wrap((req) => setUserActive(req.uid, String(req.body?.id), !!req.body?.active)));
+app.post('/api/users/delete', requireAuth, wrap((req) => deleteUser(req.uid, String(req.body?.id))));
+
+app.post('/api/settings/webhooks', requireAuth, wrap((req) => saveWebhooks(req.uid, req.body?.data || {})));
 
 // ── Conectar/gerenciar Mercado Pago (autenticado; token vai pro secrets) ──
 app.get('/api/mp/status', requireAuth, async (req, res) => {
