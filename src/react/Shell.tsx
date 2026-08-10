@@ -5,6 +5,8 @@ import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { authService } from '../services/auth';
 import { dbService } from '../services/db';
 import { orderNotification } from '../services/orderNotification';
+import { subscriptionApi } from '../services/subscriptionApi';
+import { Billing } from './pages/Billing';
 import { useAuth } from './useAuth';
 
 interface NavItem { to: string; label: string; icon: string; }
@@ -18,12 +20,14 @@ const TITLES: Record<string, string> = {
   '/schedule': 'Agenda', '/schedule-clients': 'Clientes',
   '/admin/dashboard': 'Dashboard', '/admin/companies': 'Clientes',
   '/admin/users': 'Usuários', '/admin/webhooks': 'Webhooks', '/admin/migration': 'Migração',
+  '/admin/plans': 'Planos', '/billing': 'Assinatura',
 };
 
 const ADMIN_NAV: NavEntry[] = [
   { to: '/admin/dashboard', label: 'Dashboard', icon: 'fa-chart-line' },
   { to: '/admin/companies', label: 'Clientes', icon: 'fa-building' },
   { to: '/admin/users', label: 'Usuários', icon: 'fa-users' },
+  { to: '/admin/plans', label: 'Planos', icon: 'fa-tags' },
   { to: '/admin/webhooks', label: 'Webhooks', icon: 'fa-link' },
   { to: '/admin/migration', label: 'Migração', icon: 'fa-clone' },
 ];
@@ -52,6 +56,7 @@ function buildNav(role: string | undefined, modulos: string[]): NavEntry[] {
     nav.push({ to: '/instances', label: 'Instâncias', icon: 'fa-brands fa-whatsapp' });
     nav.push({ to: '/catalog-settings', label: 'Configuração', icon: 'fa-sliders' });
     nav.push({ to: '/mercado-pago', label: 'Mercado Pago', icon: 'fa-credit-card' });
+    nav.push({ to: '/billing', label: 'Assinatura', icon: 'fa-receipt' });
     return nav;
   }
 
@@ -76,6 +81,7 @@ function buildNav(role: string | undefined, modulos: string[]): NavEntry[] {
   nav.push({ to: '/instances', label: 'Instâncias', icon: 'fa-brands fa-whatsapp' });
   nav.push({ to: '/catalog-settings', label: 'Configuração', icon: 'fa-sliders' });
   nav.push({ to: '/mercado-pago', label: 'Mercado Pago', icon: 'fa-credit-card' });
+  nav.push({ to: '/billing', label: 'Assinatura', icon: 'fa-receipt' });
   return nav;
 }
 
@@ -111,10 +117,33 @@ export function Shell() {
     return () => orderNotification.stopListening();
   }, []);
 
+  // Parede de cobrança: bloqueia o painel se a assinatura estiver inadimplente
+  // além da tolerância. Fail-open (erro/backend fora → não bloqueia).
+  const [blocked, setBlocked] = useState(false);
+  useEffect(() => {
+    if (!user || user.role === 'admin') return;
+    subscriptionApi.mine().then((r) => setBlocked(!!r.bloqueada)).catch(() => {});
+  }, [user]);
+
   const title = TITLES[location.pathname] || 'Painel';
   const nav = buildNav(user?.role, modulos || []);
   const mobile = mobileNav(nav);
   const isEmployee = user?.role === 'employee';
+
+  // Inadimplente além da tolerância → parede de cobrança (sem sidebar).
+  if (blocked) {
+    return (
+      <div className="app-container" style={{ display: 'block', minHeight: '100vh' }}>
+        <div className="topbar glass" style={{ justifyContent: 'space-between' }}>
+          <div className="topbar-left"><h2 className="page-title">Assinatura</h2></div>
+          <button className="logout-btn" title="Sair" onClick={() => authService.logout()}>
+            <span className="icon"><i style={{ color: '#FFF', fontSize: '1rem' }} className="fa-solid fa-arrow-right-from-bracket" /></span>
+          </button>
+        </div>
+        <div className="page-container"><Billing wall /></div>
+      </div>
+    );
+  }
 
   return (
     <div className="app-container">
