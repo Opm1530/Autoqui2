@@ -14,6 +14,11 @@ import {
   saveCompany, toggleCompanyStatus, setCompanyStores,
   createEmployee, updateUser, setUserActive, deleteUser, saveWebhooks,
 } from './admin.js';
+import {
+  connectPlatformMp, platformMpStatus, disconnectPlatformMp,
+  savePlan, deletePlan, subscribe, cancelSubscription, mySubscription,
+  handleSubscriptionWebhook,
+} from './subscriptions.js';
 import { getDoc } from './firebase.js';
 
 // Empresa do usuário logado (a partir do doc users/{uid}).
@@ -197,6 +202,25 @@ app.post('/api/users/set-active', requireAuth, wrap((req) => setUserActive(req.u
 app.post('/api/users/delete', requireAuth, wrap((req) => deleteUser(req.uid, String(req.body?.id))));
 
 app.post('/api/settings/webhooks', requireAuth, wrap((req) => saveWebhooks(req.uid, req.body?.data || {})));
+
+// ── Assinaturas (mensalidade dos clientes via MP da plataforma) ──
+app.post('/api/platform-mp/connect', requireAuth, wrap((req) => connectPlatformMp(req.uid, String(req.body?.accessToken || ''))));
+app.get('/api/platform-mp/status', requireAuth, wrap((req) => platformMpStatus(req.uid)));
+app.post('/api/platform-mp/disconnect', requireAuth, wrap((req) => disconnectPlatformMp(req.uid)));
+
+app.post('/api/plans/save', requireAuth, wrap((req) => savePlan(req.uid, req.body || {})));
+app.post('/api/plans/delete', requireAuth, wrap((req) => deletePlan(req.uid, String(req.body?.id))));
+
+app.post('/api/subscription/subscribe', requireAuth, wrap((req) => subscribe(req.uid, String(req.body?.planId))));
+app.post('/api/subscription/cancel', requireAuth, wrap((req) => cancelSubscription(req.uid, req.body?.companyId)));
+app.get('/api/subscription/mine', requireAuth, wrap((req) => mySubscription(req.uid)));
+
+// Webhook do MP para assinaturas (sem auth — o MP chama direto).
+app.post('/api/mp/subscription-webhook', async (req, res) => {
+  res.sendStatus(200);
+  try { await handleSubscriptionWebhook(req.body || {}); }
+  catch (err: any) { console.error('[sub-webhook] erro:', err?.message); }
+});
 
 // ── Conectar/gerenciar Mercado Pago (autenticado; token vai pro secrets) ──
 app.get('/api/mp/status', requireAuth, async (req, res) => {

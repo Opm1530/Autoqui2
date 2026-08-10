@@ -20,3 +20,6 @@ if (!EVOLUTION_API_KEY) {
 // URL pública do próprio backend — usada como notification_url do Mercado Pago
 // (é aqui que o MP avisa quando o pagamento é aprovado).
 export const PUBLIC_BASE_URL = process.env.PUBLIC_BASE_URL || 'https://api.autoqui.com.br';
+
+// URL do painel (usada como back_url do checkout de assinatura do Mercado Pago).
+export const PANEL_URL = process.env.PANEL_URL || 'https://autoqui.com.br';
