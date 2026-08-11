@@ -30,3 +30,9 @@ export const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || 'ginannymoreira@gmail.c
   .split(',')
   .map((e) => e.trim().toLowerCase())
   .filter(Boolean);
+
+// Segredo do webhook do Mercado Pago (Painel MP → Webhooks → "Assinatura secreta").
+// Se definido, o backend valida o header x-signature (HMAC-SHA256) e recusa
+// chamadas forjadas. Se vazio, mantém o comportamento antigo (só re-verifica na
+// API do MP) — assim não quebra em produção antes de você configurar o segredo.
+export const MP_WEBHOOK_SECRET = process.env.MP_WEBHOOK_SECRET || '';

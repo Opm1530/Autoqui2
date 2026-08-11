@@ -23,6 +23,7 @@ import {
 import { createDoc, updateDoc, deleteDoc } from './collections.js';
 import { loadUser } from './currentUser.js';
 import { assertInstanceOwner, assertCanCreate, shareQr, qrByToken, statusByToken } from './waInstances.js';
+import { rateLimit, verifyMpSignature } from './security.js';
 
 // Empresa do usuário logado (a partir do doc users/{uid}).
 async function companyOf(uid: string): Promise<string> {
@@ -33,6 +34,9 @@ async function companyOf(uid: string): Promise<string> {
 }
 
 const app = express();
+
+// Atrás do nginx/docker: confia no primeiro proxy para ler o IP real (X-Forwarded-For).
+app.set('trust proxy', 1);
 
 app.use(express.json({ limit: '256kb' }));
 app.use(
@@ -53,7 +57,7 @@ app.get('/health', (_req, res) => {
 // Notificação de novo pedido.
 // O cliente manda só { orderId }. O servidor lê o pedido no Firestore e resolve
 // instância, telefone e mensagem — nada disso vem do navegador.
-app.post('/api/notify-order', async (req, res) => {
+app.post('/api/notify-order', rateLimit(20, 60_000), async (req, res) => {
   const orderId = String(req.body?.orderId || '').trim();
   if (!orderId) return res.status(400).json({ error: 'orderId obrigatório' });
 
@@ -72,7 +76,10 @@ app.post('/api/notify-order', async (req, res) => {
 // Notificação de mudança de status (aceitar, pronto, saiu, finalizado, cancelado).
 // O painel manda { orderId, newStatus, prevStatus?, reason? }. O servidor lê o
 // pedido, monta a mensagem certa e envia pela Evolution.
-app.post('/api/notify-status', async (req, res) => {
+// VULN-006: mudança de status é ação do painel (autenticada). O fluxo real do
+// front já usa /api/orders/status; este fica protegido para não permitir a
+// qualquer um disparar mensagens de WhatsApp em nome de um pedido.
+app.post('/api/notify-status', requireAuth, async (req, res) => {
   const orderId = String(req.body?.orderId || '').trim();
   const newStatus = String(req.body?.newStatus || '').trim();
   const prevStatus = req.body?.prevStatus ? String(req.body.prevStatus) : undefined;
@@ -95,7 +102,7 @@ app.post('/api/notify-status', async (req, res) => {
 });
 
 // ── Criação de pedido do catálogo (público; preço recalculado no servidor) ──
-app.post('/api/orders', async (req, res) => {
+app.post('/api/orders', rateLimit(15, 60_000), async (req, res) => {
   const b = req.body || {};
   if (!b.storeId || !Array.isArray(b.cart) || !b.customer?.name || !b.customer?.phone) {
     return res.status(400).json({ error: 'dados_incompletos' });
@@ -138,7 +145,7 @@ app.post('/api/orders/archive', requireAuth, async (req, res) => {
 });
 
 // Anexar comprovante (PIX manual) — público (o cliente do catálogo não tem login).
-app.post('/api/orders/comprovante', async (req, res) => {
+app.post('/api/orders/comprovante', rateLimit(20, 60_000), async (req, res) => {
   const { orderId, comprovanteUrl } = req.body || {};
   if (!orderId || !comprovanteUrl) return res.status(400).json({ error: 'orderId e comprovanteUrl obrigatórios' });
   try {
@@ -230,6 +237,10 @@ app.post('/api/data/delete', requireAuth, wrap((req) => deleteDoc(req.uid, Strin
 
 // Webhook do MP para assinaturas (sem auth — o MP chama direto).
 app.post('/api/mp/subscription-webhook', async (req, res) => {
+  if (!verifyMpSignature(req)) {
+    console.warn('[sub-webhook] x-signature inválida — recusado');
+    return res.status(401).json({ error: 'invalid_signature' });
+  }
   res.sendStatus(200);
   try { await handleSubscriptionWebhook(req.body || {}); }
   catch (err: any) { console.error('[sub-webhook] erro:', err?.message); }
@@ -273,6 +284,10 @@ app.post('/api/mp/disconnect', requireAuth, async (req, res) => {
 // ── Webhook do Mercado Pago (público; o MP avisa quando o pagamento aprova) ──
 // Confere o status na fonte (API do MP), então não confia cegamente no corpo.
 app.post('/api/mp/webhook', async (req, res) => {
+  if (!verifyMpSignature(req)) {
+    console.warn('[mp-webhook] x-signature inválida — recusado');
+    return res.status(401).json({ error: 'invalid_signature' });
+  }
   // MP manda o id do pagamento no corpo (data.id) ou na query (?data.id= / ?id=).
   const paymentId = String(
     req.body?.data?.id || req.query['data.id'] || req.query['id'] || ''
@@ -297,8 +312,8 @@ app.post('/api/mp/webhook', async (req, res) => {
 
 // PÚBLICOS por TOKEN (a página /qr é sem login, mas o token não é adivinhável
 // como o nome e expira em 15 min). VULN-005.
-app.get('/api/wa/public-status/:token', wrap((req) => statusByToken(String(req.params.token))));
-app.get('/api/wa/public-qr/:token', wrap((req) => qrByToken(String(req.params.token))));
+app.get('/api/wa/public-status/:token', rateLimit(60, 60_000), wrap((req) => statusByToken(String(req.params.token))));
+app.get('/api/wa/public-qr/:token', rateLimit(60, 60_000), wrap((req) => qrByToken(String(req.params.token))));
 
 // Gera o link de QR compartilhável (dono/admin da instância). VULN-005.
 app.post('/api/wa/share-qr', requireAuth, wrap((req) => shareQr(req.uid, String(req.body?.instanceName || ''))));
