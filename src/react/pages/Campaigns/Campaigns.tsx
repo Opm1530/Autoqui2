@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Timestamp, collection, query, where, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { db } from '../../../firebase/config';
 import { dbService } from '../../../services/db';
+import { dataApi } from '../../../services/dataApi';
 import { toast } from '../../../services/toast';
 import { confirm } from '../../../services/confirm';
 import { useAuth } from '../../useAuth';
@@ -56,7 +57,7 @@ export function Campaigns() {
       </div>
 
       {tab === 'nova'
-        ? <NovaCampanha company={company} instances={instances} allLeads={allLeads} companyId={companyId} loaded={loaded} />
+        ? <NovaCampanha company={company} instances={instances} allLeads={allLeads} loaded={loaded} />
         : <Historico campaigns={campaigns} instances={instances} onDetail={setDetail} />}
 
       {detail && <DetailModal campaign={detail} onClose={() => setDetail(null)} />}
@@ -71,7 +72,7 @@ const VARS = [
 ];
 const PAGE_SIZE = 15;
 
-function NovaCampanha({ company, instances, allLeads, companyId, loaded }: { company: any; instances: any[]; allLeads: any[]; companyId: string; loaded: boolean }) {
+function NovaCampanha({ company, instances, allLeads, loaded }: { company: any; instances: any[]; allLeads: any[]; loaded: boolean }) {
   const [name, setName] = useState('');
   const [instanceId, setInstanceId] = useState('');
   const [search, setSearch] = useState('');
@@ -139,12 +140,12 @@ function NovaCampanha({ company, instances, allLeads, companyId, loaded }: { com
     if (!ok) return;
     setBusy(true);
     try {
-      await dbService.create('campanhas', {
-        cliente_id: companyId, instancia_id: instanceId,
+      await dataApi.create('campanhas', {
+        instancia_id: instanceId,
         nome: name.trim() || `Campanha MB ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`,
         mensagens: messages, total_leads: selected.size, lead_ids: Array.from(selected),
         enviados: 0, falhas: 0, status: 'agendada', agendamento_imediato: !isScheduled,
-        data_agendamento: Timestamp.fromDate(scheduledAt), data_inicio: null,
+        data_agendamento: scheduledAt.getTime(), data_inicio: null, // backend converte ms → Timestamp
         config: { delay_min: parseInt(delayMin || '20'), delay_max: parseInt(delayMax || '60') },
       });
       toast.success(isScheduled ? 'Campanha agendada com sucesso!' : 'Campanha criada! O disparo será iniciado em instantes.');
@@ -296,7 +297,7 @@ function Historico({ campaigns, instances, onDetail }: { campaigns: any[]; insta
   async function cancel(id: string) {
     const ok = await confirm.danger('Cancelar Campanha', 'Você tem certeza que deseja cancelar esta campanha? Ela será interrompida e nenhum outro envio será feito.');
     if (!ok) return;
-    try { await dbService.update('campanhas', id, { status: 'cancelada' }); toast.success('Campanha cancelada com sucesso.'); }
+    try { await dataApi.update('campanhas', id, { status: 'cancelada' }); toast.success('Campanha cancelada com sucesso.'); }
     catch { toast.error('Erro ao cancelar a campanha.'); }
   }
 

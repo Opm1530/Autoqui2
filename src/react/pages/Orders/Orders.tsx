@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { db } from '../../../firebase/config';
 import { dbService } from '../../../services/db';
+import { dataApi } from '../../../services/dataApi';
 import { toast } from '../../../services/toast';
 import { useAuth } from '../../useAuth';
 import { usePagination, Pagination } from '../../components/Pagination';
@@ -102,10 +103,10 @@ export function Orders() {
       const cfg = lojaConfigs.find((c) => c.lojaId === storeId);
       const novo = !current;
       if (cfg?.id) {
-        await dbService.update('loja_config', cfg.id, { [field]: novo });
+        await dataApi.update('loja_config', cfg.id, { [field]: novo });
         setLojaConfigs((prev) => prev.map((c) => (c.id === cfg.id ? { ...c, [field]: novo } : c)));
       } else {
-        const newId = await dbService.create('loja_config', { empresaId: companyId, lojaId: storeId, [field]: novo });
+        const { id: newId } = await dataApi.create('loja_config', { lojaId: storeId, [field]: novo });
         setLojaConfigs((prev) => [...prev, { id: newId, empresaId: companyId, lojaId: storeId, [field]: novo }]);
       }
       toast.success(field === 'lojaFechada' ? (novo ? 'Loja fechada' : 'Loja aberta') : (novo ? 'Entregas pausadas' : 'Entregas ativas'));

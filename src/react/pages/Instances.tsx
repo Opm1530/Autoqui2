@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { dbService } from '../../services/db';
+import { dataApi } from '../../services/dataApi';
 import { evolutionApi } from '../../services/evolutionApi';
 import { toast } from '../../services/toast';
 import { confirm } from '../../services/confirm';
@@ -57,7 +58,7 @@ export function Instances() {
         const apiStatus = await evolutionApi.getInstanceStatus(inst.nome);
         const cur = apiStatus.connected ? 'conectado' : 'desconectado';
         if (cur !== inst.status) {
-          await dbService.update('instancias', inst.id, { status: cur });
+          await dataApi.update('instancias', inst.id, { status: cur });
           setInstances((prev) => prev.map((x) => (x.id === inst.id ? { ...x, status: cur as any } : x)));
         }
       } catch (e) { console.error('Erro ao verificar status de', inst.nome, e); }
@@ -83,7 +84,7 @@ export function Instances() {
     if (!ok) return;
     try {
       await evolutionApi.deleteInstance(inst.nome);
-      await dbService.delete('instancias', inst.id);
+      await dataApi.remove('instancias', inst.id);
       setInstances((prev) => prev.filter((x) => x.id !== inst.id));
       toast.success('Instância excluída com sucesso.');
     } catch (e) { toast.error('Erro ao excluir instância: ' + e); }
@@ -96,7 +97,7 @@ export function Instances() {
       toast.info('Desconectando...');
       const success = await evolutionApi.logoutInstance(inst.nome);
       if (success) {
-        await dbService.update('instancias', inst.id, { status: 'desconectado' });
+        await dataApi.update('instancias', inst.id, { status: 'desconectado' });
         setInstances((prev) => prev.map((x) => (x.id === inst.id ? { ...x, status: 'desconectado' } : x)));
         toast.success('Desconectado com sucesso.');
       } else {
@@ -115,7 +116,7 @@ export function Instances() {
       setQrOpen(false);
       const inst = instances.find((i) => i.nome === name);
       if (inst) {
-        await dbService.update('instancias', inst.id, { status: 'conectado' });
+        await dataApi.update('instancias', inst.id, { status: 'conectado' });
         setInstances((prev) => prev.map((x) => (x.id === inst.id ? { ...x, status: 'conectado' } : x)));
       }
     };
@@ -162,7 +163,7 @@ export function Instances() {
       toast.info('Criando instância, aguarde...');
       await evolutionApi.createInstance(uniqueName);
       const newInstance: any = { empresaId: companyId, lojaId: null, nome: uniqueName, numero: null, status: 'desconectado', funcao: null, webhookUrl: null, upsert: false };
-      const id = await dbService.create('instancias', newInstance);
+      const { id } = await dataApi.create('instancias', newInstance);
       setInstances((prev) => [...prev, { id, ...newInstance, createdAt: { toDate: () => new Date() } }]);
       toast.success('Instância criada! Agora vincule-a a uma loja nas configurações.');
       setShowNew(false); setNewName('');

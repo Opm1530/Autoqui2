@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { dbService } from '../../../services/db';
+import { dataApi } from '../../../services/dataApi';
 import { toast } from '../../../services/toast';
 import { confirm } from '../../../services/confirm';
 import { useAuth } from '../../useAuth';
@@ -74,7 +75,7 @@ export function Schedule() {
 
   async function setStatus(id: string, status: Appointment['status'], msg: string) {
     try {
-      await dbService.update('agendamentos', id, { status });
+      await dataApi.update('agendamentos', id, { status });
       setAppointments((prev) => prev.map((a) => (a.id === id ? { ...a, status } : a)));
       toast.success(msg);
     } catch { toast.error('Erro ao atualizar.'); }
@@ -82,7 +83,7 @@ export function Schedule() {
   async function remove(id: string) {
     const ok = await confirm.danger('Excluir Agendamento', 'Deseja excluir este agendamento? Esta ação não pode ser desfeita.');
     if (!ok) return;
-    try { await dbService.delete('agendamentos', id); setAppointments((prev) => prev.filter((a) => a.id !== id)); toast.success('Agendamento excluído.'); }
+    try { await dataApi.remove('agendamentos', id); setAppointments((prev) => prev.filter((a) => a.id !== id)); toast.success('Agendamento excluído.'); }
     catch { toast.error('Erro ao excluir.'); }
   }
   function onSaved(appt: Appointment, isNew: boolean) {
@@ -290,8 +291,8 @@ function ApptModal({ companyId, services, clientes, editing, defaultDate, onClos
     };
     setSaving(true);
     try {
-      if (editing) { await dbService.update('agendamentos', editing.id, data); toast.success('Agendamento atualizado!'); onSaved({ id: editing.id, ...data }, false); }
-      else { const newId = (await dbService.create('agendamentos', data)) as string; toast.success('Agendamento criado com sucesso!'); onSaved({ id: newId, ...data }, true); }
+      if (editing) { await dataApi.update('agendamentos', editing.id, data); toast.success('Agendamento atualizado!'); onSaved({ id: editing.id, ...data }, false); }
+      else { const { id: newId } = await dataApi.create('agendamentos', data); toast.success('Agendamento criado com sucesso!'); onSaved({ id: newId, ...data }, true); }
     } catch (err) { toast.error('Erro ao salvar agendamento: ' + err); setSaving(false); }
   }
 

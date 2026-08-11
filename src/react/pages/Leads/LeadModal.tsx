@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Timestamp } from 'firebase/firestore';
-import { dbService } from '../../../services/db';
+import { dataApi } from '../../../services/dataApi';
 import { toast } from '../../../services/toast';
 import { confirm } from '../../../services/confirm';
 import { notifications } from '../../../services/notifications';
@@ -34,9 +33,8 @@ export function LeadModal({ lead, isOnlyCatalog, onClose, onUpdated }: Props) {
   async function update(fields: any, successMsg: string) {
     setBusy(true);
     try {
-      const updates = { ...fields, updatedAt: Timestamp.now() };
-      await dbService.update('leads', lead.id, updates);
-      const merged = { ...lead, ...updates };
+      await dataApi.update('leads', lead.id, fields);
+      const merged = { ...lead, ...fields, updatedAt: new Date() };
       toast.success(successMsg);
       onUpdated(merged);
     } catch {
@@ -155,10 +153,10 @@ function EditForm({ lead, onCancel, onUpdated, onClose }: { lead: any; onCancel:
     if (cleanPhone && cleanPhone.length !== 11) { notifications.showPhoneError(); return; }
     setSaving(true);
     try {
-      const updates = { nome: nome.trim(), telefone: cleanPhone, whatsapp: cleanPhone, endereco: endereco.trim(), updatedAt: Timestamp.now() };
-      await dbService.update('leads', lead.id, updates);
+      const updates = { nome: nome.trim(), telefone: cleanPhone, whatsapp: cleanPhone, endereco: endereco.trim() };
+      await dataApi.update('leads', lead.id, updates);
       toast.success('Lead atualizado!');
-      onUpdated({ ...lead, ...updates });
+      onUpdated({ ...lead, ...updates, updatedAt: new Date() });
       onCancel();
     } catch {
       toast.error('Erro ao salvar alterações.');

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { dbService } from '../../../services/db';
+import { dataApi } from '../../../services/dataApi';
 import { toast } from '../../../services/toast';
 import { confirm } from '../../../services/confirm';
 import { useAuth } from '../../useAuth';
@@ -52,7 +53,7 @@ export function ScheduleClients() {
   async function remove(c: Cliente) {
     const ok = await confirm.danger('Excluir Cliente', `Deseja excluir o cliente "${c.nome || c.id}"? Esta ação não pode ser desfeita.`);
     if (!ok) return;
-    try { await dbService.delete('clientes', c.id); setClientes((prev) => prev.filter((x) => x.id !== c.id)); toast.success('Cliente excluído.'); }
+    try { await dataApi.remove('clientes', c.id); setClientes((prev) => prev.filter((x) => x.id !== c.id)); toast.success('Cliente excluído.'); }
     catch { toast.error('Erro ao excluir cliente.'); }
   }
   function onSaved(c: Cliente, isNew: boolean) {
@@ -144,8 +145,8 @@ function ClientModal({ companyId, editing, onClose, onSaved }: { companyId: stri
     const data: any = { companyId, nome: nm, telefone: tel, email: email.trim() || '', observacoes: obs.trim() || '', criadoEm: editing?.criadoEm || new Date().toISOString() };
     setSaving(true);
     try {
-      if (editing) { await dbService.update('clientes', editing.id, data); toast.success('Cliente atualizado!'); onSaved({ id: editing.id, ...data }, false); }
-      else { const newId = (await dbService.create('clientes', data)) as string; toast.success('Cliente criado com sucesso!'); onSaved({ id: newId, ...data }, true); }
+      if (editing) { await dataApi.update('clientes', editing.id, data); toast.success('Cliente atualizado!'); onSaved({ id: editing.id, ...data }, false); }
+      else { const { id: newId } = await dataApi.create('clientes', data); toast.success('Cliente criado com sucesso!'); onSaved({ id: newId, ...data }, true); }
     } catch (err) { toast.error('Erro ao salvar cliente: ' + err); setSaving(false); }
   }
 

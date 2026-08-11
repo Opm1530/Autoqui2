@@ -19,6 +19,7 @@ import {
   savePlan, deletePlan, subscribe, cancelSubscription, mySubscription,
   handleSubscriptionWebhook,
 } from './subscriptions.js';
+import { createDoc, updateDoc, deleteDoc } from './collections.js';
 import { getDoc } from './firebase.js';
 
 // Empresa do usuário logado (a partir do doc users/{uid}).
@@ -214,6 +215,11 @@ app.post('/api/plans/delete', requireAuth, wrap((req) => deletePlan(req.uid, Str
 app.post('/api/subscription/subscribe', requireAuth, wrap((req) => subscribe(req.uid, String(req.body?.planId))));
 app.post('/api/subscription/cancel', requireAuth, wrap((req) => cancelSubscription(req.uid, req.body?.companyId)));
 app.get('/api/subscription/mine', requireAuth, wrap((req) => mySubscription(req.uid)));
+
+// ── CRUD genérico (grupo 2/3): categorias, combos, loja_config, leads, clientes, agendamentos, campanhas, instancias ──
+app.post('/api/data/create', requireAuth, wrap((req) => createDoc(req.uid, String(req.body?.collection), req.body?.data || {})));
+app.post('/api/data/update', requireAuth, wrap((req) => updateDoc(req.uid, String(req.body?.collection), String(req.body?.id), req.body?.fields || {})));
+app.post('/api/data/delete', requireAuth, wrap((req) => deleteDoc(req.uid, String(req.body?.collection), String(req.body?.id))));
 
 // Webhook do MP para assinaturas (sem auth — o MP chama direto).
 app.post('/api/mp/subscription-webhook', async (req, res) => {

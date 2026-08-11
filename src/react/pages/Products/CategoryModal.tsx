@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { dbService } from '../../../services/db';
+import { dataApi } from '../../../services/dataApi';
 import { toast } from '../../../services/toast';
 import { confirm } from '../../../services/confirm';
 import { availableIcons } from './helpers';
@@ -23,7 +23,7 @@ export function CategoryModal({ companyId, labelPlural, categories, onChange, on
     const nm = name.trim();
     if (!nm) return;
     try {
-      const newId = await dbService.create('categories', { name: nm, icon, companyId });
+      const { id: newId } = await dataApi.create('categories', { name: nm, icon });
       onChange([...categories, { id: newId, name: nm, icon, companyId }]);
       setName('');
       toast.success('Categoria criada com sucesso!');
@@ -33,7 +33,7 @@ export function CategoryModal({ companyId, labelPlural, categories, onChange, on
   async function remove(id: string) {
     if (await confirm.warning('Excluir Categoria', 'Tem certeza? Produtos nesta categoria ficarão "Sem Categoria".')) {
       try {
-        await dbService.delete('categories', id);
+        await dataApi.remove('categories', id);
         onChange(categories.filter((c) => c.id !== id));
         toast.success('Categoria excluída.');
       } catch { toast.error('Erro ao excluir categoria.'); }
@@ -45,7 +45,7 @@ export function CategoryModal({ companyId, labelPlural, categories, onChange, on
     const nm = editing.name.trim();
     if (!nm) return;
     try {
-      await dbService.update('categories', editing.id, { name: nm });
+      await dataApi.update('categories', editing.id, { name: nm });
       onChange(categories.map((c) => (c.id === editing.id ? { ...c, name: nm } : c)));
       setEditing(null);
       toast.success('Nome atualizado!');

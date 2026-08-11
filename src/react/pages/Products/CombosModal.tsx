@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
-import { dbService } from '../../../services/db';
+import { dataApi } from '../../../services/dataApi';
 import { toast } from '../../../services/toast';
 import { confirm } from '../../../services/confirm';
 import { uploadImage, getComboImageUrl } from './helpers';
@@ -61,9 +61,7 @@ export function CombosModal({ companyId, stores, products, combos, onChange, onC
       let imagemPath = '', downloadToken = '';
       if (file) { const img = await uploadImage(file, companyId); imagemPath = img.imagemPath; downloadToken = img.downloadToken; }
 
-      const newId = await dbService.create('combos', {
-        nome: nm, preco: pr, lojaId, empresaId: companyId, produtos, imagemPath, downloadToken, ativo: true, criadoEm: new Date(),
-      });
+      const { id: newId } = await dataApi.create('combos', { nome: nm, preco: pr, lojaId, produtos, imagemPath, downloadToken, ativo: true });
       onChange([...combos, { id: newId, nome: nm, preco: pr, lojaId, empresaId: companyId, produtos, imagemPath, downloadToken, ativo: true }]);
       setNome(''); setPreco(''); setLojaId(''); setSelectedIds(new Set()); setFile(null); setPreview(null);
       toast.success('Combo criado com sucesso!');
@@ -74,7 +72,7 @@ export function CombosModal({ companyId, stores, products, combos, onChange, onC
 
   async function toggleAtivo(c: Combo) {
     try {
-      await dbService.update('combos', c.id, { ativo: c.ativo === false });
+      await dataApi.update('combos', c.id, { ativo: c.ativo === false });
       onChange(combos.map((x) => (x.id === c.id ? { ...x, ativo: c.ativo === false } : x)));
     } catch (e: any) { toast.error('Erro: ' + e.message); }
   }
@@ -83,7 +81,7 @@ export function CombosModal({ companyId, stores, products, combos, onChange, onC
     const ok = await confirm.show({ title: 'Excluir Combo', message: 'Tem certeza que deseja excluir este combo?', type: 'danger', confirmText: 'Excluir' });
     if (!ok) return;
     try {
-      await dbService.delete('combos', c.id);
+      await dataApi.remove('combos', c.id);
       onChange(combos.filter((x) => x.id !== c.id));
       toast.success('Combo excluído.');
     } catch (e: any) { toast.error('Erro: ' + e.message); }

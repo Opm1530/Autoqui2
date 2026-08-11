@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { dbService } from '../../../services/db';
+import { dataApi } from '../../../services/dataApi';
+import { adminApi } from '../../../services/adminApi';
 import { toast } from '../../../services/toast';
 import { useAuth } from '../../useAuth';
 import { SkeletonCards } from '../../components/Skeleton';
@@ -49,10 +51,10 @@ export function CatalogSettings() {
   async function save(payload: any) {
     const existing = lojaConfigs.find((c) => c.lojaId === activeStoreId);
     if (existing) {
-      await dbService.update('loja_config', existing.id, payload);
+      await dataApi.update('loja_config', existing.id, payload);
       setLojaConfigs((prev) => prev.map((c) => (c.id === existing.id ? { ...c, ...payload } : c)));
     } else {
-      const newId = await dbService.create('loja_config', { empresaId: companyId, lojaId: activeStoreId, ...payload });
+      const { id: newId } = await dataApi.create('loja_config', { lojaId: activeStoreId, ...payload });
       setLojaConfigs((prev) => [...prev, { id: newId, empresaId: companyId, lojaId: activeStoreId, ...payload }]);
     }
   }
@@ -63,17 +65,17 @@ export function CatalogSettings() {
   async function bindInstance(newInstId: string) {
     try {
       toast.info('Salvando instância...');
-      // 1. company.stores
+      // 1. company.stores (backend, escopo por empresa)
       const updatedStores = stores.map((s) => (s.id === activeStoreId ? { ...s, instancia_id: newInstId || null } : s));
-      await dbService.update('companies', companyId, { stores: updatedStores });
+      await adminApi.setCompanyStores(updatedStores);
       setStores(updatedStores);
       // 2. loja_config
       await save({ instancia_id: newInstId || null });
       // 3. desvincula instâncias antigas dessa loja
       const oldInsts = (await dbService.getAll('instancias', { field: 'lojaId', operator: '==', value: activeStoreId })) as any[];
-      for (const old of oldInsts) await dbService.update('instancias', old.id, { lojaId: null, funcao: null });
+      for (const old of oldInsts) await dataApi.update('instancias', old.id, { lojaId: null, funcao: null });
       // 4. vincula a nova
-      if (newInstId) await dbService.update('instancias', newInstId, { lojaId: activeStoreId, funcao: 'Catálogo Vendas' });
+      if (newInstId) await dataApi.update('instancias', newInstId, { lojaId: activeStoreId, funcao: 'Catálogo Vendas' });
       setInstances((prev) => prev.map((i) => {
         if (i.id === newInstId) return { ...i, lojaId: activeStoreId, funcao: 'Catálogo Vendas' };
         if (i.lojaId === activeStoreId) return { ...i, lojaId: null, funcao: null };
