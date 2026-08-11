@@ -126,7 +126,8 @@ function CompanyModal({ editing, onClose, onSaved, onRemoved }: { editing: any |
       const preview = await adminApi.previewRemoveStore(editing.id, s.id);
       setRemoving({ index: i, store: s, preview });
     } catch (err: any) {
-      toast.error(err.message === 'ultima_loja' ? 'A empresa precisa ter pelo menos 1 loja.' : 'Erro: ' + (err.message || err));
+      console.error('[remover loja] falhou:', { companyId: editing.id, storeId: s.id, erro: err.message });
+      toast.error(storeErrorMessage(err.message));
     }
   }
 
@@ -140,7 +141,7 @@ function CompanyModal({ editing, onClose, onSaved, onRemoved }: { editing: any |
       setRemoving(null);
       onRemoved?.(editing.id, removing.store.id!);
     } catch (err: any) {
-      toast.error('Erro ao remover loja: ' + (err.message || err));
+      toast.error(storeErrorMessage(err.message));
     } finally { setRemoveBusy(false); }
   }
 
@@ -254,6 +255,17 @@ function CompanyModal({ editing, onClose, onSaved, onRemoved }: { editing: any |
       )}
     </div>
   );
+}
+
+// Traduz os códigos de recusa do backend para algo acionável.
+function storeErrorMessage(code?: string): string {
+  switch (code) {
+    case 'ultima_loja': return 'A empresa precisa ter pelo menos 1 loja — não dá para remover a última.';
+    case 'loja_nao_encontrada': return 'Esta loja não existe mais no cadastro da empresa. Feche e reabra a tela.';
+    case 'forbidden': return 'Apenas o administrador da plataforma pode remover lojas.';
+    case 'user_not_found': return 'Seu usuário não foi encontrado no sistema. Saia e entre novamente.';
+    default: return 'Erro ao remover loja: ' + (code || 'desconhecido');
+  }
 }
 
 function Row({ label, value, danger }: { label: string; value: number; danger?: boolean }) {

@@ -191,7 +191,7 @@ app.post('/api/products/update-fields', requireAuth, async (req, res) => {
 // ── Clientes (companies) / Usuários / Settings — grupo 1 (server-side) ──
 const wrap = (fn: (req: any) => Promise<any>) => async (req: any, res: any) => {
   try { res.json(await fn(req)); }
-  catch (err: any) { console.warn(`[admin] recusado: ${err?.message}`); res.status(400).json({ error: err?.message || 'erro' }); }
+  catch (err: any) { console.warn(`[api] ${req.method} ${req.originalUrl} recusado: ${err?.message} | body=${JSON.stringify(req.body || {}).slice(0, 300)}`); res.status(400).json({ error: err?.message || 'erro' }); }
 };
 
 app.post('/api/companies/save', requireAuth, wrap((req) => saveCompany(req.uid, { id: req.body?.id, data: req.body?.data, owner: req.body?.owner })));
