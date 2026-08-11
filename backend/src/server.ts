@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import { PORT, ALLOWED_ORIGINS } from './config.js';
-import { notifyNewOrder, notifyStatusChange } from './notify.js';
+import { notifyNewOrder, notifyStatusChange, sendIntervention } from './notify.js';
 import { requireAuth } from './auth.js';
 import * as wa from './evolution.js';
 import {
@@ -215,6 +215,8 @@ app.post('/api/plans/delete', requireAuth, wrap((req) => deletePlan(req.uid, Str
 app.post('/api/subscription/subscribe', requireAuth, wrap((req) => subscribe(req.uid, String(req.body?.planId))));
 app.post('/api/subscription/cancel', requireAuth, wrap((req) => cancelSubscription(req.uid, req.body?.companyId)));
 app.get('/api/subscription/mine', requireAuth, wrap((req) => mySubscription(req.uid)));
+
+app.post('/api/orders/intervene', requireAuth, wrap((req) => sendIntervention(req.uid, String(req.body?.orderId), String(req.body?.message || ''))));
 
 // ── CRUD genérico (grupo 2/3): categorias, combos, loja_config, leads, clientes, agendamentos, campanhas, instancias ──
 app.post('/api/data/create', requireAuth, wrap((req) => createDoc(req.uid, String(req.body?.collection), req.body?.data || {})));

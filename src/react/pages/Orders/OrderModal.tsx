@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { orderService } from '../../../services/orderService';
+import { dataApi } from '../../../services/dataApi';
 import { toast } from '../../../services/toast';
+import { confirm } from '../../../services/confirm';
 import { StatusBadge, DeliveryBadge, PaymentBadge, nextAction, isOrderArchived } from './helpers';
 
 interface Props {
@@ -52,6 +54,32 @@ export function OrderModal({ order, companyId, storeName, clientName, clientPhon
       toast.error('Erro ao cancelar: ' + (err.message || err));
       setBusy(false);
     }
+  }
+
+  const [intervirOpen, setIntervirOpen] = useState(false);
+  const [intervirMsg, setIntervirMsg] = useState('');
+  const [sending, setSending] = useState(false);
+
+  async function sendIntervention() {
+    const msg = intervirMsg.trim();
+    if (!msg) { toast.warning('Digite uma mensagem antes de enviar.'); return; }
+    setSending(true);
+    try {
+      await orderService.interveneOrder(order.id, msg);
+      toast.success('Mensagem enviada com sucesso!');
+      setIntervirMsg(''); setIntervirOpen(false);
+    } catch (err: any) {
+      toast.error('Erro ao enviar: ' + (err.message || err));
+    } finally { setSending(false); }
+  }
+
+  async function humanSupport() {
+    const ok = await confirm.warning('Ativar Atendimento Humano', 'Deseja ativar atendimento humano para o lead deste pedido? O status do pedido não será alterado.');
+    if (!ok) return;
+    try {
+      await dataApi.update('leads', order.leadId, { statusAtendimento: 'em_atendimento_humano', estado: 'atendimento_humano' });
+      toast.success('Atendimento humano ativado para o lead!');
+    } catch { toast.error('Erro ao ativar atendimento humano.'); }
   }
 
   async function archive() {
@@ -143,6 +171,23 @@ export function OrderModal({ order, companyId, storeName, clientName, clientPhon
           </div>
         </div>
 
+        {/* Intervenção do atendente */}
+        {intervirOpen && (
+          <div style={{ margin: '0 1.5rem 1rem', padding: 14, background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-color)', borderRadius: 12 }}>
+            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 8 }}>
+              <i className="fa-brands fa-whatsapp" style={{ color: '#25d366' }} /> Mensagem para o cliente
+            </label>
+            <textarea value={intervirMsg} onChange={(e) => setIntervirMsg(e.target.value)} rows={3} placeholder="Digite a mensagem que será enviada no WhatsApp do cliente..."
+              style={{ width: '100%', background: 'var(--bg-color)', border: '1px solid var(--border-color)', color: 'white', padding: '10px 12px', borderRadius: 8, fontSize: '0.9rem', resize: 'vertical', boxSizing: 'border-box' }} />
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 8 }}>
+              <button className="btn-secondary" onClick={() => { setIntervirOpen(false); setIntervirMsg(''); }}>Cancelar</button>
+              <button className="btn-primary" disabled={sending} onClick={sendIntervention}>
+                {sending ? <><i className="fa-solid fa-spinner fa-spin" /> Enviando...</> : <><i className="fa-solid fa-paper-plane" /> Enviar</>}
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Ações */}
         <div className="lead-modal-footer" style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
           {!isTerminal && action && (
@@ -160,6 +205,18 @@ export function OrderModal({ order, companyId, storeName, clientName, clientPhon
               className="btn-lead-action" style={{ background: 'rgba(37,211,102,0.15)', borderColor: 'rgba(37,211,102,0.4)', color: '#25d366', textDecoration: 'none' }}>
               <i className="fa-brands fa-whatsapp" /> WhatsApp
             </a>
+          )}
+          {!isTerminal && (
+            <button className="btn-lead-action" disabled={busy} onClick={() => setIntervirOpen((o) => !o)}
+              style={{ background: 'rgba(99,102,241,0.12)', borderColor: 'rgba(99,102,241,0.35)' }}>
+              <i className="fa-solid fa-comment-dots" /> Intervir
+            </button>
+          )}
+          {!isTerminal && order.leadId && (
+            <button className="btn-lead-action" disabled={busy} onClick={humanSupport}
+              style={{ background: 'rgba(245,158,11,0.12)', borderColor: 'rgba(245,158,11,0.35)', color: '#fbbf24' }}>
+              <i className="fa-solid fa-user-headset" style={{ display: 'none' }} /><i className="fa-solid fa-user" /> Atend. Humano
+            </button>
           )}
           {isTerminal && !isOrderArchived(order) && (
             <button className="btn-lead-action" disabled={busy} onClick={archive}>

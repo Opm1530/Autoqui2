@@ -286,6 +286,30 @@ async function saveMessageLog(companyId: string, leadId: string, message: string
   });
 }
 
+// Mensagem de intervenção do atendente (via modal do pedido). Autenticado:
+// confere que o pedido é da empresa do usuário, resolve instância/telefone,
+// envia pela Evolution e grava o log em messages.
+export async function sendIntervention(uid: string, orderId: string, message: string): Promise<{ ok: boolean }> {
+  const user = await getDoc('users', uid);
+  if (!user) throw new Error('user_not_found');
+  const order = await getDoc('pedidos', orderId);
+  if (!order) throw new Error('pedido_nao_encontrado');
+  if (user.role !== 'admin' && order.empresaId !== user.companyId) throw new Error('forbidden');
+  if (!message || !message.trim()) throw new Error('mensagem_vazia');
+
+  const companyId = order.empresaId;
+  const lead = order.leadId ? await getDoc('leads', order.leadId) : null;
+  const instanceName = await resolveInstanceName(companyId, order);
+  if (!instanceName) throw new Error('sem_instancia');
+  const phone = getPhone(order, lead);
+  if (!phone) throw new Error('sem_telefone');
+
+  const ok = await sendText(instanceName, phone, message.trim());
+  if (!ok) throw new Error('falha_envio');
+  await saveMessageLog(companyId, order.leadId || phone, message.trim());
+  return { ok: true };
+}
+
 // Avisa o cliente que o pagamento PIX (MP) caiu — o pedido segue aguardando a loja aceitar.
 export async function notifyPaymentReceived(orderId: string): Promise<boolean> {
   const order = await getDoc('pedidos', orderId);

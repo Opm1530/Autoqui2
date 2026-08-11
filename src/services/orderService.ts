@@ -116,6 +116,22 @@ export const orderService = {
     },
 
     /**
+     * Mensagem de intervenção do atendente (backend resolve instância/telefone e loga).
+     */
+    async interveneOrder(orderId: string, message: string) {
+        const resp = await fetch(`${API_BASE_URL}/api/orders/intervene`, {
+            method: 'POST',
+            headers: await authHeaders(),
+            body: JSON.stringify({ orderId, message }),
+        });
+        if (!resp.ok) {
+            const d = await resp.json().catch(() => ({}));
+            throw new Error(d.error || 'erro_ao_enviar');
+        }
+        return true;
+    },
+
+    /**
      * Activate human support for a lead WITHOUT changing order status.
      */
     async activateHumanSupport(leadId: string) {
