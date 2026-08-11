@@ -74,9 +74,11 @@ export function Instances() {
 
   const storeName = (lojaId?: string | null) => company?.stores?.find((s: any) => s.id === lojaId)?.name || 'Global';
 
-  function shareQR(name: string) {
-    navigator.clipboard.writeText(`${window.location.origin}/qr/${name}`);
-    toast.success('Link de conexão copiado para a área de transferência!');
+  async function shareQR(name: string) {
+    const token = await evolutionApi.shareQr(name);
+    if (!token) { toast.error('Não foi possível gerar o link de conexão.'); return; }
+    await navigator.clipboard.writeText(`${window.location.origin}/qr/${token}`);
+    toast.success('Link de conexão copiado! Válido por 15 minutos.');
   }
 
   async function deleteInstance(inst: Instance) {

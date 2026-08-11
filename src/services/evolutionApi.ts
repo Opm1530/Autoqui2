@@ -52,7 +52,9 @@ export const evolutionApi = {
 
     async getInstanceStatus(instanceName: string): Promise<{ state: string; connected: boolean }> {
         try {
-            const resp = await fetch(`${API_BASE_URL}/api/wa/status/${encodeURIComponent(instanceName)}`);
+            const resp = await fetch(`${API_BASE_URL}/api/wa/status/${encodeURIComponent(instanceName)}`, {
+                headers: await authHeaders(),
+            });
             if (!resp.ok) throw new Error('status falhou');
             return await resp.json();
         } catch (error) {
@@ -63,12 +65,55 @@ export const evolutionApi = {
 
     async getQRCode(instanceName: string): Promise<{ base64: string } | null> {
         try {
-            const resp = await fetch(`${API_BASE_URL}/api/wa/qrcode/${encodeURIComponent(instanceName)}`);
+            const resp = await fetch(`${API_BASE_URL}/api/wa/qrcode/${encodeURIComponent(instanceName)}`, {
+                headers: await authHeaders(),
+            });
             if (!resp.ok) throw new Error('qrcode falhou');
             const data = await resp.json();
             return data && data.base64 ? { base64: data.base64 } : null;
         } catch (error) {
             console.error('Evolution - getQRCode erro:', error);
+            return null;
+        }
+    },
+
+    // Gera um link público de QR (token temporário) para a instância. Painel logado.
+    async shareQr(instanceName: string): Promise<string | null> {
+        try {
+            const resp = await fetch(`${API_BASE_URL}/api/wa/share-qr`, {
+                method: 'POST',
+                headers: await authHeaders(true),
+                body: JSON.stringify({ instanceName }),
+            });
+            if (!resp.ok) throw new Error('share-qr falhou');
+            const data = await resp.json();
+            return data && data.token ? data.token : null;
+        } catch (error) {
+            console.error('Evolution - shareQr erro:', error);
+            return null;
+        }
+    },
+
+    // Endpoints públicos por token (usados na página /qr, sem login):
+    async getStatusByToken(token: string): Promise<{ state: string; connected: boolean }> {
+        try {
+            const resp = await fetch(`${API_BASE_URL}/api/wa/public-status/${encodeURIComponent(token)}`);
+            if (!resp.ok) throw new Error('status falhou');
+            return await resp.json();
+        } catch (error) {
+            console.error('Evolution - getStatusByToken erro:', error);
+            return { state: 'close', connected: false };
+        }
+    },
+
+    async getQRCodeByToken(token: string): Promise<{ base64: string } | null> {
+        try {
+            const resp = await fetch(`${API_BASE_URL}/api/wa/public-qr/${encodeURIComponent(token)}`);
+            if (!resp.ok) throw new Error('qrcode falhou');
+            const data = await resp.json();
+            return data && data.base64 ? { base64: data.base64 } : null;
+        } catch (error) {
+            console.error('Evolution - getQRCodeByToken erro:', error);
             return null;
         }
     },

@@ -3,28 +3,28 @@ import { useParams } from 'react-router-dom';
 import { evolutionApi } from '../../services/evolutionApi';
 
 export function QRPage() {
-  const { instanceName = '' } = useParams();
+  const { token = '' } = useParams();
   const [qrImg, setQrImg] = useState<string | null>(null);
   const [connected, setConnected] = useState(false);
   const qrInterval = useRef<any>(null);
   const statusInterval = useRef<any>(null);
 
   useEffect(() => {
-    if (!instanceName) return;
+    if (!token) return;
     let alive = true;
     const stop = () => { clearInterval(qrInterval.current); clearInterval(statusInterval.current); };
 
     const handleConnected = () => { if (!alive) return; stop(); setConnected(true); };
     const fetchQR = async () => {
       try {
-        const qr = await evolutionApi.getQRCode(instanceName);
+        const qr = await evolutionApi.getQRCodeByToken(token);
         if (!alive) return;
         if (qr && qr.base64) setQrImg(qr.base64);
-        else { const s = await evolutionApi.getInstanceStatus(instanceName); if (s.connected) handleConnected(); }
+        else { const s = await evolutionApi.getStatusByToken(token); if (s.connected) handleConnected(); }
       } catch (e) { console.error('Erro ao buscar QR:', e); }
     };
     const checkStatus = async () => {
-      try { const s = await evolutionApi.getInstanceStatus(instanceName); if (s.connected) handleConnected(); }
+      try { const s = await evolutionApi.getStatusByToken(token); if (s.connected) handleConnected(); }
       catch (e) { console.error('Erro ao checar status:', e); }
     };
 
@@ -32,7 +32,7 @@ export function QRPage() {
     qrInterval.current = setInterval(fetchQR, 40000);
     statusInterval.current = setInterval(checkStatus, 3000);
     return () => { alive = false; stop(); };
-  }, [instanceName]);
+  }, [token]);
 
   return (
     <div className="qr-page-body">

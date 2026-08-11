@@ -55,7 +55,7 @@ export function App() {
         <Routes>
           {/* Rotas públicas (sem login) */}
           <Route path="/catalog/:storeId" element={<Catalog />} />
-          <Route path="/qr/:instanceName" element={<QRPage />} />
+          <Route path="/qr/:token" element={<QRPage />} />
 
           <Route path="/login" element={<LoginRoute />} />
           <Route element={<Protected />}>

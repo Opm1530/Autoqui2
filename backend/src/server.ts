@@ -22,6 +22,7 @@ import {
 } from './subscriptions.js';
 import { createDoc, updateDoc, deleteDoc } from './collections.js';
 import { loadUser } from './currentUser.js';
+import { assertInstanceOwner, assertCanCreate, shareQr, qrByToken, statusByToken } from './waInstances.js';
 
 // Empresa do usuário logado (a partir do doc users/{uid}).
 async function companyOf(uid: string): Promise<string> {
@@ -294,73 +295,59 @@ app.post('/api/mp/webhook', async (req, res) => {
 
 // ── WhatsApp / Evolution (proxy server-side; a chave não sai daqui) ──
 
-// Públicos (a página de QR é acessada sem login):
-app.get('/api/wa/status/:name', async (req, res) => {
-  const name = String(req.params.name);
-  const result = await wa.getInstanceStatus(name);
-  console.log(`[wa/status] ${name} -> ${result.state}`);
-  res.json(result);
-});
+// PÚBLICOS por TOKEN (a página /qr é sem login, mas o token não é adivinhável
+// como o nome e expira em 15 min). VULN-005.
+app.get('/api/wa/public-status/:token', wrap((req) => statusByToken(String(req.params.token))));
+app.get('/api/wa/public-qr/:token', wrap((req) => qrByToken(String(req.params.token))));
 
-app.get('/api/wa/qrcode/:name', async (req, res) => {
-  const name = String(req.params.name);
-  const result = await wa.getQRCode(name);
-  console.log(`[wa/qrcode] ${name} -> ${result ? 'qr gerado' : 'sem qr'}`);
-  res.json(result);
-});
+// Gera o link de QR compartilhável (dono/admin da instância). VULN-005.
+app.post('/api/wa/share-qr', requireAuth, wrap((req) => shareQr(req.uid, String(req.body?.instanceName || ''))));
 
-// Protegidos por ID token (gestão de instâncias e envio):
-app.post('/api/wa/send-text', requireAuth, async (req, res) => {
+// Autenticados + posse da instância (painel logado). VULN-004.
+app.get('/api/wa/status/:name', requireAuth, wrap(async (req) => {
+  await assertInstanceOwner(req.uid, String(req.params.name));
+  return wa.getInstanceStatus(String(req.params.name));
+}));
+
+app.get('/api/wa/qrcode/:name', requireAuth, wrap(async (req) => {
+  await assertInstanceOwner(req.uid, String(req.params.name));
+  return wa.getQRCode(String(req.params.name));
+}));
+
+app.post('/api/wa/send-text', requireAuth, wrap(async (req) => {
   const { instanceName, number, text } = req.body || {};
-  if (!instanceName || !number || !text) {
-    return res.status(400).json({ error: 'instanceName, number e text obrigatórios' });
-  }
-  const ok = await wa.sendText(instanceName, number, text);
-  console.log(`[wa/send-text] ${instanceName} -> ${ok ? 'ENVIADO' : 'falhou'}`);
-  res.json({ sent: ok });
-});
+  if (!instanceName || !number || !text) throw new Error('instanceName, number e text obrigatórios');
+  await assertInstanceOwner(req.uid, String(instanceName));
+  return { sent: await wa.sendText(instanceName, number, text) };
+}));
 
-app.post('/api/wa/create-instance', requireAuth, async (req, res) => {
+app.post('/api/wa/create-instance', requireAuth, wrap(async (req) => {
   const { instanceName } = req.body || {};
-  if (!instanceName) return res.status(400).json({ error: 'instanceName obrigatório' });
-  try {
-    const result = await wa.createInstance(instanceName);
-    console.log(`[wa/create-instance] ${instanceName} -> ok`);
-    res.json(result);
-  } catch (err: any) {
-    console.log(`[wa/create-instance] ${instanceName} -> erro: ${err?.message}`);
-    res.status(500).json({ error: err?.message || 'erro' });
-  }
-});
+  if (!instanceName) throw new Error('instanceName obrigatório');
+  await assertCanCreate(req.uid, String(instanceName));
+  return wa.createInstance(instanceName);
+}));
 
-app.post('/api/wa/set-webhook', requireAuth, async (req, res) => {
+app.post('/api/wa/set-webhook', requireAuth, wrap(async (req) => {
   const { instanceName, url, enabled } = req.body || {};
-  if (!instanceName) return res.status(400).json({ error: 'instanceName obrigatório' });
-  const ok = await wa.setWebhook(instanceName, url || '', enabled !== false);
-  console.log(`[wa/set-webhook] ${instanceName} -> ${ok ? 'ok' : 'falhou'}`);
-  res.json({ ok });
-});
+  if (!instanceName) throw new Error('instanceName obrigatório');
+  await assertInstanceOwner(req.uid, String(instanceName));
+  return { ok: await wa.setWebhook(instanceName, url || '', enabled !== false) };
+}));
 
-app.delete('/api/wa/instance/:name', requireAuth, async (req, res) => {
-  const name = String(req.params.name);
-  const ok = await wa.deleteInstance(name);
-  console.log(`[wa/delete] ${name} -> ${ok ? 'ok' : 'falhou'}`);
-  res.json({ ok });
-});
+app.delete('/api/wa/instance/:name', requireAuth, wrap(async (req) => {
+  await assertInstanceOwner(req.uid, String(req.params.name));
+  return { ok: await wa.deleteInstance(String(req.params.name)) };
+}));
 
-app.post('/api/wa/logout/:name', requireAuth, async (req, res) => {
-  const name = String(req.params.name);
-  const ok = await wa.logoutInstance(name);
-  console.log(`[wa/logout] ${name} -> ${ok ? 'ok' : 'falhou'}`);
-  res.json({ ok });
-});
+app.post('/api/wa/logout/:name', requireAuth, wrap(async (req) => {
+  await assertInstanceOwner(req.uid, String(req.params.name));
+  return { ok: await wa.logoutInstance(String(req.params.name)) };
+}));
 
-app.get('/api/wa/instance-exists/:name', requireAuth, async (req, res) => {
-  const name = String(req.params.name);
-  const exists = await wa.instanceExists(name);
-  console.log(`[wa/exists] ${name} -> ${exists}`);
-  res.json({ exists });
-});
+app.get('/api/wa/instance-exists/:name', requireAuth, wrap(async (req) => {
+  return { exists: await wa.instanceExists(String(req.params.name)) };
+}));
 
 app.listen(PORT, () => {
   console.log(`[autoqui-backend] ouvindo na porta ${PORT}`);
