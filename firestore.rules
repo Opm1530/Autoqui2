@@ -2,7 +2,7 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // ── Helpers ──────────────────────────────────────────────────────────────
+    // ── Helpers (usados só para LEITURA — toda escrita é do backend) ──────────
     function signedIn() { return request.auth != null; }
     function hasUserDoc() {
       return signedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid));
@@ -12,90 +12,60 @@ service cloud.firestore {
         ? get(/databases/$(database)/documents/users/$(request.auth.uid)).data.companyId
         : '__none__';
     }
+    // Confiável agora que ninguém pode escrever no próprio users/{uid}.role.
     function isAdmin() {
       return signedIn() && (
         request.auth.token.email == 'ginannymoreira@gmail.com' ||
         (hasUserDoc() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin')
       );
     }
-    // Escrita permitida: admin, ou o campo de empresa do doc == empresa do usuário.
-    // create usa request.resource.data (doc novo); update/delete usa resource.data (doc atual).
-    function ownsCreate(field) { return signedIn() && (isAdmin() || request.resource.data[field] == myCompany()); }
-    function ownsDoc(field)    { return signedIn() && (isAdmin() || resource.data[field] == myCompany()); }
-
-    // ── Catálogo: leitura pública; escrita escopada por empresa ──────────────
-    match /companies/{id} {
-      allow read: if true;
-      allow write: if isAdmin() || (signedIn() && id == myCompany());
-    }
-    match /loja_config/{id} {
-      allow read: if true;
-      allow create: if ownsCreate('empresaId');
-      allow update, delete: if ownsDoc('empresaId');
-    }
-    match /categories/{id} {
-      allow read: if true;
-      allow create: if ownsCreate('companyId');
-      allow update, delete: if ownsDoc('companyId');
-    }
-    match /instancias/{id} {
-      allow read: if true;
-      allow create: if ownsCreate('empresaId');
-      allow update, delete: if ownsDoc('empresaId');
-    }
-    match /combos/{id} {
-      allow read: if true;
-      allow create: if ownsCreate('empresaId');
-      allow update, delete: if ownsDoc('empresaId');
+    // Pode ler documento escopado por empresa (dono/funcionário da empresa, ou admin).
+    function canReadCompany(field) {
+      return isAdmin() || (signedIn() && resource.data[field] == myCompany());
     }
 
-    // ── Produtos: escrita só backend; leitura pública (catálogo) ──
-    match /products/{id} { allow read: if true; }
+    // ─────────────────────────────────────────────────────────────────────────
+    // TODA ESCRITA É FEITA PELO BACKEND (Firebase Admin SDK, que ignora estas
+    // regras). O cliente NÃO escreve em nenhuma coleção — só lê o permitido.
+    // Isso impede burlar a validação do backend escrevendo direto no Firestore.
+    // ─────────────────────────────────────────────────────────────────────────
 
-    // ── Pedidos: escrita só backend; leitura escopada por empresa ──
-    // (o catálogo NÃO lê pedidos; o painel filtra por empresaId)
-    match /pedidos/{id} {
-      allow read: if isAdmin() || (signedIn() && resource.data.empresaId == myCompany());
-    }
+    // ── Catálogo público: leitura liberada, escrita só backend ──
+    match /companies/{id}    { allow read: if true; allow write: if false; }
+    match /loja_config/{id}  { allow read: if true; allow write: if false; }
+    match /categories/{id}   { allow read: if true; allow write: if false; }
+    match /combos/{id}       { allow read: if true; allow write: if false; }
+    match /products/{id}     { allow read: if true; allow write: if false; }
+    // instancias: o catálogo/QR leem o nome/número; nenhum segredo aqui.
+    match /instancias/{id}   { allow read: if true; allow write: if false; }
 
-    // ── Coleções do painel (leitura + escrita escopadas por empresa) ──────────
-    match /messages/{id} {
-      allow read: if isAdmin() || (signedIn() && resource.data.empresaId == myCompany());
-    } // criado só pelo backend
-    match /leads/{id} {
-      allow read: if isAdmin() || (signedIn() && resource.data.empresaId == myCompany());
-      allow create: if ownsCreate('empresaId');
-      allow update, delete: if ownsDoc('empresaId');
-    }
-    match /campanhas/{id} {
-      allow read: if isAdmin() || (signedIn() && resource.data.cliente_id == myCompany());
-      allow create: if ownsCreate('cliente_id');
-      allow update, delete: if ownsDoc('cliente_id');
-    }
-    match /agendamentos/{id} {
-      allow read: if isAdmin() || (signedIn() && resource.data.companyId == myCompany());
-      allow create: if ownsCreate('companyId');
-      allow update, delete: if ownsDoc('companyId');
-    }
-    match /clientes/{id} {
-      allow read: if isAdmin() || (signedIn() && resource.data.companyId == myCompany());
-      allow create: if ownsCreate('companyId');
-      allow update, delete: if ownsDoc('companyId');
-    }
+    // ── Pedidos e mensagens: leitura escopada por empresa, escrita só backend ──
+    match /pedidos/{id}      { allow read: if canReadCompany('empresaId'); allow write: if false; }
+    match /messages/{id}     { allow read: if canReadCompany('empresaId'); allow write: if false; }
 
-    // ── Usuários (ler o próprio doc, os da mesma empresa, ou admin) ──
+    // ── Coleções do painel: leitura escopada por empresa, escrita só backend ──
+    match /leads/{id}        { allow read: if canReadCompany('empresaId'); allow write: if false; }
+    match /campanhas/{id}    { allow read: if canReadCompany('cliente_id'); allow write: if false; }
+    match /agendamentos/{id} { allow read: if canReadCompany('companyId'); allow write: if false; }
+    match /clientes/{id}     { allow read: if canReadCompany('companyId'); allow write: if false; }
+
+    // ── Usuários: lê o próprio, os da mesma empresa, ou admin. Escrita só backend. ──
     match /users/{uid} {
       allow read: if isAdmin() || (signedIn() && (uid == request.auth.uid || resource.data.companyId == myCompany()));
-      allow create: if isAdmin() || (signedIn() && request.resource.data.companyId == myCompany());
-      allow update, delete: if isAdmin() || (signedIn() && (uid == request.auth.uid || resource.data.companyId == myCompany()));
+      allow write: if false;
     }
 
-    // ── Settings globais (billing OpenAI): só admin ──────────────────────────
-    match /settings/{id} {
-      allow read: if signedIn();
-      allow write: if isAdmin();
-    }
+    // ── Planos de assinatura: qualquer usuário logado pode ver (para assinar).
+    //    Criação/edição só backend. ──
+    match /planos/{id}       { allow read: if signedIn(); allow write: if false; }
 
-    // Sem catch-all: qualquer coleção não listada acima fica bloqueada.
+    // ── Settings globais (billing OpenAI, webhooks): leitura logado, escrita backend ──
+    match /settings/{id}     { allow read: if signedIn(); allow write: if false; }
+
+    // ── Segredos (company_secrets, platform_secrets): NUNCA acessíveis ao cliente.
+    //    Não têm match aqui → bloqueados por padrão (sem catch-all permissivo).
+    //    O backend (Admin SDK) acessa direto, ignorando estas regras.
+
+    // Sem catch-all: qualquer coleção não listada fica totalmente bloqueada.
   }
 }
