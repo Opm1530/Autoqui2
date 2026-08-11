@@ -1,9 +1,8 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
-// CUTOVER FEITO: index.html agora aponta pro app React (src/react/main.tsx).
-// react.html permanece só como entrada legada de preview (remover na limpeza,
-// junto com o app vanilla em src/pages + src/main.ts).
+// App 100% React: index.html carrega src/react/main.tsx.
+// O app vanilla antigo (src/pages, src/main.ts, react.html) foi removido.
 export default defineConfig({
   plugins: [react()],
   // Em dev, repassa /api pro backend real (evita CORS no localhost:5173).
@@ -23,14 +22,6 @@ export default defineConfig({
             proxyReq.removeHeader('origin');
           });
         },
-      },
-    },
-  },
-  build: {
-    rollupOptions: {
-      input: {
-        main: 'index.html',
-        react: 'react.html',
       },
     },
   },
