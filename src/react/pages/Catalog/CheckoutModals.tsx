@@ -36,6 +36,7 @@ export function CheckoutModals({ cart, subtotal, storeId, companyId, data, onClo
   const [name, setName] = useState(savedUser.name || '');
   const [phone, setPhone] = useState(savedUser.phone || '');
   const [address, setAddress] = useState(savedUser.address || '');
+  const [complemento, setComplemento] = useState(savedUser.complemento || '');
   const [bairroSel, setBairroSel] = useState(savedUser.bairro ? (savedBairroIsKnown ? flatBairros.find((b: any) => b.nome.toLowerCase() === String(savedUser.bairro).toLowerCase()).nome : '__outro__') : '');
   const [bairroOutro, setBairroOutro] = useState(savedUser.bairro && !savedBairroIsKnown ? savedUser.bairro : '');
   const [coupon, setCoupon] = useState<{ codigo: string; desconto: number; tipo: string } | null>(null);
@@ -64,6 +65,9 @@ export function CheckoutModals({ cart, subtotal, storeId, companyId, data, onClo
     return { nome: bairroSel, preco: found ? found.preco : taxaGenerica };
   }, [deliveryType, bairroSel, bairroOutro, flatBairros, taxaGenerica]);
 
+  // Endereço final = endereço + complemento (campo separado força o cliente a lembrar).
+  const fullAddress = complemento.trim() ? `${address.trim()}, ${complemento.trim()}` : address.trim();
+
   const taxa = deliveryType === 'retirada' ? 0 : resolvedBairro.preco;
   const desconto = !coupon ? 0 : coupon.tipo === 'percent' ? subtotal * coupon.desconto / 100 : coupon.desconto;
   const total = subtotal + taxa - desconto;
@@ -77,7 +81,7 @@ export function CheckoutModals({ cart, subtotal, storeId, companyId, data, onClo
       body: JSON.stringify({
         storeId, cart: buildCartPayload(), deliveryType, bairro: resolvedBairro.nome,
         couponCode: coupon?.codigo || null,
-        customer: { name, phone, address, bairro: resolvedBairro.nome },
+        customer: { name, phone, address: fullAddress, bairro: resolvedBairro.nome },
         paymentMethod, ...extra,
       }),
     });
@@ -115,7 +119,7 @@ export function CheckoutModals({ cart, subtotal, storeId, companyId, data, onClo
       const ok = window.confirm('Seu endereço parece estar SEM NÚMERO. Endereço incompleto pode impedir a entrega.\n\nDeseja continuar mesmo assim?');
       if (!ok) return;
     }
-    try { localStorage.setItem(`cat_user_${companyId}`, JSON.stringify({ name, phone, address, bairro: resolvedBairro.nome })); } catch { /* ignore */ }
+    try { localStorage.setItem(`cat_user_${companyId}`, JSON.stringify({ name, phone, address, complemento, bairro: resolvedBairro.nome })); } catch { /* ignore */ }
     setStep('payment');
   }
 
@@ -229,9 +233,11 @@ export function CheckoutModals({ cart, subtotal, storeId, companyId, data, onClo
           <label style={labelStyle}>Endereço</label>
           <div style={{ padding: '10px 12px', background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.3)', borderRadius: 10, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
             <i className="fa-solid fa-location-dot" style={{ color: '#fbbf24', fontSize: '0.9rem', flexShrink: 0 }} />
-            <span style={{ color: '#fbbf24', fontSize: '0.82rem', lineHeight: 1.4 }}>Confira com atenção: rua e <strong>número</strong>. Se for <strong>apartamento</strong>, informe também o <strong>número do apartamento</strong> (e bloco, se houver). Endereço errado atrasa ou impede a entrega.</span>
+            <span style={{ color: '#fbbf24', fontSize: '0.82rem', lineHeight: 1.4 }}>Confira com atenção: rua e <strong>número</strong>. Endereço errado atrasa ou impede a entrega.</span>
           </div>
-          <input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Ex: Rua das Flores, 123, Apto 42, Bloco B" style={{ ...inputStyle, marginBottom: 12 }} />
+          <input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Ex: Rua das Flores, 123" style={{ ...inputStyle, marginBottom: 12 }} />
+          <label style={labelStyle}>Complemento <span style={{ fontWeight: 400, textTransform: 'none' }}>(apartamento? informe o número!)</span></label>
+          <input value={complemento} onChange={(e) => setComplemento(e.target.value)} placeholder="Ex: Apto 42, Bloco B / casa dos fundos / próximo ao mercado" style={{ ...inputStyle, marginBottom: 12 }} />
           {flatBairros.length > 0 && <>
             <label style={labelStyle}>Bairro</label>
             <div style={{ padding: '10px 12px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 10, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -263,7 +269,7 @@ export function CheckoutModals({ cart, subtotal, storeId, companyId, data, onClo
           <i className="fa-solid fa-location-dot" style={{ color: 'var(--primary-cat)', marginTop: 3, flexShrink: 0 }} />
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', marginBottom: 2 }}>Entregar em</div>
-            <div style={{ fontSize: '0.88rem', lineHeight: 1.45, wordBreak: 'break-word' }}>{address}{resolvedBairro.nome ? ` — ${resolvedBairro.nome}` : ''}</div>
+            <div style={{ fontSize: '0.88rem', lineHeight: 1.45, wordBreak: 'break-word' }}>{fullAddress}{resolvedBairro.nome ? ` — ${resolvedBairro.nome}` : ''}</div>
           </div>
           <button onClick={() => setStep('customer')} style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', color: 'white', borderRadius: 8, padding: '6px 12px', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}>
             <i className="fa-solid fa-pen" /> Corrigir
