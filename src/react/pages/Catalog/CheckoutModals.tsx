@@ -110,6 +110,11 @@ export function CheckoutModals({ cart, subtotal, storeId, companyId, data, onClo
     if (cleanPhone.length === 13 && cleanPhone.startsWith('55')) cleanPhone = cleanPhone.substring(2);
     if (cleanPhone.length !== 11) { notifications.showPhoneError(); return; }
     if (deliveryType === 'entrega' && !address.trim()) { alert('Preencha o endereço de entrega completo.'); return; }
+    // Reforço: endereço sem número costuma ser endereço incompleto.
+    if (deliveryType === 'entrega' && !/\d/.test(address) && !/s\/?n/i.test(address)) {
+      const ok = window.confirm('Seu endereço parece estar SEM NÚMERO. Endereço incompleto pode impedir a entrega.\n\nDeseja continuar mesmo assim?');
+      if (!ok) return;
+    }
     try { localStorage.setItem(`cat_user_${companyId}`, JSON.stringify({ name, phone, address, bairro: resolvedBairro.nome })); } catch { /* ignore */ }
     setStep('payment');
   }
@@ -222,7 +227,11 @@ export function CheckoutModals({ cart, subtotal, storeId, companyId, data, onClo
       {deliveryType === 'entrega' && (
         <div style={{ marginBottom: 16 }}>
           <label style={labelStyle}>Endereço</label>
-          <input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Rua, número, complemento" style={{ ...inputStyle, marginBottom: 12 }} />
+          <div style={{ padding: '10px 12px', background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.3)', borderRadius: 10, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <i className="fa-solid fa-location-dot" style={{ color: '#fbbf24', fontSize: '0.9rem', flexShrink: 0 }} />
+            <span style={{ color: '#fbbf24', fontSize: '0.82rem', lineHeight: 1.4 }}>Confira com atenção: rua, <strong>número</strong> e complemento. Endereço errado atrasa ou impede a entrega do seu pedido.</span>
+          </div>
+          <input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Rua, número, complemento (ex: Rua das Flores, 123, Apto 4)" style={{ ...inputStyle, marginBottom: 12 }} />
           {flatBairros.length > 0 && <>
             <label style={labelStyle}>Bairro</label>
             <div style={{ padding: '10px 12px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 10, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -247,6 +256,21 @@ export function CheckoutModals({ cart, subtotal, storeId, companyId, data, onClo
     <div style={MODAL_CARD}>
       <Header title={<><i className="fa-solid fa-credit-card" /> Forma de Pagamento</>} onX={onClose} />
       <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: 14, marginBottom: 14, fontSize: '0.9rem' }}><OrderSummary /></div>
+
+      {/* Confirmação do endereço antes de pagar */}
+      {deliveryType === 'entrega' && (
+        <div style={{ background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.25)', borderRadius: 12, padding: '12px 14px', marginBottom: 14, display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+          <i className="fa-solid fa-location-dot" style={{ color: 'var(--primary-cat)', marginTop: 3, flexShrink: 0 }} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', marginBottom: 2 }}>Entregar em</div>
+            <div style={{ fontSize: '0.88rem', lineHeight: 1.45, wordBreak: 'break-word' }}>{address}{resolvedBairro.nome ? ` — ${resolvedBairro.nome}` : ''}</div>
+          </div>
+          <button onClick={() => setStep('customer')} style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', color: 'white', borderRadius: 8, padding: '6px 12px', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}>
+            <i className="fa-solid fa-pen" /> Corrigir
+          </button>
+        </div>
+      )}
+
       {deliveryType === 'retirada' && isMandatoryPickupPay && <div style={{ padding: 12, background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.2)', borderRadius: 12, marginBottom: 14, color: '#fbbf24', fontSize: '0.85rem', lineHeight: 1.4 }}><i className="fa-solid fa-circle-info" /> Atenção: para pedidos de retirada é obrigatório o pagamento adiantado pois o produto será reservado.</div>}
 
       {cuponsList.length > 0 && (
