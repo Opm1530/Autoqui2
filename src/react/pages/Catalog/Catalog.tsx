@@ -238,11 +238,6 @@ export function Catalog() {
 
   return (
     <div className="catalog-body" style={cssVars}>
-      {/* SELO TEMPORÁRIO DE PREVIEW — remover antes do cutover */}
-      <div style={{ position: 'fixed', top: 10, left: 10, zIndex: 99999, background: '#6366f1', color: '#fff', padding: '5px 12px', borderRadius: 100, fontSize: '0.72rem', fontWeight: 800, boxShadow: '0 4px 12px rgba(0,0,0,0.4)', letterSpacing: '0.5px', pointerEvents: 'none' }}>
-        ⚛️ REACT (preview)
-      </div>
-
       {/* HEADER (clássico/banner) */}
       {themeId !== 'moderno' && (
         <header className="header">
