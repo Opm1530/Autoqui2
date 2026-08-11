@@ -49,8 +49,16 @@ export function OrderModal({ order, companyId, storeName, clientName, clientPhon
   }
 
   async function cancel() {
-    const reason = window.prompt('Motivo do cancelamento (opcional):') ?? undefined;
-    if (reason === undefined) return; // cancelou o prompt
+    const reason = await confirm.prompt({
+      title: order.pago ? 'Recusar e Estornar' : 'Cancelar Pedido',
+      message: 'Informe o motivo (opcional). O cliente será notificado.',
+      placeholder: 'Ex: produto em falta, endereço fora da área...',
+      confirmText: order.pago ? 'Recusar e Estornar' : 'Cancelar Pedido',
+      cancelText: 'Voltar',
+      multiline: true,
+      type: 'danger',
+    });
+    if (reason === null) return; // cancelou o modal
     setBusy(true);
     try {
       await orderService.updateOrderStatus(order, companyId, 'cancelado' as any, reason || undefined);

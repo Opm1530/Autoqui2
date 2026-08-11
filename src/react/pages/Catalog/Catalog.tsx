@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { dbService } from '../../../services/db';
+import { toast } from '../../../services/toast';
 import { getImageUrl, storeStatusLabel, isFreteAbertoAgora, isStoreOpen, getNextOpenTime, getStoreHorario, DIAS_NOME } from './helpers';
 import { CheckoutModals } from './CheckoutModals';
 import './catalog.css';
@@ -103,7 +104,7 @@ export function Catalog() {
     if (p.stock === 0) return;
     setCart((prev) => {
       const n = new Map(prev); const ex = n.get(p.id); const max = p.stock ?? Infinity;
-      if ((ex?.qty || 0) >= max) { alert(`Estoque máximo atingido (${p.stock} un.)`); return prev; }
+      if ((ex?.qty || 0) >= max) { toast.warning(`Estoque máximo atingido (${p.stock} un.)`); return prev; }
       n.set(p.id, { product: p, qty: (ex?.qty || 0) + 1 }); return n;
     });
   }
@@ -130,7 +131,7 @@ export function Catalog() {
       try {
         const fresh = (await dbService.get('products', item.id)) as any;
         if (!fresh || fresh.active === false || (fresh.stock != null && fresh.stock < item.qty)) {
-          alert(`O item "${item.label}" não possui quantidade suficiente em estoque ou está indisponível.`);
+          toast.error(`O item "${item.label}" não possui quantidade suficiente em estoque ou está indisponível.`);
           return;
         }
       } catch { /* ignore falhas de leitura */ }

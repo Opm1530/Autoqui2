@@ -3,6 +3,8 @@ import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage
 import { storage } from '../../../firebase/config';
 import { API_BASE_URL } from '../../../services/api';
 import { notifications } from '../../../services/notifications';
+import { toast } from '../../../services/toast';
+import { confirm } from '../../../services/confirm';
 import { isStoreOpen, isFreteAbertoAgora } from './helpers';
 
 type Step = 'delivery' | 'customer' | 'payment' | 'pixManual' | 'mpPix' | 'confirmation';
@@ -104,19 +106,25 @@ export function CheckoutModals({ cart, subtotal, storeId, companyId, data, onClo
     );
   }
 
-  function goToPayment() {
+  async function goToPayment() {
     if (deliveryType === 'entrega' && flatBairros.length > 0) {
-      if (!bairroSel) { alert('Selecione seu bairro para entrega.'); return; }
-      if (bairroSel === '__outro__' && !bairroOutro.trim()) { alert('Digite o nome do seu bairro.'); return; }
+      if (!bairroSel) { toast.warning('Selecione seu bairro para entrega.'); return; }
+      if (bairroSel === '__outro__' && !bairroOutro.trim()) { toast.warning('Digite o nome do seu bairro.'); return; }
     }
-    if (!name.trim() || !phone.trim()) { alert('Preencha nome e telefone.'); return; }
+    if (!name.trim() || !phone.trim()) { toast.warning('Preencha nome e telefone.'); return; }
     let cleanPhone = phone.replace(/\D/g, '');
     if (cleanPhone.length === 13 && cleanPhone.startsWith('55')) cleanPhone = cleanPhone.substring(2);
     if (cleanPhone.length !== 11) { notifications.showPhoneError(); return; }
-    if (deliveryType === 'entrega' && !address.trim()) { alert('Preencha o endereço de entrega completo.'); return; }
+    if (deliveryType === 'entrega' && !address.trim()) { toast.warning('Preencha o endereço de entrega completo.'); return; }
     // Reforço: endereço sem número costuma ser endereço incompleto.
     if (deliveryType === 'entrega' && !/\d/.test(address) && !/s\/?n/i.test(address)) {
-      const ok = window.confirm('Seu endereço parece estar SEM NÚMERO. Endereço incompleto pode impedir a entrega.\n\nDeseja continuar mesmo assim?');
+      const ok = await confirm.show({
+        title: 'Endereço sem número?',
+        message: 'Seu endereço parece estar <strong>sem número</strong>. Endereço incompleto pode impedir a entrega. Deseja continuar mesmo assim?',
+        confirmText: 'Continuar assim',
+        cancelText: 'Corrigir',
+        type: 'warning',
+      });
       if (!ok) return;
     }
     try { localStorage.setItem(`cat_user_${companyId}`, JSON.stringify({ name, phone, address, complemento, bairro: resolvedBairro.nome })); } catch { /* ignore */ }
@@ -146,7 +154,7 @@ export function CheckoutModals({ cart, subtotal, storeId, companyId, data, onClo
     try {
       const { orderId } = await postOrder('na_entrega', { paymentSubMethod: subMethod, troco: subMethod === 'dinheiro' && troco ? parseFloat(troco) : null });
       setOrderId(orderId); onClearCart(); setStep('confirmation');
-    } catch (err: any) { alert('Erro ao processar pedido: ' + (err.message || 'Erro desconhecido') + '. Tente novamente ou fale com a loja.'); }
+    } catch (err: any) { toast.error('Erro ao processar pedido: ' + (err.message || 'Erro desconhecido') + '. Tente novamente ou fale com a loja.'); }
     finally { setBusy(''); }
   }
 
@@ -156,7 +164,7 @@ export function CheckoutModals({ cart, subtotal, storeId, companyId, data, onClo
     try {
       const { orderId } = await postOrder('pix_manual');
       setOrderId(orderId); onClearCart(); setStep('pixManual');
-    } catch (err: any) { alert('Erro ao gerar pedido PIX: ' + (err.message || 'Erro de conexão') + '. Tente novamente.'); }
+    } catch (err: any) { toast.error('Erro ao gerar pedido PIX: ' + (err.message || 'Erro de conexão') + '. Tente novamente.'); }
     finally { setBusy(''); }
   }
 
@@ -171,7 +179,7 @@ export function CheckoutModals({ cart, subtotal, storeId, companyId, data, onClo
         await fetch(`${API_BASE_URL}/api/orders/comprovante`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ orderId, comprovanteUrl: url }) });
       }
       setStep('confirmation');
-    } catch (err: any) { alert('Erro ao enviar comprovante: ' + (err.message || 'Erro de conexão') + '. Tente novamente.'); }
+    } catch (err: any) { toast.error('Erro ao enviar comprovante: ' + (err.message || 'Erro de conexão') + '. Tente novamente.'); }
     finally { setBusy(''); }
   }
 
@@ -183,7 +191,7 @@ export function CheckoutModals({ cart, subtotal, storeId, companyId, data, onClo
       setOrderId(res.orderId); onClearCart();
       if (res.mpData?.qr_code_base64 || res.mpData?.qr_code_text) { setMpData(res.mpData); setStep('mpPix'); }
       else setStep('confirmation');
-    } catch (err: any) { alert('Erro ao gerar PIX Mercado Pago: ' + (err.message || 'Erro de resposta') + '. Tente novamente.'); }
+    } catch (err: any) { toast.error('Erro ao gerar PIX Mercado Pago: ' + (err.message || 'Erro de resposta') + '. Tente novamente.'); }
     finally { setBusy(''); }
   }
 
