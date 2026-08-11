@@ -229,9 +229,9 @@ export function CheckoutModals({ cart, subtotal, storeId, companyId, data, onClo
           <label style={labelStyle}>Endereço</label>
           <div style={{ padding: '10px 12px', background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.3)', borderRadius: 10, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
             <i className="fa-solid fa-location-dot" style={{ color: '#fbbf24', fontSize: '0.9rem', flexShrink: 0 }} />
-            <span style={{ color: '#fbbf24', fontSize: '0.82rem', lineHeight: 1.4 }}>Confira com atenção: rua, <strong>número</strong> e complemento. Endereço errado atrasa ou impede a entrega do seu pedido.</span>
+            <span style={{ color: '#fbbf24', fontSize: '0.82rem', lineHeight: 1.4 }}>Confira com atenção: rua e <strong>número</strong>. Se for <strong>apartamento</strong>, informe também o <strong>número do apartamento</strong> (e bloco, se houver). Endereço errado atrasa ou impede a entrega.</span>
           </div>
-          <input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Rua, número, complemento (ex: Rua das Flores, 123, Apto 4)" style={{ ...inputStyle, marginBottom: 12 }} />
+          <input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Ex: Rua das Flores, 123, Apto 42, Bloco B" style={{ ...inputStyle, marginBottom: 12 }} />
           {flatBairros.length > 0 && <>
             <label style={labelStyle}>Bairro</label>
             <div style={{ padding: '10px 12px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 10, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
