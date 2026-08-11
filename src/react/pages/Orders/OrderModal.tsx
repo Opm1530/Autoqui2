@@ -18,6 +18,8 @@ export function OrderModal({ order, companyId, storeName, clientName, clientPhon
   const [busy, setBusy] = useState(false);
   const status = (order.status || 'em_montagem').toLowerCase();
   const isTerminal = status === 'finalizado' || status === 'cancelado';
+  // Pedido de catálogo não tem IA no fluxo: sem Intervir/Atend. Humano (só WhatsApp).
+  const isCatalog = order.source === 'catalog' || !!order.taxaNome;
   const action = nextAction(order);
 
   const itens = Array.isArray(order.itens)
@@ -206,19 +208,19 @@ export function OrderModal({ order, companyId, storeName, clientName, clientPhon
               <i className="fa-brands fa-whatsapp" /> WhatsApp
             </a>
           )}
-          {!isTerminal && (
+          {!isTerminal && !isCatalog && (
             <button className="btn-lead-action" disabled={busy} onClick={() => setIntervirOpen((o) => !o)}
               style={{ background: 'rgba(99,102,241,0.12)', borderColor: 'rgba(99,102,241,0.35)' }}>
               <i className="fa-solid fa-comment-dots" /> Intervir
             </button>
           )}
-          {!isTerminal && order.leadId && (
+          {!isTerminal && !isCatalog && order.leadId && (
             <button className="btn-lead-action" disabled={busy} onClick={humanSupport}
               style={{ background: 'rgba(245,158,11,0.12)', borderColor: 'rgba(245,158,11,0.35)', color: '#fbbf24' }}>
               <i className="fa-solid fa-user" /> Atend. Humano
             </button>
           )}
-          {isTerminal && !isOrderArchived(order) && (
+          {!isOrderArchived(order) && (
             <button className="btn-lead-action" disabled={busy} onClick={archive}>
               <i className="fa-solid fa-box-archive" /> Arquivar
             </button>
