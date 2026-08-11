@@ -121,7 +121,8 @@ function CompanyModal({ editing, onClose, onSaved, onRemoved }: { editing: any |
   async function removeStore(i: number) {
     const s = stores[i];
     if (!s.id || !editing) { setStores((prev) => prev.filter((_, idx) => idx !== i)); return; }
-    if (stores.length <= 1) { toast.warning('A empresa precisa ter pelo menos 1 loja.'); return; }
+    // Conta as lojas JÁ SALVAS (linhas novas em branco não contam) — mesma regra do backend.
+    if (stores.filter((x) => x.id).length <= 1) { toast.warning('A empresa precisa ter pelo menos 1 loja salva — não dá para remover a última.'); return; }
     try {
       const preview = await adminApi.previewRemoveStore(editing.id, s.id);
       setRemoving({ index: i, store: s, preview });
