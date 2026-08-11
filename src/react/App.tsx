@@ -23,6 +23,7 @@ import { Webhooks } from './pages/Admin/Webhooks';
 import { AdminMigration } from './pages/Admin/AdminMigration';
 import { Plans } from './pages/Admin/Plans';
 import { Billing } from './pages/Billing';
+import { LandingPage } from './pages/Landing/LandingPage';
 
 function Protected() {
   const { user, loading } = useAuth();
@@ -38,12 +39,6 @@ function Protected() {
 }
 
 const homeFor = (user: any) => !user ? '/login' : user.role === 'admin' ? '/admin/dashboard' : '/dashboard';
-
-function Root() {
-  const { user, loading } = useAuth();
-  if (loading) return null;
-  return <Navigate to={homeFor(user)} replace />;
-}
 
 // Se já estiver logado, sai da tela de login direto pro painel.
 function LoginRoute() {
@@ -85,7 +80,7 @@ export function App() {
             <Route path="/admin/plans" element={<Plans />} />
             <Route path="/billing" element={<Billing />} />
           </Route>
-          <Route path="/" element={<Root />} />
+          <Route path="/" element={<LandingPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
