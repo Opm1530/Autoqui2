@@ -215,7 +215,7 @@ export function OrderModal({ order, companyId, storeName, clientName, clientPhon
           {!isTerminal && order.leadId && (
             <button className="btn-lead-action" disabled={busy} onClick={humanSupport}
               style={{ background: 'rgba(245,158,11,0.12)', borderColor: 'rgba(245,158,11,0.35)', color: '#fbbf24' }}>
-              <i className="fa-solid fa-user-headset" style={{ display: 'none' }} /><i className="fa-solid fa-user" /> Atend. Humano
+              <i className="fa-solid fa-user" /> Atend. Humano
             </button>
           )}
           {isTerminal && !isOrderArchived(order) && (
