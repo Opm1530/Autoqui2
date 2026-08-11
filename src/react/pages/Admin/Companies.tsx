@@ -88,12 +88,15 @@ export function Companies() {
         </div>
       </div>
 
-      {modalOpen && <CompanyModal editing={editing} onClose={() => { setModalOpen(false); setEditing(null); }} onSaved={onSaved} />}
+      {modalOpen && (
+        <CompanyModal editing={editing} onClose={() => { setModalOpen(false); setEditing(null); }} onSaved={onSaved}
+          onRemoved={(companyId, storeId) => setCompanies((prev) => prev.map((c) => (c.id === companyId ? { ...c, stores: (c.stores || []).filter((s: any) => s.id !== storeId) } : c)))} />
+      )}
     </div>
   );
 }
 
-function CompanyModal({ editing, onClose, onSaved }: { editing: any | null; onClose: () => void; onSaved: (c: any, isNew: boolean) => void }) {
+function CompanyModal({ editing, onClose, onSaved, onRemoved }: { editing: any | null; onClose: () => void; onSaved: (c: any, isNew: boolean) => void; onRemoved?: (companyId: string, storeId: string) => void }) {
   const isEdit = !!editing;
   const [name, setName] = useState(editing?.name || '');
   const [limit, setLimit] = useState(String(editing?.limite_instancias || 1));
@@ -107,9 +110,39 @@ function CompanyModal({ editing, onClose, onSaved }: { editing: any | null; onCl
   });
   const [saving, setSaving] = useState(false);
 
+  const [removing, setRemoving] = useState<{ index: number; store: StoreRow; preview: any } | null>(null);
+  const [removeBusy, setRemoveBusy] = useState(false);
+
   const patchStore = (i: number, p: Partial<StoreRow>) => setStores((prev) => prev.map((s, idx) => (idx === i ? { ...s, ...p } : s)));
   const addStore = () => setStores((prev) => [...prev, { name: '', address: '', active: true, frete_ativo: true, instancia_id: null }]);
-  const removeStore = (i: number) => setStores((prev) => prev.filter((_, idx) => idx !== i));
+
+  // Loja nova (ainda não salva) some direto. Loja existente passa pelo preview
+  // de impacto e é removida no backend (limpa produtos/combos/config/instância).
+  async function removeStore(i: number) {
+    const s = stores[i];
+    if (!s.id || !editing) { setStores((prev) => prev.filter((_, idx) => idx !== i)); return; }
+    if (stores.length <= 1) { toast.warning('A empresa precisa ter pelo menos 1 loja.'); return; }
+    try {
+      const preview = await adminApi.previewRemoveStore(editing.id, s.id);
+      setRemoving({ index: i, store: s, preview });
+    } catch (err: any) {
+      toast.error(err.message === 'ultima_loja' ? 'A empresa precisa ter pelo menos 1 loja.' : 'Erro: ' + (err.message || err));
+    }
+  }
+
+  async function confirmRemoveStore() {
+    if (!removing || !editing) return;
+    setRemoveBusy(true);
+    try {
+      const r = await adminApi.removeStore(editing.id, removing.store.id!);
+      setStores((prev) => prev.filter((_, idx) => idx !== removing.index));
+      toast.success(`Loja removida. ${r.deletedProducts} produto(s) excluído(s), ${r.preservedOrders} pedido(s) preservado(s).`);
+      setRemoving(null);
+      onRemoved?.(editing.id, removing.store.id!);
+    } catch (err: any) {
+      toast.error('Erro ao remover loja: ' + (err.message || err));
+    } finally { setRemoveBusy(false); }
+  }
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
@@ -185,6 +218,49 @@ function CompanyModal({ editing, onClose, onSaved }: { editing: any | null; onCl
           <button type="submit" className="btn-primary full-width" disabled={saving} style={{ marginTop: '1rem' }}>{saving ? 'Salvando...' : 'Salvar Cliente'}</button>
         </form>
       </div>
+
+      {/* Confirmação de remoção de loja, com o impacto real */}
+      {removing && (
+        <div className="modal" style={{ display: 'flex', zIndex: 10000 }} onClick={(e) => { if (e.target === e.currentTarget) setRemoving(null); }}>
+          <div className="modal-content glass" style={{ maxWidth: 520 }}>
+            <span className="close-modal" onClick={() => setRemoving(null)}>&times;</span>
+            <h2 style={{ marginBottom: 6 }}><i className="fa-solid fa-triangle-exclamation" style={{ color: '#ef4444', marginRight: 8 }} />Remover loja</h2>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: 16 }}>
+              Você está removendo <strong style={{ color: 'var(--text-main)' }}>{removing.preview.storeName}</strong>. Confira o impacto:
+            </p>
+
+            <div style={{ background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 12, padding: '12px 16px', marginBottom: 12 }}>
+              <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#f87171', textTransform: 'uppercase', marginBottom: 8 }}>Será excluído</div>
+              <Row label="Produtos exclusivos desta loja" value={removing.preview.productsToDelete} danger />
+              <Row label="Combos desta loja" value={removing.preview.combosToDelete} danger />
+              <Row label="Configuração do catálogo (design, horários, taxas, cupons)" value={removing.preview.configsToDelete} danger />
+            </div>
+
+            <div style={{ background: 'rgba(16,185,129,0.06)', border: '1px solid rgba(16,185,129,0.25)', borderRadius: 12, padding: '12px 16px', marginBottom: 16 }}>
+              <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#34d399', textTransform: 'uppercase', marginBottom: 8 }}>Será preservado</div>
+              <Row label="Pedidos desta loja (histórico intacto)" value={removing.preview.ordersPreserved} />
+              <Row label="Produtos que também estão em outra loja" value={removing.preview.productsToUnlink} />
+              <Row label="Instâncias desvinculadas (ficam livres)" value={removing.preview.instancesToUnlink} />
+            </div>
+
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button className="btn-secondary" onClick={() => setRemoving(null)}>Cancelar</button>
+              <button className="btn-primary" disabled={removeBusy} style={{ background: '#ef4444' }} onClick={confirmRemoveStore}>
+                {removeBusy ? <><i className="fa-solid fa-spinner fa-spin" /> Removendo...</> : <><i className="fa-solid fa-trash" /> Remover loja</>}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Row({ label, value, danger }: { label: string; value: number; danger?: boolean }) {
+  return (
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, padding: '4px 0', fontSize: '0.87rem' }}>
+      <span style={{ color: 'var(--text-muted)' }}>{label}</span>
+      <strong style={{ color: value > 0 ? (danger ? '#f87171' : 'var(--text-main)') : 'var(--text-dim)' }}>{value}</strong>
     </div>
   );
 }

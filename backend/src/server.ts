@@ -6,13 +6,14 @@ import { requireAuth } from './auth.js';
 import * as wa from './evolution.js';
 import {
   createCatalogOrder, handleMpPaymentApproved,
-  changeOrderStatus, archiveOrder, setComprovante,
+  changeOrderStatus, archiveOrder, setComprovante, deleteOrder,
 } from './orders.js';
 import { saveProduct, deleteProduct, updateProductFields } from './products.js';
 import { connectMp, disconnectMp, mpStatus } from './mercadopago.js';
 import {
   saveCompany, toggleCompanyStatus, setCompanyStores,
   createEmployee, updateUser, setUserActive, deleteUser, saveWebhooks,
+  previewRemoveStore, removeStore,
 } from './admin.js';
 import {
   connectPlatformMp, platformMpStatus, disconnectPlatformMp,
@@ -195,6 +196,9 @@ const wrap = (fn: (req: any) => Promise<any>) => async (req: any, res: any) => {
 
 app.post('/api/companies/save', requireAuth, wrap((req) => saveCompany(req.uid, { id: req.body?.id, data: req.body?.data, owner: req.body?.owner })));
 app.post('/api/companies/toggle-status', requireAuth, wrap((req) => toggleCompanyStatus(req.uid, String(req.body?.id), String(req.body?.status))));
+app.post('/api/companies/preview-remove-store', requireAuth, wrap((req) => previewRemoveStore(req.uid, String(req.body?.companyId), String(req.body?.storeId))));
+app.post('/api/companies/remove-store', requireAuth, wrap((req) => removeStore(req.uid, String(req.body?.companyId), String(req.body?.storeId))));
+app.post('/api/orders/delete', requireAuth, wrap((req) => deleteOrder(req.uid, String(req.body?.orderId))));
 app.post('/api/companies/set-stores', requireAuth, wrap((req) => setCompanyStores(req.uid, req.body?.companyId, req.body?.stores)));
 
 app.post('/api/users/create-employee', requireAuth, wrap((req) => createEmployee(req.uid, req.body || {})));

@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { orderService } from '../../../services/orderService';
 import { dataApi } from '../../../services/dataApi';
+import { adminApi } from '../../../services/adminApi';
 import { toast } from '../../../services/toast';
 import { confirm } from '../../../services/confirm';
+import { useAuth } from '../../useAuth';
 import { StatusBadge, DeliveryBadge, PaymentBadge, nextAction, isOrderArchived } from './helpers';
 
 interface Props {
@@ -15,6 +17,8 @@ interface Props {
 }
 
 export function OrderModal({ order, companyId, storeName, clientName, clientPhone, onClose }: Props) {
+  const { user } = useAuth();
+  const isPlatformAdmin = user?.role === 'admin';
   const [busy, setBusy] = useState(false);
   const status = (order.status || 'em_montagem').toLowerCase();
   const isTerminal = status === 'finalizado' || status === 'cancelado';
@@ -82,6 +86,24 @@ export function OrderModal({ order, companyId, storeName, clientName, clientPhon
       await dataApi.update('leads', order.leadId, { statusAtendimento: 'em_atendimento_humano', estado: 'atendimento_humano' });
       toast.success('Atendimento humano ativado para o lead!');
     } catch { toast.error('Erro ao ativar atendimento humano.'); }
+  }
+
+  // Exclusão definitiva — só admin da plataforma (limpar pedidos de teste).
+  async function removeOrder() {
+    const ok = await confirm.danger(
+      'Excluir Pedido Definitivamente',
+      `Este pedido será APAGADO do sistema e não poderá ser recuperado. O estoque dos itens NÃO será devolvido.\n\nUse apenas para pedidos de teste. Deseja continuar?`
+    );
+    if (!ok) return;
+    setBusy(true);
+    try {
+      await adminApi.deleteOrder(order.id);
+      toast.success('Pedido excluído do sistema.');
+      onClose();
+    } catch (err: any) {
+      toast.error('Erro ao excluir: ' + (err.message || err));
+      setBusy(false);
+    }
   }
 
   async function archive() {
@@ -223,6 +245,12 @@ export function OrderModal({ order, companyId, storeName, clientName, clientPhon
           {!isOrderArchived(order) && (
             <button className="btn-lead-action" disabled={busy} onClick={archive}>
               <i className="fa-solid fa-box-archive" /> Arquivar
+            </button>
+          )}
+          {isPlatformAdmin && (
+            <button className="btn-lead-action danger" disabled={busy} onClick={removeOrder}
+              title="Exclusão definitiva — apenas admin da plataforma">
+              <i className="fa-solid fa-trash" /> Excluir
             </button>
           )}
         </div>

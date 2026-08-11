@@ -1,7 +1,7 @@
 // Gestão de usuários, clientes (companies) e settings — SERVER-SIDE (autenticado).
 // A empresa e o papel vêm do doc users/{uid}; o cliente não escolhe de quem é o dado.
 import { getAuth } from 'firebase-admin/auth';
-import { getDoc, db } from './firebase.js';
+import { getDoc, getAll, db } from './firebase.js';
 
 async function getUser(uid: string): Promise<any> {
   const user = await getDoc('users', uid);
@@ -64,6 +64,93 @@ export async function setCompanyStores(uid: string, companyId: string | undefine
   if (!Array.isArray(stores)) throw new Error('stores_invalido');
   await db.collection('companies').doc(targetId).update({ stores });
   return { ok: true };
+}
+
+// ─── REMOÇÃO DE LOJA (admin) ─────────────────────────────────────────────────
+// Pedidos e leads NUNCA são apagados: o histórico da loja removida é preservado.
+
+// Coleta o que será afetado pela remoção (usado no preview e na execução).
+async function collectStoreImpact(companyId: string, storeId: string) {
+  const [products, combos, configs, instances, orders] = await Promise.all([
+    getAll('products', { field: 'companyId', operator: '==', value: companyId }),
+    getAll('combos', { field: 'empresaId', operator: '==', value: companyId }),
+    getAll('loja_config', { field: 'empresaId', operator: '==', value: companyId }),
+    getAll('instancias', { field: 'empresaId', operator: '==', value: companyId }),
+    getAll('pedidos', { field: 'empresaId', operator: '==', value: companyId }),
+  ]);
+
+  const belongs = (p: any) => (p.storeIds || []).includes(storeId) || p.storeId === storeId;
+  const productsOfStore = products.filter(belongs);
+  // Exclusivo = não sobra nenhuma outra loja depois de tirar esta.
+  const exclusive = productsOfStore.filter((p) => {
+    const ids: string[] = p.storeIds || (p.storeId ? [p.storeId] : []);
+    return ids.filter((id) => id !== storeId).length === 0;
+  });
+  const shared = productsOfStore.filter((p) => !exclusive.includes(p));
+
+  return {
+    exclusiveProducts: exclusive,
+    sharedProducts: shared,
+    combos: combos.filter((c: any) => c.lojaId === storeId),
+    configs: configs.filter((c: any) => c.lojaId === storeId),
+    instances: instances.filter((i: any) => i.lojaId === storeId),
+    ordersCount: orders.filter((o: any) => o.lojaId === storeId || o.storeId === storeId).length,
+  };
+}
+
+export async function previewRemoveStore(uid: string, companyId: string, storeId: string) {
+  const user = await getUser(uid);
+  assertAdmin(user);
+  const company = await getDoc('companies', companyId);
+  const stores = company?.stores || [];
+  const store = stores.find((s: any) => s.id === storeId);
+  if (!store) throw new Error('loja_nao_encontrada');
+  if (stores.length <= 1) throw new Error('ultima_loja');
+
+  const i = await collectStoreImpact(companyId, storeId);
+  return {
+    storeName: store.name,
+    productsToDelete: i.exclusiveProducts.length,
+    productsToUnlink: i.sharedProducts.length,
+    combosToDelete: i.combos.length,
+    configsToDelete: i.configs.length,
+    instancesToUnlink: i.instances.length,
+    ordersPreserved: i.ordersCount,
+  };
+}
+
+export async function removeStore(uid: string, companyId: string, storeId: string) {
+  const user = await getUser(uid);
+  assertAdmin(user);
+  const company = await getDoc('companies', companyId);
+  const stores = company?.stores || [];
+  if (!stores.find((s: any) => s.id === storeId)) throw new Error('loja_nao_encontrada');
+  if (stores.length <= 1) throw new Error('ultima_loja');
+
+  const i = await collectStoreImpact(companyId, storeId);
+
+  // 1. Produtos exclusivos da loja → excluídos; compartilhados → perdem só o vínculo.
+  for (const p of i.exclusiveProducts) await db.collection('products').doc(p.id).delete();
+  for (const p of i.sharedProducts) {
+    const ids: string[] = (p.storeIds || (p.storeId ? [p.storeId] : [])).filter((id: string) => id !== storeId);
+    await db.collection('products').doc(p.id).update({ storeIds: ids, storeId: null });
+  }
+  // 2. Combos e config da loja
+  for (const c of i.combos) await db.collection('combos').doc(c.id).delete();
+  for (const c of i.configs) await db.collection('loja_config').doc(c.id).delete();
+  // 3. Instâncias desvinculadas (ficam livres para outra loja)
+  for (const inst of i.instances) await db.collection('instancias').doc(inst.id).update({ lojaId: null, funcao: null });
+  // 4. Remove a loja do array (pedidos e leads permanecem intactos)
+  await db.collection('companies').doc(companyId).update({ stores: stores.filter((s: any) => s.id !== storeId) });
+
+  return {
+    ok: true,
+    deletedProducts: i.exclusiveProducts.length,
+    unlinkedProducts: i.sharedProducts.length,
+    deletedCombos: i.combos.length,
+    unlinkedInstances: i.instances.length,
+    preservedOrders: i.ordersCount,
+  };
 }
 
 // ─── USERS ───────────────────────────────────────────────────────────────────
