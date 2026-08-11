@@ -2,12 +2,9 @@
 // A empresa e o papel vêm do doc users/{uid}; o cliente não escolhe de quem é o dado.
 import { getAuth } from 'firebase-admin/auth';
 import { getDoc, getAll, db } from './firebase.js';
+import { loadUser } from './currentUser.js';
 
-async function getUser(uid: string): Promise<any> {
-  const user = await getDoc('users', uid);
-  if (!user) throw new Error('user_not_found');
-  return user;
-}
+const getUser = loadUser;
 function assertAdmin(user: any) {
   if (user.role !== 'admin') throw new Error('forbidden');
 }

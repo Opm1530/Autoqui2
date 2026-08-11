@@ -21,11 +21,11 @@ import {
   handleSubscriptionWebhook,
 } from './subscriptions.js';
 import { createDoc, updateDoc, deleteDoc } from './collections.js';
-import { getDoc } from './firebase.js';
+import { loadUser } from './currentUser.js';
 
 // Empresa do usuário logado (a partir do doc users/{uid}).
 async function companyOf(uid: string): Promise<string> {
-  const user = await getDoc('users', uid);
+  const user = await loadUser(uid);
   const companyId = user?.companyId;
   if (!companyId) throw new Error('no_company');
   return companyId;

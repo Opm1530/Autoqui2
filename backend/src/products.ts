@@ -3,12 +3,9 @@
 // então um dono não mexe nos produtos de outra empresa.
 
 import { getDoc, db } from './firebase.js';
+import { loadUser } from './currentUser.js';
 
-async function getUser(uid: string): Promise<any> {
-  const user = await getDoc('users', uid);
-  if (!user) throw new Error('user_not_found');
-  return user;
-}
+const getUser = loadUser;
 
 // Resolve a empresa que o usuário pode operar. Admin pode passar companyId; os
 // demais são forçados à própria empresa.

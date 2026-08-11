@@ -3,6 +3,7 @@
 // template da mensagem, e envia pela Evolution. O cliente só informa o orderId.
 
 import { getAll, getDoc, db } from './firebase.js';
+import { loadUser } from './currentUser.js';
 import { sendText } from './evolution.js';
 import { refundPayment } from './mercadopago.js';
 import { Timestamp } from 'firebase-admin/firestore';
@@ -290,8 +291,7 @@ async function saveMessageLog(companyId: string, leadId: string, message: string
 // confere que o pedido é da empresa do usuário, resolve instância/telefone,
 // envia pela Evolution e grava o log em messages.
 export async function sendIntervention(uid: string, orderId: string, message: string): Promise<{ ok: boolean }> {
-  const user = await getDoc('users', uid);
-  if (!user) throw new Error('user_not_found');
+  const user = await loadUser(uid);
   const order = await getDoc('pedidos', orderId);
   if (!order) throw new Error('pedido_nao_encontrado');
   if (user.role !== 'admin' && order.empresaId !== user.companyId) throw new Error('forbidden');

@@ -2,16 +2,13 @@
 // Usa a conta MP da plataforma (token em platform_secrets/mercadopago), separada
 // dos tokens por empresa. Modelo: planos fixos (tiers) + auto-serviço no painel.
 import { getDoc, db } from './firebase.js';
+import { loadUser } from './currentUser.js';
 import { PUBLIC_BASE_URL, PANEL_URL } from './config.js';
 import { Timestamp } from 'firebase-admin/firestore';
 
 const MP_API = 'https://api.mercadopago.com';
 
-async function getUser(uid: string): Promise<any> {
-  const u = await getDoc('users', uid);
-  if (!u) throw new Error('user_not_found');
-  return u;
-}
+const getUser = loadUser;
 function assertAdmin(u: any) { if (u.role !== 'admin') throw new Error('forbidden'); }
 
 // ── Token da plataforma ────────────────────────────────────────────────────

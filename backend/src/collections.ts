@@ -2,6 +2,7 @@
 // A empresa vem do doc users/{uid}; o cliente não escolhe de quem é o dado.
 // Timestamps são gerados/convertidos no servidor (não sobrevivem ao JSON).
 import { getDoc, db } from './firebase.js';
+import { loadUser } from './currentUser.js';
 import { Timestamp } from 'firebase-admin/firestore';
 
 interface CollCfg {
@@ -22,11 +23,7 @@ const COLL: Record<string, CollCfg> = {
   instancias: { company: 'empresaId', serverTs: ['createdAt'] },
 };
 
-async function getUser(uid: string): Promise<any> {
-  const u = await getDoc('users', uid);
-  if (!u) throw new Error('user_not_found');
-  return u;
-}
+const getUser = loadUser;
 function cfgOf(collection: string): CollCfg {
   const c = COLL[collection];
   if (!c) throw new Error('colecao_nao_permitida');

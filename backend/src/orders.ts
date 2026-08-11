@@ -4,6 +4,7 @@
 // cria o pedido e dispara a notificação. O cliente não controla os valores.
 
 import { getAll, getDoc, db } from './firebase.js';
+import { loadUser } from './currentUser.js';
 import { notifyNewOrder, notifyPaymentReceived, notifyStatusChange } from './notify.js';
 import { createPixCharge, getPayment } from './mercadopago.js';
 import { Timestamp } from 'firebase-admin/firestore';
@@ -293,8 +294,7 @@ const STATUS_EXTRA_WHITELIST = new Set([
 ]);
 
 async function assertOrderOwner(uid: string, orderId: string): Promise<{ user: any; order: any }> {
-  const user = await getDoc('users', uid);
-  if (!user) throw new Error('user_not_found');
+  const user = await loadUser(uid);
   const order = await getDoc('pedidos', orderId);
   if (!order) throw new Error('not_found');
   if (user.role !== 'admin' && order.empresaId !== user.companyId) throw new Error('forbidden');
@@ -339,8 +339,7 @@ export async function archiveOrder(uid: string, orderId: string): Promise<{ ok: 
 // Exclusão definitiva do pedido — SÓ admin da plataforma (usado para limpar testes).
 // Não devolve estoque: o pedido some do sistema como se nunca tivesse existido.
 export async function deleteOrder(uid: string, orderId: string): Promise<{ ok: boolean }> {
-  const user = await getDoc('users', uid);
-  if (!user) throw new Error('user_not_found');
+  const user = await loadUser(uid);
   if (user.role !== 'admin') throw new Error('forbidden');
   const order = await getDoc('pedidos', orderId);
   if (!order) return { ok: true };

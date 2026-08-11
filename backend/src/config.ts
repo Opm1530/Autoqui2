@@ -23,3 +23,10 @@ export const PUBLIC_BASE_URL = process.env.PUBLIC_BASE_URL || 'https://api.autoq
 
 // URL do painel (usada como back_url do checkout de assinatura do Mercado Pago).
 export const PANEL_URL = process.env.PANEL_URL || 'https://autoqui.com.br';
+
+// E-mails tratados como admin da plataforma mesmo sem documento em `users`
+// (mesma regra de bootstrap que o frontend já usava).
+export const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || 'ginannymoreira@gmail.com')
+  .split(',')
+  .map((e) => e.trim().toLowerCase())
+  .filter(Boolean);
