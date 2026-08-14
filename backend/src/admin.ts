@@ -1,8 +1,11 @@
 // Gestão de usuários, clientes (companies) e settings — SERVER-SIDE (autenticado).
 // A empresa e o papel vêm do doc users/{uid}; o cliente não escolhe de quem é o dado.
 import { getAuth } from 'firebase-admin/auth';
+import { Timestamp } from 'firebase-admin/firestore';
 import { getDoc, getAll, db } from './firebase.js';
 import { loadUser } from './currentUser.js';
+
+const GRACA_DIAS = 7; // prazo pra assinar quando o admin atribui plano a um cliente existente
 
 const getUser = loadUser;
 function assertAdmin(user: any) {
@@ -20,12 +23,33 @@ export async function saveCompany(uid: string, payload: { id?: string; data: any
   if (stores.length === 0) throw new Error('stores_obrigatorio');
 
   if (payload.id) {
-    await db.collection('companies').doc(payload.id).update({
+    const patch: any = {
       name: data.name,
       stores,
       limite_instancias: data.limite_instancias || 1,
       modulos_ativos: data.modulos_ativos || ['atendimento'],
-    });
+    };
+    if (typeof data.isento === 'boolean') patch.isento = data.isento;
+
+    // Admin atribuindo um plano ao cliente: define o tier (teto de lojas + módulos)
+    // e dá um prazo de graça pra assinar antes da parede — a menos que já esteja ativo.
+    if (data.planId) {
+      const plano = await getDoc('planos', data.planId);
+      if (!plano) throw new Error('plano_invalido');
+      const company = await getDoc('companies', payload.id);
+      const jaAtivo = company?.assinatura?.status === 'authorized';
+      patch.limite_lojas = plano.maxLojas || 1;
+      if (Array.isArray(plano.modulos) && plano.modulos.length) patch.modulos_ativos = plano.modulos;
+      patch.assinatura = {
+        ...(company?.assinatura || {}),
+        planId: data.planId, planoNome: plano.nome, valor: plano.valor, maxLojas: plano.maxLojas || 1,
+        status: jaAtivo ? 'authorized' : 'pending',
+        trialAte: jaAtivo ? (company?.assinatura?.trialAte || null) : Timestamp.fromMillis(Date.now() + GRACA_DIAS * 86400000),
+        atualizadoEm: Timestamp.now(),
+      };
+    }
+
+    await db.collection('companies').doc(payload.id).update(patch);
     return { id: payload.id };
   }
 
@@ -59,6 +83,14 @@ export async function setCompanyStores(uid: string, companyId: string | undefine
   const targetId = user.role === 'admin' && companyId ? companyId : user.companyId;
   if (!targetId) throw new Error('no_company');
   if (!Array.isArray(stores)) throw new Error('stores_invalido');
+
+  // Teto de lojas do plano (admin passa livre; dono é limitado).
+  if (user.role !== 'admin') {
+    const company = await getDoc('companies', targetId);
+    const max = company?.assinatura?.maxLojas || company?.limite_lojas || 0;
+    if (max && stores.length > max) throw new Error('limite_lojas_excedido');
+  }
+
   await db.collection('companies').doc(targetId).update({ stores });
   return { ok: true };
 }

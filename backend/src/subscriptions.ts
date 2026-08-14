@@ -1,15 +1,64 @@
 // Assinaturas recorrentes da PLATAFORMA (mensalidade dos clientes via Mercado Pago).
 // Usa a conta MP da plataforma (token em platform_secrets/mercadopago), separada
 // dos tokens por empresa. Modelo: planos fixos (tiers) + auto-serviço no painel.
+import { getAuth } from 'firebase-admin/auth';
+import { randomUUID } from 'crypto';
 import { getDoc, db } from './firebase.js';
 import { loadUser } from './currentUser.js';
 import { PUBLIC_BASE_URL, PANEL_URL } from './config.js';
 import { Timestamp } from 'firebase-admin/firestore';
 
 const MP_API = 'https://api.mercadopago.com';
+const TRIAL_DIAS = 7; // teste grátis do autocadastro
 
 const getUser = loadUser;
 function assertAdmin(u: any) { if (u.role !== 'admin') throw new Error('forbidden'); }
+
+// ── Autocadastro (self-service) ────────────────────────────────────────────
+// O front cria a conta no Firebase (senha não passa por aqui) e chama isto com o
+// ID token. Cria a empresa em teste de 7 dias + o doc users (role owner). O
+// backend força o papel e deriva o teto de lojas/módulos do PLANO — o usuário
+// não escolhe isso.
+export async function provisionSignup(uid: string, payload: { companyName: string; planId: string }): Promise<{ companyId: string }> {
+  const companyName = String(payload?.companyName || '').trim();
+  const planId = String(payload?.planId || '').trim();
+  if (!companyName || !planId) throw new Error('dados_incompletos');
+
+  // Já tem empresa? Não provisiona de novo (evita duplicar no F5 / reenvio).
+  const existing = await getDoc('users', uid);
+  if (existing?.companyId) throw new Error('ja_provisionado');
+
+  const plano = await getDoc('planos', planId);
+  if (!plano || plano.ativo === false) throw new Error('plano_invalido');
+
+  const authUser = await getAuth().getUser(uid);
+  const email = authUser.email || '';
+  const maxLojas = plano.maxLojas || 1;
+  const modulos = Array.isArray(plano.modulos) && plano.modulos.length ? plano.modulos : ['venda_catalogo'];
+
+  const baseStore = { id: randomUUID(), name: companyName, active: true };
+  const trialAte = Timestamp.fromMillis(Date.now() + TRIAL_DIAS * 86400000);
+
+  const ref = await db.collection('companies').add({
+    name: companyName,
+    stores: [baseStore],
+    limite_instancias: 1,
+    limite_lojas: maxLojas,
+    status: 'active',
+    ownerId: uid,
+    origem: 'self-signup',
+    isento: false,
+    modulos_ativos: modulos,
+    metrics: { totalMessages: 0, totalPayments: 0 },
+    assinatura: {
+      planId, planoNome: plano.nome, valor: plano.valor, maxLojas,
+      status: 'trial', trialAte, inadimplenteDesde: null, atualizadoEm: Timestamp.now(),
+    },
+  });
+  await db.collection('users').doc(uid).set({ uid, email, role: 'owner', companyId: ref.id });
+  console.log(`[signup] empresa ${ref.id} criada (plano ${plano.nome}, teste ${TRIAL_DIAS}d) por ${email}`);
+  return { companyId: ref.id };
+}
 
 // ── Token da plataforma ────────────────────────────────────────────────────
 async function platformToken(): Promise<string> {
@@ -42,12 +91,15 @@ export async function disconnectPlatformMp(uid: string): Promise<{ ok: boolean }
 
 // ── Planos (admin) ─────────────────────────────────────────────────────────
 // Cada plano cria/atualiza um preapproval_plan no MP e guarda em `planos`.
-export async function savePlan(uid: string, payload: { id?: string; nome: string; valor: number; toleranciaDias?: number }): Promise<{ id: string }> {
+export async function savePlan(uid: string, payload: { id?: string; nome: string; valor: number; toleranciaDias?: number; maxLojas?: number; modulos?: string[] }): Promise<{ id: string }> {
   const user = await getUser(uid); assertAdmin(user);
   const token = await platformToken();
   const valor = Number(payload.valor);
   if (!payload.nome || !valor || valor <= 0) throw new Error('dados_invalidos');
   const tolerancia = payload.toleranciaDias != null ? Number(payload.toleranciaDias) : 5;
+  // Tier: quantas lojas o plano libera e quais módulos vêm inclusos.
+  const maxLojas = payload.maxLojas != null ? Math.max(1, Number(payload.maxLojas)) : 1;
+  const modulos = Array.isArray(payload.modulos) && payload.modulos.length ? payload.modulos : ['venda_catalogo'];
 
   const body = {
     reason: payload.nome,
@@ -64,7 +116,7 @@ export async function savePlan(uid: string, payload: { id?: string; nome: string
         body: JSON.stringify({ reason: payload.nome, auto_recurring: body.auto_recurring, back_url: body.back_url }),
       });
     }
-    await db.collection('planos').doc(payload.id).update({ nome: payload.nome, valor, toleranciaDias: tolerancia });
+    await db.collection('planos').doc(payload.id).update({ nome: payload.nome, valor, toleranciaDias: tolerancia, maxLojas, modulos });
     return { id: payload.id };
   }
 
@@ -73,7 +125,7 @@ export async function savePlan(uid: string, payload: { id?: string; nome: string
   });
   const data = await resp.json().catch(() => ({}));
   if (!resp.ok || !data?.id) { console.error('[sub] erro criar plano:', resp.status, data); throw new Error('mp_erro_plano'); }
-  const ref = await db.collection('planos').add({ nome: payload.nome, valor, toleranciaDias: tolerancia, mpPlanId: String(data.id), ativo: true, criadoEm: Timestamp.now() });
+  const ref = await db.collection('planos').add({ nome: payload.nome, valor, toleranciaDias: tolerancia, maxLojas, modulos, mpPlanId: String(data.id), ativo: true, criadoEm: Timestamp.now() });
   return { id: ref.id };
 }
 
@@ -81,6 +133,15 @@ export async function deletePlan(uid: string, id: string): Promise<{ ok: boolean
   const user = await getUser(uid); assertAdmin(user);
   await db.collection('planos').doc(id).update({ ativo: false });
   return { ok: true };
+}
+
+// Lista pública dos planos ativos (pra vitrine/cadastro, sem login). Só campos
+// que podem ser públicos — nada de mpPlanId.
+export async function listPublicPlans(): Promise<Array<{ id: string; nome: string; valor: number; maxLojas: number }>> {
+  const snap = await db.collection('planos').where('ativo', '==', true).get();
+  return snap.docs
+    .map((d) => ({ id: d.id, nome: d.data().nome, valor: d.data().valor, maxLojas: d.data().maxLojas || 1 }))
+    .sort((a, b) => a.valor - b.valor);
 }
 
 // ── Assinatura (auto-serviço do dono) ──────────────────────────────────────
@@ -106,8 +167,13 @@ export async function subscribe(uid: string, planId: string): Promise<{ init_poi
   const data = await resp.json().catch(() => ({}));
   if (!resp.ok || !data?.init_point) { console.error('[sub] erro criar assinatura:', resp.status, data); throw new Error('mp_erro_assinatura'); }
 
+  const company = await getDoc('companies', user.companyId);
   await db.collection('companies').doc(user.companyId).set({
-    assinatura: { planId, planoNome: plano.nome, valor: plano.valor, mpPreapprovalId: String(data.id || ''), status: 'pending', inadimplenteDesde: null, atualizadoEm: Timestamp.now() },
+    assinatura: {
+      ...(company?.assinatura || {}),
+      planId, planoNome: plano.nome, valor: plano.valor, maxLojas: plano.maxLojas || 1,
+      mpPreapprovalId: String(data.id || ''), status: 'pending', inadimplenteDesde: null, atualizadoEm: Timestamp.now(),
+    },
   }, { merge: true });
 
   return { init_point: data.init_point };
@@ -130,25 +196,50 @@ export async function cancelSubscription(uid: string, companyId?: string): Promi
   return { ok: true };
 }
 
+// Normaliza Timestamp | Date | number | string ISO → ms (ou null).
+function toMs(v: any): number | null {
+  if (!v) return null;
+  const ms = v?.toDate ? v.toDate().getTime() : new Date(v).getTime();
+  return isNaN(ms) ? null : ms;
+}
+
 // Estado da assinatura da empresa do usuário logado (pro painel decidir a parede).
 export async function mySubscription(uid: string): Promise<any> {
   const user = await getUser(uid);
-  if (!user.companyId) return { assinatura: null, bloqueada: false };
+  if (!user.companyId) return { assinatura: null, bloqueada: false, emTrial: false };
   const company = await getDoc('companies', user.companyId);
   const a = company?.assinatura || null;
   const tolerancia = a?.planId ? (await getDoc('planos', a.planId))?.toleranciaDias ?? 5 : 5;
-  return { assinatura: a, bloqueada: computeBlocked(a, tolerancia), toleranciaDias: tolerancia };
+  return { ...computeAccess(company, tolerancia), assinatura: a, toleranciaDias: tolerancia, maxLojas: a?.maxLojas || company?.limite_lojas || 1 };
 }
 
-// Regra: bloqueia se cancelada OU inadimplente há mais que a tolerância.
-export function computeBlocked(a: any, toleranciaDias: number): boolean {
-  if (!a) return false;
-  if (a.status === 'cancelled') return true;
-  if (a.inadimplenteDesde) {
-    const ms = a.inadimplenteDesde?.toDate ? a.inadimplenteDesde.toDate().getTime() : new Date(a.inadimplenteDesde).getTime();
-    if (!isNaN(ms) && Date.now() - ms > toleranciaDias * 86400000) return true;
+// Decide o acesso da empresa. Ordem: isento → livre; sem plano → livre (clientes
+// atuais sem plano seguem funcionando); authorized → livre; dentro do teste →
+// livre; cancelada / teste vencido / inadimplente além da tolerância → bloqueia.
+export function computeAccess(company: any, toleranciaDias: number): { bloqueada: boolean; emTrial: boolean; diasRestantesTrial: number } {
+  const livre = (emTrial = false, dias = 0) => ({ bloqueada: false, emTrial, diasRestantesTrial: dias });
+  if (!company || company.isento) return livre();
+  const a = company.assinatura;
+  if (!a || !a.planId) return livre();
+  if (a.status === 'authorized') return livre();
+  if (a.status === 'cancelled') return { bloqueada: true, emTrial: false, diasRestantesTrial: 0 };
+
+  const now = Date.now();
+  const trialMs = toMs(a.trialAte);
+  if (trialMs && now < trialMs) {
+    return livre(true, Math.ceil((trialMs - now) / 86400000));
   }
-  return false;
+
+  const inadMs = toMs(a.inadimplenteDesde);
+  if (inadMs && now - inadMs <= toleranciaDias * 86400000) return livre();
+
+  // pending sem teste, teste vencido, ou inadimplente além da tolerância.
+  return { bloqueada: true, emTrial: false, diasRestantesTrial: 0 };
+}
+
+// Mantido por compatibilidade — bloqueia por assinatura (sem teste/isento).
+export function computeBlocked(a: any, toleranciaDias: number): boolean {
+  return computeAccess({ assinatura: a }, toleranciaDias).bloqueada;
 }
 
 // ── Webhook do Mercado Pago (assinaturas) ──────────────────────────────────

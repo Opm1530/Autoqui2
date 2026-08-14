@@ -18,7 +18,7 @@ import {
 import {
   connectPlatformMp, platformMpStatus, disconnectPlatformMp,
   savePlan, deletePlan, subscribe, cancelSubscription, mySubscription,
-  handleSubscriptionWebhook,
+  handleSubscriptionWebhook, provisionSignup, listPublicPlans,
 } from './subscriptions.js';
 import { createDoc, updateDoc, deleteDoc } from './collections.js';
 import { loadUser } from './currentUser.js';
@@ -221,8 +221,13 @@ app.post('/api/platform-mp/connect', requireAuth, wrap((req) => connectPlatformM
 app.get('/api/platform-mp/status', requireAuth, wrap((req) => platformMpStatus(req.uid)));
 app.post('/api/platform-mp/disconnect', requireAuth, wrap((req) => disconnectPlatformMp(req.uid)));
 
+app.get('/api/plans/public', rateLimit(60, 60_000), wrap(() => listPublicPlans()));
 app.post('/api/plans/save', requireAuth, wrap((req) => savePlan(req.uid, req.body || {})));
 app.post('/api/plans/delete', requireAuth, wrap((req) => deletePlan(req.uid, String(req.body?.id))));
+
+// Autocadastro: o front cria a conta no Firebase e chama isto com o ID token.
+// Rate-limit pra não permitir criação de empresas em massa.
+app.post('/api/signup/provision', requireAuth, rateLimit(5, 60_000), wrap((req) => provisionSignup(req.uid, { companyName: String(req.body?.companyName || ''), planId: String(req.body?.planId || '') })));
 
 app.post('/api/subscription/subscribe', requireAuth, wrap((req) => subscribe(req.uid, String(req.body?.planId))));
 app.post('/api/subscription/cancel', requireAuth, wrap((req) => cancelSubscription(req.uid, req.body?.companyId)));
