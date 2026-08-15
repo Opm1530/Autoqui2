@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './useAuth';
 import { Shell } from './Shell';
 import { Login } from './pages/Login';
+import { Signup } from './pages/Signup';
 import { Dashboard } from './pages/Dashboard';
 import { Orders } from './pages/Orders/Orders';
 import { Products } from './pages/Products/Products';
@@ -48,6 +49,13 @@ function LoginRoute() {
   return <Login />;
 }
 
+function SignupRoute() {
+  const { user, loading } = useAuth();
+  if (loading) return null;
+  if (user) return <Navigate to={homeFor(user)} replace />;
+  return <Signup />;
+}
+
 export function App() {
   return (
     <AuthProvider>
@@ -58,6 +66,7 @@ export function App() {
           <Route path="/qr/:token" element={<QRPage />} />
 
           <Route path="/login" element={<LoginRoute />} />
+          <Route path="/signup" element={<SignupRoute />} />
           <Route element={<Protected />}>
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/orders" element={<Orders />} />

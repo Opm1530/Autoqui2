@@ -1,7 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../useAuth';
+import { subscriptionApi } from '../../../services/subscriptionApi';
 import './landing.css';
+
+type Plan = { id: string; nome: string; valor: number; maxLojas: number };
 
 const WA = 'https://wa.me/5564996168691';
 
@@ -14,7 +17,10 @@ const FAQS = [
 export function LandingPage() {
   const { user } = useAuth();
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [plans, setPlans] = useState<Plan[]>([]);
   const painelTo = user ? (user.role === 'admin' ? '/admin/dashboard' : '/dashboard') : '/login';
+
+  useEffect(() => { subscriptionApi.publicPlans().then(setPlans).catch(() => {}); }, []);
 
   const scrollTo = (id: string) => (e: React.MouseEvent) => {
     e.preventDefault();
@@ -29,7 +35,7 @@ export function LandingPage() {
       <nav className="lp-navbar">
         <div className="lp-logo"><img src="/logo.png" alt="AutoQui Logo" /><span>AutoQui</span></div>
         <div className="lp-nav-links">
-          <a href="#features" className="lp-nav-link" onClick={scrollTo('features')}>Planos</a>
+          <a href="#planos" className="lp-nav-link" onClick={scrollTo('planos')}>Planos</a>
           <a href="#solucoes" className="lp-nav-link" onClick={scrollTo('solucoes')}>Soluções</a>
           <a href="#faq" className="lp-nav-link" onClick={scrollTo('faq')}>Suporte</a>
           <Link to={painelTo} className="lp-btn-login">{user ? 'Dashboard' : 'Entrar no Painel'}</Link>
@@ -41,8 +47,8 @@ export function LandingPage() {
         <h1>Aumente suas vendas com <span>Automação Inteligente</span></h1>
         <p>O AutoQui é a plataforma definitiva para quem deseja automatizar processos, gerenciar pedidos via catálogo e manter um relacionamento premium com clientes via WhatsApp.</p>
         <div className="lp-hero-btns">
-          <a href={WA} target="_blank" rel="noreferrer" className="lp-btn-primary-lp">Falar com Consultor</a>
-          <a href="#solucoes" className="lp-btn-secondary-lp" onClick={scrollTo('solucoes')}>Conhecer Módulos</a>
+          <Link to="/signup" className="lp-btn-primary-lp">Começar teste grátis</Link>
+          <a href="#planos" className="lp-btn-secondary-lp" onClick={scrollTo('planos')}>Ver planos</a>
         </div>
       </section>
 
@@ -110,6 +116,28 @@ export function LandingPage() {
           </div>
         </div>
       </section>
+
+      {plans.length > 0 && (
+        <section id="planos" className="lp-section">
+          <div className="lp-section-header">
+            <h2>Planos do Catálogo</h2>
+            <p>Comece com 7 dias grátis. Escolha pelo número de lojas — cancele quando quiser.</p>
+          </div>
+          <div className="lp-grid-cards" style={{ maxWidth: 760, margin: '0 auto' }}>
+            {plans.map((p) => (
+              <div key={p.id} className="lp-card" style={{ textAlign: 'center' }}>
+                <div className="lp-card-icon" style={{ margin: '0 auto' }}><i className="fa-solid fa-store" /></div>
+                <h3>{p.nome}</h3>
+                <div style={{ fontSize: '2.2rem', fontWeight: 800, color: 'var(--lp-primary, #6366f1)', margin: '0.5rem 0' }}>
+                  R$ {Number(p.valor).toFixed(2)}<span style={{ fontSize: '0.9rem', opacity: 0.7, fontWeight: 400 }}>/mês</span>
+                </div>
+                <p>{p.maxLojas} {p.maxLojas === 1 ? 'loja' : 'lojas'} · catálogo, pedidos e campanhas inclusos.</p>
+                <Link to={`/signup?plano=${p.id}`} className="lp-btn-primary-lp" style={{ display: 'inline-block', marginTop: '0.5rem' }}>Começar teste grátis</Link>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section id="faq" className="lp-faq">
         <div className="lp-section-header"><h2>Perguntas Frequentes</h2></div>

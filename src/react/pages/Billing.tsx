@@ -8,6 +8,7 @@ import { SkeletonCards } from '../components/Skeleton';
 
 const STATUS_LABEL: Record<string, { label: string; color: string }> = {
   authorized: { label: 'Ativa', color: '#34d399' },
+  trial: { label: 'Teste grátis', color: '#818cf8' },
   pending: { label: 'Aguardando autorização', color: '#fbbf24' },
   paused: { label: 'Pausada', color: '#fbbf24' },
   cancelled: { label: 'Cancelada', color: '#f87171' },
@@ -19,15 +20,17 @@ export function Billing({ wall = false }: { wall?: boolean }) {
   const isOwner = user?.role === 'owner';
   const [loading, setLoading] = useState(true);
   const [assinatura, setAssinatura] = useState<any>(null);
+  const [trial, setTrial] = useState<{ emTrial: boolean; dias: number }>({ emTrial: false, dias: 0 });
   const [plans, setPlans] = useState<any[]>([]);
   const [busy, setBusy] = useState('');
 
   async function load() {
     const [mine, pl] = await Promise.all([
-      subscriptionApi.mine().catch(() => ({ assinatura: null })),
+      subscriptionApi.mine().catch(() => ({ assinatura: null, emTrial: false, diasRestantesTrial: 0 })),
       dbService.getAll('planos').catch(() => []),
     ]);
     setAssinatura(mine.assinatura || null);
+    setTrial({ emTrial: !!mine.emTrial, dias: mine.diasRestantesTrial || 0 });
     setPlans((pl as any[]).filter((p) => p.ativo !== false));
     setLoading(false);
   }
@@ -70,6 +73,17 @@ export function Billing({ wall = false }: { wall?: boolean }) {
         </div>
       )}
       {!wall && <div className="page-header"><h2 className="page-title">Assinatura</h2></div>}
+
+      {/* Banner de teste grátis */}
+      {!wall && trial.emTrial && (
+        <div className="card" style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: 14, background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.3)' }}>
+          <i className="fa-solid fa-gift" style={{ fontSize: '1.6rem', color: '#818cf8' }} />
+          <div>
+            <div style={{ fontWeight: 700 }}>Você está no teste grátis</div>
+            <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>{trial.dias === 1 ? 'Falta 1 dia' : `Faltam ${trial.dias} dias`}. Assine abaixo para não perder o acesso quando o teste acabar.</div>
+          </div>
+        </div>
+      )}
 
       {/* Status atual */}
       {assinatura && (

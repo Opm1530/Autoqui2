@@ -18,8 +18,12 @@ export const subscriptionApi = {
   connectPlatform: (accessToken: string) => req('/api/platform-mp/connect', 'POST', { accessToken }),
   disconnectPlatform: () => req('/api/platform-mp/disconnect', 'POST'),
   // planos (admin)
-  savePlan: (data: { id?: string; nome: string; valor: number; toleranciaDias?: number }) => req('/api/plans/save', 'POST', data),
+  savePlan: (data: { id?: string; nome: string; valor: number; toleranciaDias?: number; maxLojas?: number; modulos?: string[] }) => req('/api/plans/save', 'POST', data),
   deletePlan: (id: string) => req('/api/plans/delete', 'POST', { id }),
+  // planos públicos (vitrine/cadastro, sem login)
+  publicPlans: (): Promise<Array<{ id: string; nome: string; valor: number; maxLojas: number }>> => req('/api/plans/public', 'GET'),
+  // autocadastro (após criar a conta no Firebase)
+  provision: (companyName: string, planId: string) => req('/api/signup/provision', 'POST', { companyName, planId }),
   // assinatura (dono)
   subscribe: (planId: string) => req('/api/subscription/subscribe', 'POST', { planId }),
   cancel: (companyId?: string) => req('/api/subscription/cancel', 'POST', { companyId }),

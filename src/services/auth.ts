@@ -110,6 +110,33 @@ class AuthService {
         }
     }
 
+    // Autocadastro do dono: cria a conta, provisiona a empresa e loga.
+    // Faz a criação num app SECUNDÁRIO para não disparar o auto-logout do listener
+    // (que desloga quem ainda não tem doc `users`). Só depois de provisionar é que
+    // logamos na sessão principal — aí o doc já existe.
+    async signUpOwner(email: string, password: string, companyName: string, planId: string): Promise<void> {
+        const secondaryApp = initializeApp(firebaseConfig, 'SignupTmp');
+        const secondaryAuth = getAuth(secondaryApp);
+        try {
+            const cred = await createUserWithEmailAndPassword(secondaryAuth, email, password);
+            const token = await cred.user.getIdToken();
+            const { API_BASE_URL } = await import('./api');
+            const resp = await fetch(`${API_BASE_URL}/api/signup/provision`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                body: JSON.stringify({ companyName, planId }),
+            });
+            const data = await resp.json().catch(() => ({}));
+            if (!resp.ok) throw new Error(data.error || 'falha_ao_provisionar');
+        } finally {
+            await firebaseSignOut(secondaryAuth).catch(() => {});
+            const { deleteApp } = await import('firebase/app');
+            await deleteApp(secondaryApp).catch(() => {});
+        }
+        // Agora sim: loga na sessão principal (doc users já existe).
+        await signInWithEmailAndPassword(auth, email, password);
+    }
+
     getCurrentUser(): AppUser | null {
         return this.currentUser;
     }

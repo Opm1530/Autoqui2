@@ -13,7 +13,7 @@ export function Plans() {
   const [showToken, setShowToken] = useState(false);
   const [busy, setBusy] = useState('');
   const [plans, setPlans] = useState<any[]>([]);
-  const [modal, setModal] = useState<{ id?: string; nome: string; valor: string; toleranciaDias: string } | null>(null);
+  const [modal, setModal] = useState<{ id?: string; nome: string; valor: string; toleranciaDias: string; maxLojas: string } | null>(null);
 
   async function load() {
     const [st, pl] = await Promise.all([
@@ -48,7 +48,7 @@ export function Plans() {
     if (!modal.nome.trim() || !valor || valor <= 0) { toast.warning('Informe nome e valor válidos.'); return; }
     setBusy('save');
     try {
-      await subscriptionApi.savePlan({ id: modal.id, nome: modal.nome.trim(), valor, toleranciaDias: parseInt(modal.toleranciaDias) || 5 });
+      await subscriptionApi.savePlan({ id: modal.id, nome: modal.nome.trim(), valor, toleranciaDias: parseInt(modal.toleranciaDias) || 5, maxLojas: parseInt(modal.maxLojas) || 1, modulos: ['venda_catalogo'] });
       toast.success('Plano salvo!'); setModal(null); await load();
     } catch (e: any) { toast.error('Erro ao salvar plano: ' + (e.message || e)); }
     finally { setBusy(''); }
@@ -66,7 +66,7 @@ export function Plans() {
     <div>
       <div className="page-header" style={{ justifyContent: 'space-between' }}>
         <h2 className="page-title">Planos & Cobrança</h2>
-        {connected && <button className="btn-primary" onClick={() => setModal({ nome: '', valor: '', toleranciaDias: '5' })}><i className="fa-solid fa-plus" /> Novo Plano</button>}
+        {connected && <button className="btn-primary" onClick={() => setModal({ nome: '', valor: '', toleranciaDias: '5', maxLojas: '1' })}><i className="fa-solid fa-plus" /> Novo Plano</button>}
       </div>
 
       {/* Conta MP da plataforma */}
@@ -101,9 +101,12 @@ export function Plans() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <div><div style={{ fontWeight: 700, fontSize: '1.05rem' }}>{p.nome}</div><div style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--primary)' }}>R$ {Number(p.valor).toFixed(2)}<span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 400 }}>/mês</span></div></div>
                 </div>
-                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}><i className="fa-solid fa-clock" /> Tolerância: {p.toleranciaDias ?? 5} dias</div>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+                  <span><i className="fa-solid fa-store" /> {p.maxLojas ?? 1} {(p.maxLojas ?? 1) === 1 ? 'loja' : 'lojas'}</span>
+                  <span><i className="fa-solid fa-clock" /> Tolerância: {p.toleranciaDias ?? 5} dias</span>
+                </div>
                 <div style={{ display: 'flex', gap: 8, borderTop: '1px solid var(--border-color)', paddingTop: 12 }}>
-                  <button className="btn-secondary" style={{ flex: 1, justifyContent: 'center' }} onClick={() => setModal({ id: p.id, nome: p.nome, valor: String(p.valor), toleranciaDias: String(p.toleranciaDias ?? 5) })}><i className="fa-solid fa-pen" /> Editar</button>
+                  <button className="btn-secondary" style={{ flex: 1, justifyContent: 'center' }} onClick={() => setModal({ id: p.id, nome: p.nome, valor: String(p.valor), toleranciaDias: String(p.toleranciaDias ?? 5), maxLojas: String(p.maxLojas ?? 1) })}><i className="fa-solid fa-pen" /> Editar</button>
                   <button className="btn-secondary" style={{ color: '#f87171', borderColor: 'rgba(239,68,68,0.35)' }} onClick={() => removePlan(p)}><i className="fa-solid fa-trash" /></button>
                 </div>
               </div>
@@ -119,6 +122,7 @@ export function Plans() {
             <h2>{modal.id ? 'Editar Plano' : 'Novo Plano'}</h2>
             <div className="form-group"><label>Nome do Plano</label><input type="text" value={modal.nome} onChange={(e) => setModal({ ...modal, nome: e.target.value })} placeholder="Ex: Básico, Pro..." /></div>
             <div className="form-group"><label>Valor mensal (R$)</label><input type="number" min="0" step="0.01" value={modal.valor} onChange={(e) => setModal({ ...modal, valor: e.target.value })} placeholder="0,00" /></div>
+            <div className="form-group"><label>Nº de lojas incluídas</label><select value={modal.maxLojas} onChange={(e) => setModal({ ...modal, maxLojas: e.target.value })}><option value="1">1 loja</option><option value="2">2 lojas</option></select></div>
             <div className="form-group"><label>Dias de tolerância após falha de pagamento</label><input type="number" min="0" value={modal.toleranciaDias} onChange={(e) => setModal({ ...modal, toleranciaDias: e.target.value })} /></div>
             <button className="btn-primary full-width" disabled={busy === 'save'} onClick={savePlan}>{busy === 'save' ? 'Salvando...' : 'Salvar Plano'}</button>
           </div>
