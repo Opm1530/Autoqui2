@@ -8,6 +8,16 @@ export const getImageUrl = (p: any): string => {
   return 'https://via.placeholder.com/300?text=Sem+Imagem';
 };
 
+// Todas as fotos do produto (capa + galeria), pro modal de detalhe da vitrine.
+export const getProductGallery = (p: any): string[] => {
+  const urls: string[] = [];
+  if (p.imageUrl) urls.push(p.imageUrl);
+  else if (p.imagemPath && p.downloadToken) urls.push(`https://firebasestorage.googleapis.com/v0/b/conectacidade-5e46d.firebasestorage.app/o/${encodeURIComponent(p.imagemPath)}?alt=media&token=${p.downloadToken}`);
+  (p.gallery || []).forEach((g: any) => { if (g?.imagemPath && g?.downloadToken) urls.push(`https://firebasestorage.googleapis.com/v0/b/conectacidade-5e46d.firebasestorage.app/o/${encodeURIComponent(g.imagemPath)}?alt=media&token=${g.downloadToken}`); });
+  if (urls.length === 0) urls.push('https://via.placeholder.com/600?text=Sem+Imagem');
+  return urls;
+};
+
 export const DIAS_NOME: Record<string, string> = {
   dom: 'Domingo', seg: 'Segunda-feira', ter: 'Terça-feira', qua: 'Quarta-feira',
   qui: 'Quinta-feira', sex: 'Sexta-feira', sab: 'Sábado',

@@ -25,6 +25,7 @@ export function CatalogSettings() {
   const [params] = useSearchParams();
   const initialSection = (['geral', 'design', 'mensagens', 'pagamento'] as const).find((s) => s === params.get('sec')) || 'geral';
   const [section, setSection] = useState<'geral' | 'design' | 'mensagens' | 'pagamento'>(initialSection);
+  const [isVitrine, setIsVitrine] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -35,6 +36,7 @@ export function CatalogSettings() {
       if (!isOwner) sts = sts.filter((s: any) => userStoreIds.includes(s.id));
       setStores(sts);
       setHasMercadoPago(!!companyDoc?.mercadoPagoToken);
+      setIsVitrine((companyDoc?.modulos_ativos || []).includes('vitrine'));
       if (sts.length) setActiveStoreId(sts[0].id);
 
       const [inst, cfgs] = await Promise.all([
@@ -102,7 +104,7 @@ export function CatalogSettings() {
       {/* Seletor de loja + seções */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', marginBottom: 28 }}>
         <div className="config-subnav" style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          {SECTIONS.map((s) => (
+          {(isVitrine ? SECTIONS_VITRINE : SECTIONS).map((s) => (
             <button key={s.key} onClick={() => setSection(s.key as any)}
               className={'config-subnav-btn' + (section === s.key ? ' active' : '')}>
               <i className={`fa-solid ${s.icon}`} /> {s.label}
@@ -138,27 +140,33 @@ export function CatalogSettings() {
             </div>
           </div>
 
-          <div className="card" style={{ marginBottom: '1.5rem' }}>
-            <div className="config-section-title"><i className="fa-brands fa-whatsapp" style={{ color: '#25d366' }} /> Vinculação da Instância</div>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '1rem' }}>Selecione a instância de WhatsApp que enviará mensagens automáticas para esta loja.</p>
-            <select className="config-select" value={currentInstanciaId} onChange={(e) => bindInstance(e.target.value)}>
-              <option value="">-- Nenhuma instância --</option>
-              {instances.map((inst) => <option key={inst.id} value={inst.id}>{inst.nome} ({inst.status})</option>)}
-            </select>
-          </div>
+          {!isVitrine && (
+            <div className="card" style={{ marginBottom: '1.5rem' }}>
+              <div className="config-section-title"><i className="fa-brands fa-whatsapp" style={{ color: '#25d366' }} /> Vinculação da Instância</div>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '1rem' }}>Selecione a instância de WhatsApp que enviará mensagens automáticas para esta loja.</p>
+              <select className="config-select" value={currentInstanciaId} onChange={(e) => bindInstance(e.target.value)}>
+                <option value="">-- Nenhuma instância --</option>
+                {instances.map((inst) => <option key={inst.id} value={inst.id}>{inst.nome} ({inst.status})</option>)}
+              </select>
+            </div>
+          )}
 
-          <Schedules key={`func-${activeStoreId}`} title="Horário de Funcionamento" icon="fa-clock"
-            description="Defina os dias e horários em que a loja aceita pedidos." campo="horario_funcionamento"
-            saveLabel="Salvar Horários" openLabel="Aberto" closedLabel="Fechado" initial={config?.horario_funcionamento} onSave={save} />
-          <Schedules key={`entrega-${activeStoreId}`} title="Horário de Entrega" icon="fa-truck"
-            description="Defina especificamente em quais horários a loja realiza entregas." campo="horario_entrega"
-            saveLabel="Salvar Horários de Entrega" openLabel="Disponível" closedLabel="Indisponível" initial={config?.horario_entrega} onSave={save} />
+          {!isVitrine && (
+            <>
+              <Schedules key={`func-${activeStoreId}`} title="Horário de Funcionamento" icon="fa-clock"
+                description="Defina os dias e horários em que a loja aceita pedidos." campo="horario_funcionamento"
+                saveLabel="Salvar Horários" openLabel="Aberto" closedLabel="Fechado" initial={config?.horario_funcionamento} onSave={save} />
+              <Schedules key={`entrega-${activeStoreId}`} title="Horário de Entrega" icon="fa-truck"
+                description="Defina especificamente em quais horários a loja realiza entregas." campo="horario_entrega"
+                saveLabel="Salvar Horários de Entrega" openLabel="Disponível" closedLabel="Indisponível" initial={config?.horario_entrega} onSave={save} />
+            </>
+          )}
         </>
       )}
 
       {section === 'design' && <Appearance key={`ap-${activeStoreId}`} companyId={companyId} storeId={activeStoreId} design={design} onSave={save} />}
-      {section === 'mensagens' && <Messages key={`msg-${activeStoreId}`} initial={config?.mensagens_automaticas || {}} onSave={save} />}
-      {section === 'pagamento' && <Payment key={`pay-${activeStoreId}`} config={config} hasMercadoPago={hasMercadoPago} onSave={save} />}
+      {section === 'mensagens' && !isVitrine && <Messages key={`msg-${activeStoreId}`} initial={config?.mensagens_automaticas || {}} onSave={save} />}
+      {section === 'pagamento' && <Payment key={`pay-${activeStoreId}`} config={config} hasMercadoPago={hasMercadoPago} vitrine={isVitrine} onSave={save} />}
     </div>
   );
 }
@@ -168,4 +176,12 @@ const SECTIONS = [
   { key: 'design', label: 'Design', icon: 'fa-palette' },
   { key: 'mensagens', label: 'Mensagens', icon: 'fa-message' },
   { key: 'pagamento', label: 'Pagamento', icon: 'fa-credit-card' },
+];
+
+// Vitrine não vende pelo site: sem Mensagens automáticas nem Pagamento.
+// "Pagamento" vira "Contato" (só o WhatsApp).
+const SECTIONS_VITRINE = [
+  { key: 'geral', label: 'Geral', icon: 'fa-sliders' },
+  { key: 'design', label: 'Design', icon: 'fa-palette' },
+  { key: 'pagamento', label: 'Contato', icon: 'fa-whatsapp' },
 ];

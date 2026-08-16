@@ -6,10 +6,11 @@ import { SaveButton } from './SaveButton';
 interface Props {
   config: any;
   hasMercadoPago: boolean;
+  vitrine?: boolean;
   onSave: (payload: any) => Promise<void>;
 }
 
-export function Payment({ config, hasMercadoPago, onSave }: Props) {
+export function Payment({ config, hasMercadoPago, vitrine = false, onSave }: Props) {
   const design = config?.design || {};
   const [whatsapp, setWhatsapp] = useState(design.whatsapp || '');
   const [pixKey, setPixKey] = useState(design.pixKey || '');
@@ -32,6 +33,12 @@ export function Payment({ config, hasMercadoPago, onSave }: Props) {
     let wpp = whatsapp.replace(/\D/g, '');
     if (wpp.length === 13 && wpp.startsWith('55')) wpp = wpp.substring(2);
     if (wpp && wpp.length !== 11) { notifications.showPhoneError(); throw new Error('phone'); }
+    // Na vitrine só interessa o WhatsApp de contato.
+    if (vitrine) {
+      await onSave({ design: { ...design, whatsapp: wpp } });
+      toast.success('Contato salvo!');
+      return;
+    }
     const newDesign = { ...design, whatsapp: wpp, pixKey: pixKey.trim() };
     delete newDesign.taxaFixaNome; delete newDesign.taxaFixaValor; delete newDesign.taxaTipo;
     await onSave({ design: newDesign, mercadoPagoActive: mpActive, pagamentoObrigatorioRetirada: pickupPay, desativarPagamentoEntrega: disableDelivery });
@@ -70,26 +77,29 @@ export function Payment({ config, hasMercadoPago, onSave }: Props) {
 
   return (
     <div className="card" style={{ marginBottom: '1.5rem' }}>
-      <div className="config-section-title"><i className="fa-solid fa-credit-card" style={{ color: 'var(--primary)' }} /> Pagamento</div>
+      <div className="config-section-title">{vitrine ? <><i className="fa-brands fa-whatsapp" style={{ color: '#25d366' }} /> Contato</> : <><i className="fa-solid fa-credit-card" style={{ color: 'var(--primary)' }} /> Pagamento</>}</div>
 
       {/* Explica as duas formas de receber por PIX */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 12, marginBottom: '1.25rem' }}>
-        <div style={{ padding: 14, borderRadius: 10, background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.25)' }}>
-          <p style={{ margin: '0 0 4px', fontWeight: 700, fontSize: '0.9rem' }}><i className="fa-solid fa-key" style={{ color: '#818cf8', marginRight: 6 }} />PIX manual (chave própria)</p>
-          <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-muted)' }}>Preencha sua <strong>chave PIX</strong> abaixo. O cliente paga direto pra você e anexa o comprovante — você confirma o pagamento na mão. Sem taxa, sem Mercado Pago.</p>
+      {!vitrine && <>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 12, marginBottom: '1.25rem' }}>
+          <div style={{ padding: 14, borderRadius: 10, background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.25)' }}>
+            <p style={{ margin: '0 0 4px', fontWeight: 700, fontSize: '0.9rem' }}><i className="fa-solid fa-key" style={{ color: '#818cf8', marginRight: 6 }} />PIX manual (chave própria)</p>
+            <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-muted)' }}>Preencha sua <strong>chave PIX</strong> abaixo. O cliente paga direto pra você e anexa o comprovante — você confirma o pagamento na mão. Sem taxa, sem Mercado Pago.</p>
+          </div>
+          <div style={{ padding: 14, borderRadius: 10, background: 'rgba(16,185,129,0.06)', border: '1px solid rgba(16,185,129,0.25)' }}>
+            <p style={{ margin: '0 0 4px', fontWeight: 700, fontSize: '0.9rem' }}><i className="fa-solid fa-bolt" style={{ color: '#34d399', marginRight: 6 }} />PIX automático (Mercado Pago)</p>
+            <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-muted)' }}>O sistema gera o PIX e <strong>confirma o pagamento sozinho</strong>. Requer conectar sua conta Mercado Pago. Ideal pra quem tem muito volume.</p>
+          </div>
         </div>
-        <div style={{ padding: 14, borderRadius: 10, background: 'rgba(16,185,129,0.06)', border: '1px solid rgba(16,185,129,0.25)' }}>
-          <p style={{ margin: '0 0 4px', fontWeight: 700, fontSize: '0.9rem' }}><i className="fa-solid fa-bolt" style={{ color: '#34d399', marginRight: 6 }} />PIX automático (Mercado Pago)</p>
-          <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-muted)' }}>O sistema gera o PIX e <strong>confirma o pagamento sozinho</strong>. Requer conectar sua conta Mercado Pago. Ideal pra quem tem muito volume.</p>
-        </div>
-      </div>
-      <p style={{ fontSize: '0.82rem', color: 'var(--text-dim)', margin: '0 0 1.25rem' }}>Você pode usar as duas ao mesmo tempo — o cliente escolhe no catálogo. Para receber por PIX, basta <strong>uma</strong> delas configurada.</p>
+        <p style={{ fontSize: '0.82rem', color: 'var(--text-dim)', margin: '0 0 1.25rem' }}>Você pode usar as duas ao mesmo tempo — o cliente escolhe no catálogo. Para receber por PIX, basta <strong>uma</strong> delas configurada.</p>
+      </>}
 
       <div className="cat-field">
-        <label className="config-label">WhatsApp de Atendimento (DDD + 9 dígitos)</label>
+        <label className="config-label">WhatsApp {vitrine ? 'de Contato' : 'de Atendimento'} (DDD + 9 dígitos)</label>
         <input type="text" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} className="config-input" placeholder="Ex: 11999999999" maxLength={11} />
-        <p className="cat-field-hint">Informe apenas o DDD e os 9 dígitos do número (não inclua o 55).</p>
+        <p className="cat-field-hint">{vitrine ? 'É para onde vão os pedidos da vitrine ("Pedir no WhatsApp").' : 'Informe apenas o DDD e os 9 dígitos do número (não inclua o 55).'}</p>
       </div>
+      {!vitrine && <>
       <div className="cat-field">
         <label className="config-label">Chave PIX (Manual)</label>
         <input type="text" value={pixKey} onChange={(e) => setPixKey(e.target.value)} className="config-input" placeholder="CPF, e-mail, telefone ou chave aleatória" />
@@ -170,8 +180,9 @@ export function Payment({ config, hasMercadoPago, onSave }: Props) {
           </p>
         </div>
       </div>
+      </>}
 
-      <div style={{ textAlign: 'right' }}><SaveButton label="Salvar Pagamento" onSave={savePagamento} /></div>
+      <div style={{ textAlign: 'right' }}><SaveButton label={vitrine ? 'Salvar Contato' : 'Salvar Pagamento'} onSave={savePagamento} /></div>
     </div>
   );
 }

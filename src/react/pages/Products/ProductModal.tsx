@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { productsApi } from '../../../services/productsApi';
 import { toast } from '../../../services/toast';
-import { uploadImage, getProductImageUrl } from './helpers';
+import { uploadImage, getProductImageUrl, getGalleryUrls } from './helpers';
 import type { Product, Category } from './helpers';
+
+type GalleryImg = { imagemPath: string; downloadToken: string };
 
 interface ItemDraft {
   tempId: string;
@@ -14,6 +16,9 @@ interface ItemDraft {
   observation: string;
   variations: string;       // "P, M, G" — separado por vírgula (modo vitrine)
   priceOnRequest: boolean;  // preço sob consulta (modo vitrine)
+  galleryExisting: GalleryImg[]; // fotos já salvas (edição)
+  galleryFiles: File[];          // fotos novas a subir
+  galleryPreviews: string[];     // previews (existentes + novas, na mesma ordem)
   promoActive: boolean;
   promoName: string;
   promoPrice: string;
@@ -25,7 +30,7 @@ let seq = 0;
 const newTempId = () => `prod_${Date.now()}_${seq++}`;
 
 function emptyDraft(): ItemDraft {
-  return { tempId: newTempId(), name: '', price: '', categoryId: '', stock: '', duration: '', observation: '', variations: '', priceOnRequest: false, promoActive: false, promoName: '', promoPrice: '', file: null, previewUrl: null };
+  return { tempId: newTempId(), name: '', price: '', categoryId: '', stock: '', duration: '', observation: '', variations: '', priceOnRequest: false, galleryExisting: [], galleryFiles: [], galleryPreviews: [], promoActive: false, promoName: '', promoPrice: '', file: null, previewUrl: null };
 }
 
 interface Props {
@@ -62,6 +67,9 @@ export function ProductModal({ companyId, isOwner, isAgendamento, isVitrine, lab
         observation: editProduct.observation || '',
         variations: Array.isArray((editProduct as any).variations) ? (editProduct as any).variations.join(', ') : '',
         priceOnRequest: !!(editProduct as any).priceOnRequest,
+        galleryExisting: (editProduct.gallery || []) as GalleryImg[],
+        galleryFiles: [],
+        galleryPreviews: getGalleryUrls(editProduct),
         promoActive: !!editProduct.promotionalActive,
         promoName: editProduct.promotionalName || '',
         promoPrice: editProduct.promotionalPrice != null ? String(editProduct.promotionalPrice) : '',
@@ -130,6 +138,13 @@ export function ProductModal({ companyId, isOwner, isAgendamento, isVitrine, lab
           ? it.variations.split(',').map((v) => v.trim()).filter(Boolean)
           : [];
 
+        // Galeria (vitrine): mantém as existentes + sobe as novas.
+        let gallery: GalleryImg[] = it.galleryExisting;
+        if (isVitrine && it.galleryFiles.length) {
+          const uploaded = await Promise.all(it.galleryFiles.map((f) => uploadImage(f, companyId)));
+          gallery = [...it.galleryExisting, ...uploaded];
+        }
+
         const productData: any = {
           name: it.name,
           price: parseFloat(it.price) || 0,
@@ -144,6 +159,7 @@ export function ProductModal({ companyId, isOwner, isAgendamento, isVitrine, lab
           observation: it.observation || '',
           variations: variationsArr,
           priceOnRequest: isVitrine ? it.priceOnRequest : false,
+          ...(isVitrine ? { gallery } : {}),
           ...imageData,
         };
 
@@ -286,6 +302,27 @@ function ItemCard({ it, isAgendamento, isVitrine, labelSingular, categories, onP
   onPatch: (id: string, p: Partial<ItemDraft>) => void; onFile: (id: string, f: File) => void; onRemove: (id: string) => void;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
+  const galleryRef = useRef<HTMLInputElement>(null);
+
+  // Galeria: previews síncronos (createObjectURL) pra evitar corrida entre arquivos.
+  const onAddGallery = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length) {
+      const previews = files.map((f) => URL.createObjectURL(f));
+      onPatch(it.tempId, { galleryFiles: [...it.galleryFiles, ...files], galleryPreviews: [...it.galleryPreviews, ...previews] });
+    }
+    e.target.value = '';
+  };
+  const removeGallery = (idx: number) => {
+    const nExisting = it.galleryExisting.length;
+    if (idx < nExisting) {
+      onPatch(it.tempId, { galleryExisting: it.galleryExisting.filter((_, i) => i !== idx), galleryPreviews: it.galleryPreviews.filter((_, i) => i !== idx) });
+    } else {
+      const fi = idx - nExisting;
+      onPatch(it.tempId, { galleryFiles: it.galleryFiles.filter((_, i) => i !== fi), galleryPreviews: it.galleryPreviews.filter((_, i) => i !== idx) });
+    }
+  };
+
   return (
     <div className="product-item-card">
       <div className="item-visual">
@@ -356,6 +393,22 @@ function ItemCard({ it, isAgendamento, isVitrine, labelSingular, categories, onP
               <input type="checkbox" checked={it.priceOnRequest} onChange={(e) => onPatch(it.tempId, { priceOnRequest: e.target.checked })} style={{ width: 16, height: 16 }} />
               <i className="fa-solid fa-comments-dollar" /> Preço sob consulta (não mostrar preço)
             </label>
+
+            <div style={{ marginTop: 12 }} className="field">
+              <label>Fotos adicionais <span style={{ color: 'var(--text-dim)', fontWeight: 400 }}>(a 1ª foto acima é a capa)</span></label>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                {it.galleryPreviews.map((url, idx) => (
+                  <div key={idx} style={{ position: 'relative', width: 64, height: 64, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border-color)' }}>
+                    <img src={url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <button type="button" onClick={() => removeGallery(idx)} title="Remover foto"
+                      style={{ position: 'absolute', top: 2, right: 2, width: 18, height: 18, borderRadius: '50%', background: 'rgba(0,0,0,0.6)', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 11, lineHeight: 1 }}>×</button>
+                  </div>
+                ))}
+                <button type="button" onClick={() => galleryRef.current?.click()}
+                  style={{ width: 64, height: 64, borderRadius: 8, border: '1px dashed var(--border-color)', background: 'transparent', color: 'var(--text-dim)', cursor: 'pointer', fontSize: '1.1rem' }}><i className="fa-solid fa-plus" /></button>
+                <input ref={galleryRef} type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={onAddGallery} />
+              </div>
+            </div>
           </>
         )}
 

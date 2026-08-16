@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { dbService } from '../../../services/db';
 import { toast } from '../../../services/toast';
-import { getImageUrl, storeStatusLabel, isFreteAbertoAgora, isStoreOpen, getNextOpenTime, getStoreHorario, DIAS_NOME } from './helpers';
+import { getImageUrl, getProductGallery, storeStatusLabel, isFreteAbertoAgora, isStoreOpen, getNextOpenTime, getStoreHorario, DIAS_NOME } from './helpers';
 import { CheckoutModals } from './CheckoutModals';
 import './catalog.css';
 
@@ -15,6 +15,8 @@ export function Catalog() {
   const [cart, setCart] = useState<Map<string, CartEntry>>(new Map());
   const [cartOpen, setCartOpen] = useState(false);
   const [varSel, setVarSel] = useState<Record<string, string>>({}); // variação escolhida por produto (modo vitrine)
+  const [detail, setDetail] = useState<any | null>(null);           // produto aberto no modal de detalhe (vitrine)
+  const [detailImg, setDetailImg] = useState(0);                    // índice da foto no modal
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [closedAlert, setClosedAlert] = useState<'store' | 'delivery' | null>(null);
   const [storeInfoOpen, setStoreInfoOpen] = useState(false);
@@ -189,8 +191,9 @@ export function Catalog() {
     const price = usePromo ? (p.promotionalPrice || p.price) : p.price;
     const original = usePromo ? p.price : null;
     const out = p.stock === 0;
+    const openDetail = () => { setDetail(p); setDetailImg(0); };
     return (
-      <div className="product-card" style={out ? { opacity: 0.6 } : undefined}>
+      <div className="product-card" style={{ ...(out ? { opacity: 0.6 } : undefined), ...(isVitrine ? { cursor: 'pointer' } : undefined) }} onClick={isVitrine ? openDetail : undefined}>
         <div className="card-image">
           <img src={getImageUrl(p)} alt={title} loading="lazy" />
           {usePromo && <div className="promo-tag">OFERTA</div>}
@@ -210,21 +213,9 @@ export function Catalog() {
             </button>
           )}
           {isVitrine && (
-            <div style={{ marginTop: 12 }}>
-              {Array.isArray(p.variations) && p.variations.length > 0 && (
-                <select value={varSel[p.id] || ''} onChange={(e) => setVarSel((prev) => ({ ...prev, [p.id]: e.target.value }))}
-                  style={{ width: '100%', padding: 9, borderRadius: 10, marginBottom: 8, background: 'var(--product-bg)', color: 'var(--text)', border: '1px solid rgba(255,255,255,0.15)', fontSize: '0.85rem' }}>
-                  <option value="">Escolha uma opção...</option>
-                  {p.variations.map((v: string) => <option key={v} value={v}>{v}</option>)}
-                </select>
-              )}
-              {whatsappNumber ? (
-                <a href={waProductLink(p)} target="_blank" rel="noreferrer"
-                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', padding: 10, borderRadius: 10, background: '#25d366', color: 'white', textDecoration: 'none', fontWeight: 700, fontSize: '0.9rem' }}>
-                  <i className="fa-brands fa-whatsapp" /> Pedir no WhatsApp
-                </a>
-              ) : <p style={{ fontSize: '0.75rem', color: '#eab308', margin: 0, textAlign: 'center' }}>Configure o WhatsApp da loja.</p>}
-            </div>
+            <button onClick={openDetail} style={{ marginTop: 12, width: '100%', padding: 10, borderRadius: 10, background: 'var(--product-bg)', color: 'var(--text)', border: '1px solid rgba(255,255,255,0.15)', cursor: 'pointer', fontWeight: 700, fontSize: '0.9rem' }}>
+              Ver detalhes
+            </button>
           )}
         </div>
       </div>
@@ -461,6 +452,55 @@ export function Catalog() {
           </div>
         </div>
       )}
+
+      {/* Detalhe do produto (modo vitrine) — galeria + descrição + WhatsApp */}
+      {detail && (() => {
+        const imgs = getProductGallery(detail);
+        const vars: string[] = Array.isArray(detail.variations) ? detail.variations : [];
+        return (
+          <div className="cat-modal-base" style={{ alignItems: 'center', zIndex: 9999 }} onClick={(e) => { if (e.target === e.currentTarget) setDetail(null); }}>
+            <div style={{ background: '#1e293b', borderRadius: 24, width: '94%', maxWidth: 560, maxHeight: '92vh', overflowY: 'auto' }}>
+              <div style={{ position: 'relative' }}>
+                <img src={imgs[detailImg]} alt={detail.name} style={{ width: '100%', maxHeight: 360, objectFit: 'cover', borderRadius: '24px 24px 0 0', display: 'block' }} />
+                <button onClick={() => setDetail(null)} style={{ position: 'absolute', top: 12, right: 12, background: 'rgba(0,0,0,0.5)', border: 'none', color: 'white', width: 36, height: 36, borderRadius: '50%', cursor: 'pointer' }}><i className="fa-solid fa-xmark" /></button>
+              </div>
+              {imgs.length > 1 && (
+                <div style={{ display: 'flex', gap: 8, padding: '12px 16px 0', overflowX: 'auto' }}>
+                  {imgs.map((u, i) => (
+                    <img key={i} src={u} onClick={() => setDetailImg(i)} alt=""
+                      style={{ width: 56, height: 56, objectFit: 'cover', borderRadius: 8, cursor: 'pointer', flexShrink: 0, border: i === detailImg ? '2px solid var(--primary-cat)' : '2px solid transparent', opacity: i === detailImg ? 1 : 0.6 }} />
+                  ))}
+                </div>
+              )}
+              <div style={{ padding: 20 }}>
+                <h2 style={{ margin: '0 0 8px', fontSize: '1.3rem' }}>{detail.name}</h2>
+                <div style={{ marginBottom: 14 }}>
+                  {detail.priceOnRequest
+                    ? <span style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--primary-cat)' }}>Sob consulta</span>
+                    : <span style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--primary-cat)' }}>R$ {Number(detail.price || 0).toFixed(2)}</span>}
+                </div>
+                {detail.observation && <p style={{ color: '#cbd5e1', lineHeight: 1.6, fontSize: '0.95rem', whiteSpace: 'pre-wrap', margin: '0 0 16px' }}>{detail.observation}</p>}
+                {vars.length > 0 && (
+                  <div style={{ marginBottom: 16 }}>
+                    <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 6, fontWeight: 600 }}>Opção</label>
+                    <select value={varSel[detail.id] || ''} onChange={(e) => setVarSel((prev) => ({ ...prev, [detail.id]: e.target.value }))}
+                      style={{ width: '100%', padding: 11, borderRadius: 10, background: 'rgba(255,255,255,0.05)', color: 'white', border: '1px solid rgba(255,255,255,0.15)', fontSize: '0.95rem' }}>
+                      <option value="">Escolha uma opção...</option>
+                      {vars.map((v) => <option key={v} value={v}>{v}</option>)}
+                    </select>
+                  </div>
+                )}
+                {whatsappNumber ? (
+                  <a href={waProductLink(detail)} target="_blank" rel="noreferrer"
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, width: '100%', padding: 14, borderRadius: 12, background: '#25d366', color: 'white', textDecoration: 'none', fontWeight: 700, fontSize: '1rem' }}>
+                    <i className="fa-brands fa-whatsapp" style={{ fontSize: '1.2rem' }} /> Pedir no WhatsApp
+                  </a>
+                ) : <p style={{ fontSize: '0.85rem', color: '#eab308', textAlign: 'center', margin: 0 }}>A loja ainda não configurou o WhatsApp de contato.</p>}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

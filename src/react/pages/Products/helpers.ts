@@ -20,6 +20,9 @@ export interface Product {
   stock?: number | null;
   duration?: number | null;
   observation?: string;
+  variations?: string[];
+  priceOnRequest?: boolean;
+  gallery?: { imagemPath: string; downloadToken: string }[]; // fotos extras (modo vitrine)
 }
 
 export interface Category {
@@ -48,6 +51,21 @@ export const getProductImageUrl = (p: Product): string | null => {
   }
   return null;
 };
+
+const storageUrl = (imagemPath: string, downloadToken: string) =>
+  `https://firebasestorage.googleapis.com/v0/b/conectacidade-5e46d.firebasestorage.app/o/${encodeURIComponent(imagemPath)}?alt=media&token=${downloadToken}`;
+
+// Todas as fotos do produto: a principal + a galeria (modo vitrine).
+export const getProductImages = (p: Product): string[] => {
+  const urls: string[] = [];
+  const main = getProductImageUrl(p);
+  if (main) urls.push(main);
+  (p.gallery || []).forEach((g) => { if (g?.imagemPath && g?.downloadToken) urls.push(storageUrl(g.imagemPath, g.downloadToken)); });
+  return urls;
+};
+
+export const getGalleryUrls = (p: Product): string[] =>
+  (p.gallery || []).filter((g) => g?.imagemPath && g?.downloadToken).map((g) => storageUrl(g.imagemPath, g.downloadToken));
 
 export const getComboImageUrl = (c: Combo): string | null => {
   if (c.imagemPath && c.downloadToken) {
