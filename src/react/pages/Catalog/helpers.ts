@@ -18,6 +18,12 @@ export const getProductGallery = (p: any): string[] => {
   return urls;
 };
 
+// Capa da categoria (carrossel da vitrine).
+export const getCategoryCover = (c: any): string | null =>
+  c?.coverImagemPath && c?.coverDownloadToken
+    ? `https://firebasestorage.googleapis.com/v0/b/conectacidade-5e46d.firebasestorage.app/o/${encodeURIComponent(c.coverImagemPath)}?alt=media&token=${c.coverDownloadToken}`
+    : null;
+
 export const DIAS_NOME: Record<string, string> = {
   dom: 'Domingo', seg: 'Segunda-feira', ter: 'Terça-feira', qua: 'Quarta-feira',
   qui: 'Quinta-feira', sex: 'Sexta-feira', sab: 'Sábado',

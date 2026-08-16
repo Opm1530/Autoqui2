@@ -9,6 +9,7 @@ interface Props {
   companyId: string;
   storeId: string;
   design: any;
+  vitrine?: boolean;
   onSave: (payload: any) => Promise<void>;
 }
 
@@ -24,8 +25,12 @@ function ColorField({ label, value, onChange }: { label: string; value: string; 
   );
 }
 
-export function Appearance({ companyId, storeId, design, onSave }: Props) {
+export function Appearance({ companyId, storeId, design, vitrine = false, onSave }: Props) {
   const [meta, setMeta] = useState(design.metaDescription || '');
+  const [barMsg, setBarMsg] = useState(design.vitrineBar || '');
+  const [heroTitle, setHeroTitle] = useState(design.vitrineHeroTitle || '');
+  const [heroSubtitle, setHeroSubtitle] = useState(design.vitrineHeroSubtitle || '');
+  const [heroCta, setHeroCta] = useState(design.vitrineHeroCta || '');
   const [primary, setPrimary] = useState(design.primaryColor || '#6366f1');
   const [secondary, setSecondary] = useState(design.secondaryColor || '#0f172a');
   const [textColor, setTextColor] = useState(design.textColor || '#ffffff');
@@ -61,7 +66,8 @@ export function Appearance({ companyId, storeId, design, onSave }: Props) {
       if (bannerFile.current) { const r = ref(storage, `banners/${companyId}/${storeId}_desktop`); await uploadBytes(r, bannerFile.current); bannerUrl = await getDownloadURL(r); }
       if (bannerMobileFile.current) { const r = ref(storage, `banners/${companyId}/${storeId}_mobile`); await uploadBytes(r, bannerMobileFile.current); bannerMobileUrl = await getDownloadURL(r); }
 
-      const newDesign = { ...design, primaryColor: primary, secondaryColor: secondary, textColor, priceColor, productBgColor: productBg, logoUrl, themeId, bannerUrl, bannerMobileUrl, metaDescription: meta };
+      const newDesign = { ...design, primaryColor: primary, secondaryColor: secondary, textColor, priceColor, productBgColor: productBg, logoUrl, themeId, bannerUrl, bannerMobileUrl, metaDescription: meta,
+        vitrineBar: barMsg.trim(), vitrineHeroTitle: heroTitle.trim(), vitrineHeroSubtitle: heroSubtitle.trim(), vitrineHeroCta: heroCta.trim() };
       await onSave({ design: newDesign });
       toast.success('Aparência salva!');
     } catch (e) { toast.error('Erro ao salvar aparência.'); throw e; }
@@ -76,6 +82,30 @@ export function Appearance({ companyId, storeId, design, onSave }: Props) {
         <input type="text" value={meta} onChange={(e) => setMeta(e.target.value)} className="config-input" placeholder="Ex: Melhores lanches da região. Peça agora!" />
         <p className="cat-field-hint">Texto que aparece quando você compartilha o link no WhatsApp/FB/Insta.</p>
       </div>
+
+      {vitrine && (
+        <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1.25rem', marginBottom: '0.5rem' }}>
+          <p style={{ fontSize: '0.9rem', fontWeight: 700, margin: '0 0 1rem', display: 'flex', alignItems: 'center', gap: 8 }}><i className="fa-solid fa-store" style={{ color: 'var(--primary)' }} /> Topo da Vitrine</p>
+          <div className="cat-field">
+            <label className="config-label">Barra de aviso (topo)</label>
+            <input type="text" value={barMsg} onChange={(e) => setBarMsg(e.target.value)} className="config-input" placeholder="Ex: Frete grátis nas compras acima de R$ 300" />
+            <p className="cat-field-hint">Fita fina no topo do site. Deixe vazio para esconder.</p>
+          </div>
+          <div className="cat-field">
+            <label className="config-label">Título do banner</label>
+            <input type="text" value={heroTitle} onChange={(e) => setHeroTitle(e.target.value)} className="config-input" placeholder="Ex: Nova Coleção de Inverno" />
+          </div>
+          <div className="cat-field">
+            <label className="config-label">Subtítulo do banner</label>
+            <input type="text" value={heroSubtitle} onChange={(e) => setHeroSubtitle(e.target.value)} className="config-input" placeholder="Ex: Peças pensadas para durar a estação toda." />
+          </div>
+          <div className="cat-field">
+            <label className="config-label">Texto do botão do banner</label>
+            <input type="text" value={heroCta} onChange={(e) => setHeroCta(e.target.value)} className="config-input" placeholder="Ex: Ver produtos" />
+            <p className="cat-field-hint">O botão rola a página até os produtos. Deixe vazio para esconder.</p>
+          </div>
+        </div>
+      )}
 
       <div className="cat-field">
         <label className="config-label">Logo da Loja</label>

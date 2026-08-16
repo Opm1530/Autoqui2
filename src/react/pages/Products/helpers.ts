@@ -30,7 +30,12 @@ export interface Category {
   name: string;
   icon: string;
   companyId: string;
+  coverImagemPath?: string;
+  coverDownloadToken?: string;
 }
+
+export const getCategoryCover = (c: Category): string | null =>
+  c.coverImagemPath && c.coverDownloadToken ? storageUrl(c.coverImagemPath, c.coverDownloadToken) : null;
 
 export interface Combo {
   id: string;

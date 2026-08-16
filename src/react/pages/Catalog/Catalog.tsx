@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { dbService } from '../../../services/db';
 import { toast } from '../../../services/toast';
-import { getImageUrl, getProductGallery, storeStatusLabel, isFreteAbertoAgora, isStoreOpen, getNextOpenTime, getStoreHorario, DIAS_NOME } from './helpers';
+import { getImageUrl, getProductGallery, getCategoryCover, storeStatusLabel, isFreteAbertoAgora, isStoreOpen, getNextOpenTime, getStoreHorario, DIAS_NOME } from './helpers';
 import { CheckoutModals } from './CheckoutModals';
+import './catalog-vitrine.css';
 import './catalog.css';
 
 interface CartEntry { product: any; qty: number }
@@ -17,6 +18,8 @@ export function Catalog() {
   const [varSel, setVarSel] = useState<Record<string, string>>({}); // variação escolhida por produto (modo vitrine)
   const [detail, setDetail] = useState<any | null>(null);           // produto aberto no modal de detalhe (vitrine)
   const [detailImg, setDetailImg] = useState(0);                    // índice da foto no modal
+  const [vitrineCat, setVitrineCat] = useState('');                 // categoria selecionada no carrossel (vitrine); '' = todas
+  const gridRef = useRef<HTMLDivElement>(null);                     // âncora do botão do banner (vitrine)
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [closedAlert, setClosedAlert] = useState<'store' | 'delivery' | null>(null);
   const [storeInfoOpen, setStoreInfoOpen] = useState(false);
@@ -258,6 +261,137 @@ export function Catalog() {
   const matchesSearch = (p: any) => !search.trim() || (p.name || '').toLowerCase().includes(search.trim().toLowerCase());
   const showGroup = (key: string) => activeFilter === 'all' || activeFilter === key;
 
+  // Modal de detalhe do produto (reutilizado nos layouts padrão e vitrine).
+  function renderDetail() {
+    if (!detail) return null;
+    const imgs = getProductGallery(detail);
+    const vars: string[] = Array.isArray(detail.variations) ? detail.variations : [];
+    return (
+      <div className="cat-modal-base" style={{ alignItems: 'center', zIndex: 9999 }} onClick={(e) => { if (e.target === e.currentTarget) setDetail(null); }}>
+        <div className="vt-detail">
+          <div style={{ position: 'relative' }}>
+            <img src={imgs[detailImg]} alt={detail.name} style={{ width: '100%', maxHeight: 400, objectFit: 'cover', display: 'block' }} />
+            <button onClick={() => setDetail(null)} style={{ position: 'absolute', top: 12, right: 12, background: 'rgba(0,0,0,0.5)', border: 'none', color: 'white', width: 36, height: 36, borderRadius: '50%', cursor: 'pointer' }}><i className="fa-solid fa-xmark" /></button>
+          </div>
+          {imgs.length > 1 && (
+            <div style={{ display: 'flex', gap: 8, padding: '12px 20px 0', overflowX: 'auto' }}>
+              {imgs.map((u, i) => (
+                <img key={i} src={u} onClick={() => setDetailImg(i)} alt=""
+                  style={{ width: 56, height: 56, objectFit: 'cover', borderRadius: 8, cursor: 'pointer', flexShrink: 0, border: i === detailImg ? '2px solid var(--vt-accent)' : '2px solid transparent', opacity: i === detailImg ? 1 : 0.6 }} />
+              ))}
+            </div>
+          )}
+          <div style={{ padding: 24 }}>
+            <h2 style={{ margin: '0 0 8px', fontSize: '1.4rem', letterSpacing: '-0.01em' }}>{detail.name}</h2>
+            <div style={{ marginBottom: 16 }}>
+              {detail.priceOnRequest
+                ? <span style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--vt-accent)' }}>Sob consulta</span>
+                : <span style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--vt-ink)' }}>R$ {Number(detail.price || 0).toFixed(2)}</span>}
+            </div>
+            {detail.observation && <p style={{ color: 'var(--vt-muted)', lineHeight: 1.7, fontSize: '0.95rem', whiteSpace: 'pre-wrap', margin: '0 0 18px' }}>{detail.observation}</p>}
+            {vars.length > 0 && (
+              <div style={{ marginBottom: 18 }}>
+                <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--vt-muted)', marginBottom: 6, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Opção</label>
+                <select value={varSel[detail.id] || ''} onChange={(e) => setVarSel((prev) => ({ ...prev, [detail.id]: e.target.value }))} className="vt-select">
+                  <option value="">Escolha uma opção...</option>
+                  {vars.map((v) => <option key={v} value={v}>{v}</option>)}
+                </select>
+              </div>
+            )}
+            {whatsappNumber ? (
+              <a href={waProductLink(detail)} target="_blank" rel="noreferrer" className="vt-wa-btn">
+                <i className="fa-brands fa-whatsapp" style={{ fontSize: '1.2rem' }} /> Pedir no WhatsApp
+              </a>
+            ) : <p style={{ fontSize: '0.85rem', color: '#b45309', textAlign: 'center', margin: 0 }}>A loja ainda não configurou o WhatsApp de contato.</p>}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Layout VITRINE (editorial): barra + banner + carrossel de categorias + grid ──
+  if (isVitrine) {
+    const cats = (data.categorizedData || []) as any[];
+    const gridProducts = (vitrineCat
+      ? (cats.find((c) => c.id === vitrineCat)?.products || [])
+      : data.products
+    ).filter(matchesSearch);
+    const vtVars: React.CSSProperties = {
+      ['--vt-bg' as any]: design.secondaryColor || '#efe9e0',
+      ['--vt-ink' as any]: design.textColor || '#2b2620',
+      ['--vt-accent' as any]: design.primaryColor || '#8a6d4b',
+      ['--vt-muted' as any]: '#8c8378',
+    };
+    return (
+      <div className="vt-body" style={vtVars}>
+        {design.vitrineBar && <div className="vt-bar">{design.vitrineBar}</div>}
+
+        <header className="vt-header">
+          {logoUrl ? <img src={logoUrl} alt={store.name} className="vt-logo-img" /> : <span className="vt-logo-txt">{store.name}</span>}
+        </header>
+
+        {bannerUrl && (
+          <section className="vt-hero" style={{ backgroundImage: `url(${bannerUrl})` }}>
+            <div className="vt-hero-overlay">
+              {design.vitrineHeroTitle && <h1>{design.vitrineHeroTitle}</h1>}
+              {design.vitrineHeroSubtitle && <p>{design.vitrineHeroSubtitle}</p>}
+              {design.vitrineHeroCta && <button className="vt-hero-btn" onClick={() => gridRef.current?.scrollIntoView({ behavior: 'smooth' })}>{design.vitrineHeroCta}</button>}
+            </div>
+          </section>
+        )}
+
+        {cats.length > 0 && (
+          <section className="vt-cats">
+            <button className={'vt-cat' + (vitrineCat === '' ? ' active' : '')} onClick={() => setVitrineCat('')}>
+              <span className="vt-cat-circle vt-cat-all"><i className="fa-solid fa-shapes" /></span>
+              <span className="vt-cat-name">Todos</span>
+            </button>
+            {cats.map((c) => (
+              <button key={c.id} className={'vt-cat' + (vitrineCat === c.id ? ' active' : '')} onClick={() => setVitrineCat(c.id)}>
+                <span className="vt-cat-circle">
+                  {getCategoryCover(c) ? <img src={getCategoryCover(c)!} alt={c.name} /> : <i className={`fa-solid ${c.icon || 'fa-tag'}`} />}
+                </span>
+                <span className="vt-cat-name">{c.name}</span>
+              </button>
+            ))}
+          </section>
+        )}
+
+        <main className="vt-main" ref={gridRef}>
+          <div className="vt-section-head">
+            <span className="vt-eyebrow">{vitrineCat ? 'Categoria' : 'Todos os produtos'}</span>
+            <h2>{vitrineCat ? cats.find((c) => c.id === vitrineCat)?.name : 'Produtos'}</h2>
+          </div>
+          {gridProducts.length === 0 ? (
+            <p style={{ textAlign: 'center', color: 'var(--vt-muted)', padding: '40px 0' }}>Nenhum produto nesta categoria.</p>
+          ) : (
+            <div className="vt-grid">
+              {gridProducts.map((p: any) => {
+                const cover = getImageUrl(p);
+                return (
+                  <button key={p.id} className="vt-card" onClick={() => { setDetail(p); setDetailImg(0); }}>
+                    <div className="vt-card-img"><img src={cover} alt={p.name} loading="lazy" /></div>
+                    <div className="vt-card-info">
+                      <div className="vt-card-name">{p.name}</div>
+                      {p.observation && <div className="vt-card-meta">{p.observation}</div>}
+                      <div className="vt-card-price">{p.priceOnRequest ? 'Sob consulta' : `R$ ${Number(p.price || 0).toFixed(2)}`}</div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </main>
+
+        <footer className="vt-footer">
+          {store.name} · {new Date().getFullYear()}
+        </footer>
+
+        {renderDetail()}
+      </div>
+    );
+  }
+
   return (
     <div className="catalog-body" style={cssVars}>
       {/* HEADER (clássico/banner) */}
@@ -453,54 +587,7 @@ export function Catalog() {
         </div>
       )}
 
-      {/* Detalhe do produto (modo vitrine) — galeria + descrição + WhatsApp */}
-      {detail && (() => {
-        const imgs = getProductGallery(detail);
-        const vars: string[] = Array.isArray(detail.variations) ? detail.variations : [];
-        return (
-          <div className="cat-modal-base" style={{ alignItems: 'center', zIndex: 9999 }} onClick={(e) => { if (e.target === e.currentTarget) setDetail(null); }}>
-            <div style={{ background: '#1e293b', borderRadius: 24, width: '94%', maxWidth: 560, maxHeight: '92vh', overflowY: 'auto' }}>
-              <div style={{ position: 'relative' }}>
-                <img src={imgs[detailImg]} alt={detail.name} style={{ width: '100%', maxHeight: 360, objectFit: 'cover', borderRadius: '24px 24px 0 0', display: 'block' }} />
-                <button onClick={() => setDetail(null)} style={{ position: 'absolute', top: 12, right: 12, background: 'rgba(0,0,0,0.5)', border: 'none', color: 'white', width: 36, height: 36, borderRadius: '50%', cursor: 'pointer' }}><i className="fa-solid fa-xmark" /></button>
-              </div>
-              {imgs.length > 1 && (
-                <div style={{ display: 'flex', gap: 8, padding: '12px 16px 0', overflowX: 'auto' }}>
-                  {imgs.map((u, i) => (
-                    <img key={i} src={u} onClick={() => setDetailImg(i)} alt=""
-                      style={{ width: 56, height: 56, objectFit: 'cover', borderRadius: 8, cursor: 'pointer', flexShrink: 0, border: i === detailImg ? '2px solid var(--primary-cat)' : '2px solid transparent', opacity: i === detailImg ? 1 : 0.6 }} />
-                  ))}
-                </div>
-              )}
-              <div style={{ padding: 20 }}>
-                <h2 style={{ margin: '0 0 8px', fontSize: '1.3rem' }}>{detail.name}</h2>
-                <div style={{ marginBottom: 14 }}>
-                  {detail.priceOnRequest
-                    ? <span style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--primary-cat)' }}>Sob consulta</span>
-                    : <span style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--primary-cat)' }}>R$ {Number(detail.price || 0).toFixed(2)}</span>}
-                </div>
-                {detail.observation && <p style={{ color: '#cbd5e1', lineHeight: 1.6, fontSize: '0.95rem', whiteSpace: 'pre-wrap', margin: '0 0 16px' }}>{detail.observation}</p>}
-                {vars.length > 0 && (
-                  <div style={{ marginBottom: 16 }}>
-                    <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 6, fontWeight: 600 }}>Opção</label>
-                    <select value={varSel[detail.id] || ''} onChange={(e) => setVarSel((prev) => ({ ...prev, [detail.id]: e.target.value }))}
-                      style={{ width: '100%', padding: 11, borderRadius: 10, background: 'rgba(255,255,255,0.05)', color: 'white', border: '1px solid rgba(255,255,255,0.15)', fontSize: '0.95rem' }}>
-                      <option value="">Escolha uma opção...</option>
-                      {vars.map((v) => <option key={v} value={v}>{v}</option>)}
-                    </select>
-                  </div>
-                )}
-                {whatsappNumber ? (
-                  <a href={waProductLink(detail)} target="_blank" rel="noreferrer"
-                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, width: '100%', padding: 14, borderRadius: 12, background: '#25d366', color: 'white', textDecoration: 'none', fontWeight: 700, fontSize: '1rem' }}>
-                    <i className="fa-brands fa-whatsapp" style={{ fontSize: '1.2rem' }} /> Pedir no WhatsApp
-                  </a>
-                ) : <p style={{ fontSize: '0.85rem', color: '#eab308', textAlign: 'center', margin: 0 }}>A loja ainda não configurou o WhatsApp de contato.</p>}
-              </div>
-            </div>
-          </div>
-        );
-      })()}
+      {renderDetail()}
     </div>
   );
 }

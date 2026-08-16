@@ -1,0 +1,86 @@
+/* Vitrine editorial — layout tipo boutique (barra + banner + categorias + grid). */
+.vt-body {
+  --vt-bg: #efe9e0;
+  --vt-ink: #2b2620;
+  --vt-accent: #8a6d4b;
+  --vt-muted: #8c8378;
+  --vt-card: #ffffff;
+  --vt-line: rgba(0, 0, 0, 0.08);
+  background: var(--vt-bg);
+  color: var(--vt-ink);
+  min-height: 100vh;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+.vt-body h1, .vt-body h2 { font-family: Georgia, 'Times New Roman', serif; font-weight: 500; letter-spacing: -0.01em; }
+
+/* Barra de aviso */
+.vt-bar {
+  background: var(--vt-ink); color: var(--vt-bg);
+  text-align: center; font-size: 0.78rem; letter-spacing: 0.14em; text-transform: uppercase;
+  padding: 9px 16px;
+}
+
+/* Header */
+.vt-header { display: flex; justify-content: center; align-items: center; padding: 22px 16px; }
+.vt-logo-img { height: 40px; width: auto; }
+.vt-logo-txt { font-family: Georgia, serif; font-size: 1.5rem; letter-spacing: 0.02em; }
+
+/* Hero / banner */
+.vt-hero { background-size: cover; background-position: center; min-height: 62vh; display: flex; align-items: center; }
+.vt-hero-overlay { max-width: 1200px; margin: 0 auto; width: 100%; padding: 0 6vw; }
+.vt-hero-overlay h1 { font-size: 3rem; line-height: 1.1; margin: 0 0 14px; max-width: 12ch; }
+.vt-hero-overlay p { font-size: 1.05rem; color: var(--vt-ink); opacity: 0.85; margin: 0 0 26px; max-width: 42ch; }
+.vt-hero-btn {
+  background: var(--vt-ink); color: var(--vt-bg); border: none; cursor: pointer;
+  padding: 14px 30px; font-size: 0.78rem; letter-spacing: 0.14em; text-transform: uppercase; font-weight: 600;
+  transition: opacity 0.2s;
+}
+.vt-hero-btn:hover { opacity: 0.85; }
+
+/* Carrossel de categorias (bolinhas) */
+.vt-cats { display: flex; gap: 26px; overflow-x: auto; padding: 34px 6vw; justify-content: center; scrollbar-width: none; }
+.vt-cats::-webkit-scrollbar { display: none; }
+.vt-cat { background: none; border: none; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 10px; flex-shrink: 0; padding: 0; }
+.vt-cat-circle {
+  width: 78px; height: 78px; border-radius: 50%; overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--vt-card); border: 2px solid transparent; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
+  color: var(--vt-accent); font-size: 1.4rem; transition: border-color 0.2s, transform 0.2s;
+}
+.vt-cat-circle img { width: 100%; height: 100%; object-fit: cover; }
+.vt-cat.active .vt-cat-circle { border-color: var(--vt-accent); }
+.vt-cat:hover .vt-cat-circle { transform: translateY(-3px); }
+.vt-cat-name { font-size: 0.82rem; color: var(--vt-ink); letter-spacing: 0.02em; }
+.vt-cat.active .vt-cat-name { font-weight: 700; }
+
+/* Grid de produtos */
+.vt-main { max-width: 1200px; margin: 0 auto; padding: 10px 6vw 80px; }
+.vt-section-head { margin-bottom: 28px; }
+.vt-eyebrow { font-size: 0.72rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--vt-accent); font-weight: 700; }
+.vt-section-head h2 { font-size: 2rem; margin: 6px 0 0; }
+.vt-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 26px; }
+.vt-card { background: none; border: none; padding: 0; cursor: pointer; text-align: left; display: flex; flex-direction: column; gap: 12px; }
+.vt-card-img { aspect-ratio: 3 / 4; overflow: hidden; background: #e6ded2; border-radius: 4px; }
+.vt-card-img img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s ease; }
+.vt-card:hover .vt-card-img img { transform: scale(1.04); }
+.vt-card-info { display: flex; flex-direction: column; gap: 3px; }
+.vt-card-name { font-weight: 600; font-size: 0.98rem; color: var(--vt-ink); }
+.vt-card-meta { font-size: 0.8rem; color: var(--vt-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vt-card-price { font-size: 0.95rem; color: var(--vt-ink); margin-top: 2px; }
+
+/* Footer */
+.vt-footer { text-align: center; padding: 40px 16px; color: var(--vt-muted); font-size: 0.82rem; border-top: 1px solid var(--vt-line); letter-spacing: 0.04em; }
+
+/* Modal de detalhe */
+.vt-detail { background: var(--vt-card); color: var(--vt-ink); border-radius: 12px; width: 94%; max-width: 560px; max-height: 92vh; overflow: hidden auto; }
+.vt-select { width: 100%; padding: 12px; border-radius: 8px; background: #f5f1ea; color: var(--vt-ink); border: 1px solid var(--vt-line); font-size: 0.95rem; }
+.vt-wa-btn { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 15px; border-radius: 8px; background: #25d366; color: #fff; text-decoration: none; font-weight: 700; font-size: 1rem; }
+
+@media (max-width: 900px) {
+  .vt-hero { min-height: 46vh; }
+  .vt-hero-overlay h1 { font-size: 2.1rem; }
+  .vt-grid { grid-template-columns: repeat(2, 1fr); gap: 18px; }
+  .vt-cats { justify-content: flex-start; gap: 20px; padding: 26px 5vw; }
+  .vt-cat-circle { width: 66px; height: 66px; }
+  .vt-section-head h2 { font-size: 1.6rem; }
+}
