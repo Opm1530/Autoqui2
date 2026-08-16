@@ -4,6 +4,7 @@ import { subscriptionApi } from '../../../services/subscriptionApi';
 import { toast } from '../../../services/toast';
 import { confirm } from '../../../services/confirm';
 import { SkeletonCards } from '../../components/Skeleton';
+import { lojasLabel, ILIMITADO } from '../../util/plan';
 
 export function Plans() {
   const [loading, setLoading] = useState(true);
@@ -102,7 +103,7 @@ export function Plans() {
                   <div><div style={{ fontWeight: 700, fontSize: '1.05rem' }}>{p.nome}</div><div style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--primary)' }}>R$ {Number(p.valor).toFixed(2)}<span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 400 }}>/mês</span></div></div>
                 </div>
                 <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', gap: 14, flexWrap: 'wrap' }}>
-                  <span><i className="fa-solid fa-store" /> {p.maxLojas ?? 1} {(p.maxLojas ?? 1) === 1 ? 'loja' : 'lojas'}</span>
+                  <span><i className="fa-solid fa-store" /> {lojasLabel(p.maxLojas)}</span>
                   <span><i className="fa-solid fa-clock" /> Tolerância: {p.toleranciaDias ?? 5} dias</span>
                 </div>
                 <div style={{ display: 'flex', gap: 8, borderTop: '1px solid var(--border-color)', paddingTop: 12 }}>
@@ -122,7 +123,7 @@ export function Plans() {
             <h2>{modal.id ? 'Editar Plano' : 'Novo Plano'}</h2>
             <div className="form-group"><label>Nome do Plano</label><input type="text" value={modal.nome} onChange={(e) => setModal({ ...modal, nome: e.target.value })} placeholder="Ex: Básico, Pro..." /></div>
             <div className="form-group"><label>Valor mensal (R$)</label><input type="number" min="0" step="0.01" value={modal.valor} onChange={(e) => setModal({ ...modal, valor: e.target.value })} placeholder="0,00" /></div>
-            <div className="form-group"><label>Nº de lojas incluídas</label><select value={modal.maxLojas} onChange={(e) => setModal({ ...modal, maxLojas: e.target.value })}><option value="1">1 loja</option><option value="2">2 lojas</option></select></div>
+            <div className="form-group"><label>Nº de lojas incluídas</label><select value={modal.maxLojas} onChange={(e) => setModal({ ...modal, maxLojas: e.target.value })}><option value="1">1 loja</option><option value="2">2 lojas</option><option value={String(ILIMITADO)}>2 ou mais lojas (ilimitado)</option></select></div>
             <div className="form-group"><label>Dias de tolerância após falha de pagamento</label><input type="number" min="0" value={modal.toleranciaDias} onChange={(e) => setModal({ ...modal, toleranciaDias: e.target.value })} /></div>
             <button className="btn-primary full-width" disabled={busy === 'save'} onClick={savePlan}>{busy === 'save' ? 'Salvando...' : 'Salvar Plano'}</button>
           </div>

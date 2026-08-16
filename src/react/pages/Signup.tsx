@@ -3,6 +3,7 @@ import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import { authService } from '../../services/auth';
 import { subscriptionApi } from '../../services/subscriptionApi';
 import { toast } from '../../services/toast';
+import { lojasLabel } from '../util/plan';
 
 type Plan = { id: string; nome: string; valor: number; maxLojas: number };
 
@@ -71,7 +72,7 @@ export function Signup() {
                 <label key={p.id} className="card" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', cursor: 'pointer', border: planId === p.id ? '2px solid var(--primary)' : '1px solid var(--border-color)' }}>
                   <input type="radio" name="plano" value={p.id} checked={planId === p.id} onChange={() => setPlanId(p.id)} style={{ width: 'auto' }} />
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 700 }}>{p.nome} <span style={{ fontWeight: 400, color: 'var(--text-muted)', fontSize: '0.85rem' }}>· {p.maxLojas} {p.maxLojas === 1 ? 'loja' : 'lojas'}</span></div>
+                    <div style={{ fontWeight: 700 }}>{p.nome} <span style={{ fontWeight: 400, color: 'var(--text-muted)', fontSize: '0.85rem' }}>· {lojasLabel(p.maxLojas)}</span></div>
                   </div>
                   <div style={{ fontWeight: 800, color: 'var(--primary)' }}>R$ {Number(p.valor).toFixed(2)}<span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 400 }}>/mês</span></div>
                 </label>

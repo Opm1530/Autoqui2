@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../useAuth';
 import { subscriptionApi } from '../../../services/subscriptionApi';
+import { lojasLabel } from '../../util/plan';
 import './landing.css';
 
 type Plan = { id: string; nome: string; valor: number; maxLojas: number };
@@ -131,7 +132,7 @@ export function LandingPage() {
                 <div style={{ fontSize: '2.2rem', fontWeight: 800, color: 'var(--lp-primary, #6366f1)', margin: '0.5rem 0' }}>
                   R$ {Number(p.valor).toFixed(2)}<span style={{ fontSize: '0.9rem', opacity: 0.7, fontWeight: 400 }}>/mês</span>
                 </div>
-                <p>{p.maxLojas} {p.maxLojas === 1 ? 'loja' : 'lojas'} · catálogo, pedidos e campanhas inclusos.</p>
+                <p>{lojasLabel(p.maxLojas)} · catálogo, pedidos e campanhas inclusos.</p>
                 <Link to={`/signup?plano=${p.id}`} className="lp-btn-primary-lp" style={{ display: 'inline-block', marginTop: '0.5rem' }}>Começar teste grátis</Link>
               </div>
             ))}

@@ -4,6 +4,7 @@ import { adminApi } from '../../../services/adminApi';
 import { toast } from '../../../services/toast';
 import { confirm } from '../../../services/confirm';
 import { SkeletonTable } from '../../components/Skeleton';
+import { lojasLabel } from '../../util/plan';
 
 const MODULE_OPTIONS = [
   { value: 'atendimento', label: 'IA de Atendimento' },
@@ -192,7 +193,7 @@ function CompanyModal({ editing, onClose, onSaved, onRemoved }: { editing: any |
               <label>Plano</label>
               <select value={planId} onChange={(e) => setPlanId(e.target.value)}>
                 <option value="">— Sem plano —</option>
-                {plans.map((p) => <option key={p.id} value={p.id}>{p.nome} · R$ {Number(p.valor).toFixed(2)}/mês · {(p.maxLojas ?? 1)} {(p.maxLojas ?? 1) === 1 ? 'loja' : 'lojas'}</option>)}
+                {plans.map((p) => <option key={p.id} value={p.id}>{p.nome} · R$ {Number(p.valor).toFixed(2)}/mês · {lojasLabel(p.maxLojas)}</option>)}
               </select>
               <small style={{ color: 'var(--text-muted)' }}>Ao atribuir um plano, o cliente tem 7 dias para assinar no Mercado Pago antes do bloqueio (a menos que já esteja ativo ou isento).</small>
             </div>
