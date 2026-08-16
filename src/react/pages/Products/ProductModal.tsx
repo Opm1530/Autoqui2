@@ -12,6 +12,8 @@ interface ItemDraft {
   stock: string;
   duration: string;
   observation: string;
+  variations: string;       // "P, M, G" — separado por vírgula (modo vitrine)
+  priceOnRequest: boolean;  // preço sob consulta (modo vitrine)
   promoActive: boolean;
   promoName: string;
   promoPrice: string;
@@ -23,13 +25,14 @@ let seq = 0;
 const newTempId = () => `prod_${Date.now()}_${seq++}`;
 
 function emptyDraft(): ItemDraft {
-  return { tempId: newTempId(), name: '', price: '', categoryId: '', stock: '', duration: '', observation: '', promoActive: false, promoName: '', promoPrice: '', file: null, previewUrl: null };
+  return { tempId: newTempId(), name: '', price: '', categoryId: '', stock: '', duration: '', observation: '', variations: '', priceOnRequest: false, promoActive: false, promoName: '', promoPrice: '', file: null, previewUrl: null };
 }
 
 interface Props {
   companyId: string;
   isOwner: boolean;
   isAgendamento: boolean;
+  isVitrine: boolean;
   labelSingular: string;
   labelPlural: string;
   stores: any[];
@@ -40,7 +43,7 @@ interface Props {
   onSaved: (saved: Product[], editedId: string | null) => void;
 }
 
-export function ProductModal({ companyId, isOwner, isAgendamento, labelSingular, labelPlural, stores, categories, userStoreIds, editProduct, onClose, onSaved }: Props) {
+export function ProductModal({ companyId, isOwner, isAgendamento, isVitrine, labelSingular, labelPlural, stores, categories, userStoreIds, editProduct, onClose, onSaved }: Props) {
   const isEdit = !!editProduct;
   const [items, setItems] = useState<ItemDraft[]>([]);
   const [storeIds, setStoreIds] = useState<string[]>([]);
@@ -57,6 +60,8 @@ export function ProductModal({ companyId, isOwner, isAgendamento, labelSingular,
         stock: editProduct.stock != null ? String(editProduct.stock) : '',
         duration: editProduct.duration != null ? String(editProduct.duration) : '',
         observation: editProduct.observation || '',
+        variations: Array.isArray((editProduct as any).variations) ? (editProduct as any).variations.join(', ') : '',
+        priceOnRequest: !!(editProduct as any).priceOnRequest,
         promoActive: !!editProduct.promotionalActive,
         promoName: editProduct.promotionalName || '',
         promoPrice: editProduct.promotionalPrice != null ? String(editProduct.promotionalPrice) : '',
@@ -121,6 +126,10 @@ export function ProductModal({ companyId, isOwner, isAgendamento, labelSingular,
         const stock = !isAgendamento && it.stock !== '' ? parseInt(it.stock) : null;
         const duration = isAgendamento && it.duration !== '' ? parseInt(it.duration) : null;
 
+        const variationsArr = isVitrine
+          ? it.variations.split(',').map((v) => v.trim()).filter(Boolean)
+          : [];
+
         const productData: any = {
           name: it.name,
           price: parseFloat(it.price) || 0,
@@ -128,11 +137,13 @@ export function ProductModal({ companyId, isOwner, isAgendamento, labelSingular,
           storeIds: targetStores,
           companyId,
           active: editProduct ? editProduct.active : true,
-          promotionalActive: isAgendamento ? false : it.promoActive,
-          promotionalName: isAgendamento ? '' : it.promoName,
-          promotionalPrice: isAgendamento ? 0 : (parseFloat(it.promoPrice) || 0),
+          promotionalActive: isAgendamento || isVitrine ? false : it.promoActive,
+          promotionalName: isAgendamento || isVitrine ? '' : it.promoName,
+          promotionalPrice: isAgendamento || isVitrine ? 0 : (parseFloat(it.promoPrice) || 0),
           stock, duration,
           observation: it.observation || '',
+          variations: variationsArr,
+          priceOnRequest: isVitrine ? it.priceOnRequest : false,
           ...imageData,
         };
 
@@ -188,7 +199,7 @@ export function ProductModal({ companyId, isOwner, isAgendamento, labelSingular,
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 20 }}>
             {items.map((it) => (
-              <ItemCard key={it.tempId} it={it} isAgendamento={isAgendamento} labelSingular={labelSingular}
+              <ItemCard key={it.tempId} it={it} isAgendamento={isAgendamento} isVitrine={isVitrine} labelSingular={labelSingular}
                 categories={categories} onPatch={patch} onFile={onItemFile} onRemove={removeItem} />
             ))}
           </div>
@@ -270,8 +281,8 @@ function StoreMultiSelect({ stores, storeIds, onToggle }: { stores: any[]; store
   );
 }
 
-function ItemCard({ it, isAgendamento, labelSingular, categories, onPatch, onFile, onRemove }: {
-  it: ItemDraft; isAgendamento: boolean; labelSingular: string; categories: Category[];
+function ItemCard({ it, isAgendamento, isVitrine, labelSingular, categories, onPatch, onFile, onRemove }: {
+  it: ItemDraft; isAgendamento: boolean; isVitrine: boolean; labelSingular: string; categories: Category[];
   onPatch: (id: string, p: Partial<ItemDraft>) => void; onFile: (id: string, f: File) => void; onRemove: (id: string) => void;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
@@ -295,7 +306,7 @@ function ItemCard({ it, isAgendamento, labelSingular, categories, onPatch, onFil
           </div>
           <div className="field price-field">
             <label>Preço (R$)</label>
-            <input type="number" value={it.price} onChange={(e) => onPatch(it.tempId, { price: e.target.value })} placeholder="0,00" step="0.01" />
+            <input type="number" value={it.price} disabled={isVitrine && it.priceOnRequest} onChange={(e) => onPatch(it.tempId, { price: e.target.value })} placeholder={isVitrine && it.priceOnRequest ? 'Sob consulta' : '0,00'} step="0.01" />
           </div>
         </div>
 
@@ -330,7 +341,25 @@ function ItemCard({ it, isAgendamento, labelSingular, categories, onPatch, onFil
           </div>
         )}
 
-        {!isAgendamento && (
+        {isVitrine && (
+          <>
+            <div style={{ marginTop: 12 }} className="field">
+              <label>Descrição</label>
+              <textarea value={it.observation} onChange={(e) => onPatch(it.tempId, { observation: e.target.value })}
+                placeholder="Detalhes do produto: material, medidas, etc." style={{ minHeight: 60, resize: 'vertical' }} />
+            </div>
+            <div style={{ marginTop: 12 }} className="field">
+              <label>Tamanhos / Variações <span style={{ color: 'var(--text-dim)', fontWeight: 400 }}>(separe por vírgula)</span></label>
+              <input type="text" value={it.variations} onChange={(e) => onPatch(it.tempId, { variations: e.target.value })} placeholder="Ex: P, M, G ou Azul, Vermelho" />
+            </div>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', marginTop: 12, fontSize: '0.85rem', color: 'var(--primary)', fontWeight: 600 }}>
+              <input type="checkbox" checked={it.priceOnRequest} onChange={(e) => onPatch(it.tempId, { priceOnRequest: e.target.checked })} style={{ width: 16, height: 16 }} />
+              <i className="fa-solid fa-comments-dollar" /> Preço sob consulta (não mostrar preço)
+            </label>
+          </>
+        )}
+
+        {!isAgendamento && !isVitrine && (
           <div style={{ marginTop: 15, paddingTop: 10, borderTop: '1px dashed var(--border-color)' }}>
             <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', color: 'var(--primary)', fontWeight: 600, fontSize: '0.85rem' }}>
               <input type="checkbox" checked={it.promoActive} onChange={(e) => onPatch(it.tempId, { promoActive: e.target.checked })} style={{ width: 16, height: 16 }} />

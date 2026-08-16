@@ -39,6 +39,7 @@ export function Products() {
   const [showCombosModal, setShowCombosModal] = useState(false);
 
   const isAgendamento = modulos?.includes('agendamento') || false;
+  const isVitrine = modulos?.includes('vitrine') || false;
   const labelSingular = isAgendamento ? 'Serviço' : 'Produto';
   const labelPlural = isAgendamento ? 'Serviços' : 'Produtos';
 
@@ -53,7 +54,7 @@ export function Products() {
       setStores(sts);
       if (!isOwner) setStoreFilter(userStoreIds.length === 1 ? userStoreIds[0] : 'employee_all');
 
-      const enabled = mods.includes('venda') || mods.includes('agendamento') || mods.includes('venda_catalogo');
+      const enabled = mods.includes('venda') || mods.includes('agendamento') || mods.includes('venda_catalogo') || mods.includes('vitrine');
       if (!enabled) { setLoading(false); return; }
 
       const [prodsRaw, catsRaw, combosRaw] = await Promise.all([
@@ -69,7 +70,7 @@ export function Products() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [companyId]);
 
-  const enabled = modulos ? (modulos.includes('venda') || modulos.includes('agendamento') || modulos.includes('venda_catalogo')) : true;
+  const enabled = modulos ? (modulos.includes('venda') || modulos.includes('agendamento') || modulos.includes('venda_catalogo') || modulos.includes('vitrine')) : true;
 
   const storeName = (p: Product) => {
     const ids = p.storeIds || (p.storeId ? [p.storeId] : []);
@@ -302,7 +303,7 @@ export function Products() {
 
       {showProductModal && (
         <ProductModal
-          companyId={companyId} isOwner={isOwner} isAgendamento={isAgendamento}
+          companyId={companyId} isOwner={isOwner} isAgendamento={isAgendamento} isVitrine={isVitrine}
           labelSingular={labelSingular} labelPlural={labelPlural}
           stores={stores} categories={categories} userStoreIds={userStoreIds}
           editProduct={editProduct}

@@ -14,6 +14,7 @@ export function Catalog() {
   const [data, setData] = useState<any | null>(null);
   const [cart, setCart] = useState<Map<string, CartEntry>>(new Map());
   const [cartOpen, setCartOpen] = useState(false);
+  const [varSel, setVarSel] = useState<Record<string, string>>({}); // variação escolhida por produto (modo vitrine)
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [closedAlert, setClosedAlert] = useState<'store' | 'delivery' | null>(null);
   const [storeInfoOpen, setStoreInfoOpen] = useState(false);
@@ -74,6 +75,7 @@ export function Catalog() {
         setData({
           company, store, config, design, modulos,
           hasVendaCatalogo: modulos.includes('venda_catalogo'),
+          isVitrine: modulos.includes('vitrine'),
           products, promoProducts, categorizedData, uncategorized, combos,
           whatsappNumber, isMpActive,
           themeId: design.themeId || 'classico',
@@ -151,7 +153,7 @@ export function Catalog() {
   );
   if (data.error) return <p style={{ padding: '2rem', color: 'white', background: '#0f172a', minHeight: '100vh' }}>Erro ao carregar catálogo.</p>;
 
-  const { store, design, themeId, logoUrl, bannerUrl, bannerMobileUrl, whatsappNumber, hasVendaCatalogo, config } = data;
+  const { store, design, themeId, logoUrl, bannerUrl, bannerMobileUrl, whatsappNumber, hasVendaCatalogo, isVitrine, config } = data;
   const status = storeStatusLabel(config, store);
   const permitirEntrega = isFreteAbertoAgora(config, store);
 
@@ -173,6 +175,15 @@ export function Catalog() {
     </span>
   );
 
+  // Link do WhatsApp já com o produto (e a variação escolhida) na mensagem.
+  const waProductLink = (p: any) => {
+    const chosen = varSel[p.id];
+    const preco = !p.priceOnRequest && p.price ? ` - R$ ${Number(p.price).toFixed(2)}` : '';
+    let msg = `Olá! Tenho interesse neste produto: ${p.name}${preco}`;
+    if (chosen) msg += `\nOpção: ${chosen}`;
+    return `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(msg)}`;
+  };
+
   const ProductCard = ({ p, usePromo = false }: { p: any; usePromo?: boolean }) => {
     const title = usePromo ? (p.promotionalName || p.name) : p.name;
     const price = usePromo ? (p.promotionalPrice || p.price) : p.price;
@@ -187,14 +198,33 @@ export function Catalog() {
         </div>
         <div className="card-info">
           <h3>{title}</h3>
-          {data.modulos.includes('agendamento') && p.observation && <p style={{ fontSize: '0.8rem', color: '#94a3b8', margin: '4px 0 8px', lineHeight: 1.4 }}>{p.observation}</p>}
-          <div className="price-container"><span className="price">R$ {price?.toFixed(2)}</span>{original && <span className="original-price">R$ {original.toFixed(2)}</span>}</div>
+          {(isVitrine || data.modulos.includes('agendamento')) && p.observation && <p style={{ fontSize: '0.8rem', color: '#94a3b8', margin: '4px 0 8px', lineHeight: 1.4 }}>{p.observation}</p>}
+          {p.priceOnRequest
+            ? <div className="price-container"><span className="price" style={{ fontSize: '1rem' }}>Sob consulta</span></div>
+            : <div className="price-container"><span className="price">R$ {price?.toFixed(2)}</span>{original && <span className="original-price">R$ {original.toFixed(2)}</span>}</div>}
           {p.stock != null && !out && p.stock <= 10 && <p style={{ fontSize: '0.75rem', color: '#eab308', margin: '6px 0 0' }}>⚠️ Apenas {p.stock} restante{p.stock !== 1 ? 's' : ''}</p>}
           {hasVendaCatalogo && (
             <button disabled={out} onClick={() => addProduct(p)}
               style={{ marginTop: 12, width: '100%', padding: 10, borderRadius: 10, background: out ? 'rgba(255,255,255,0.05)' : 'var(--primary-cat)', color: out ? '#94a3b8' : 'white', border: 'none', cursor: out ? 'not-allowed' : 'pointer', fontWeight: 700, fontSize: '0.9rem' }}>
               {out ? 'Esgotado' : '+ Adicionar'}
             </button>
+          )}
+          {isVitrine && (
+            <div style={{ marginTop: 12 }}>
+              {Array.isArray(p.variations) && p.variations.length > 0 && (
+                <select value={varSel[p.id] || ''} onChange={(e) => setVarSel((prev) => ({ ...prev, [p.id]: e.target.value }))}
+                  style={{ width: '100%', padding: 9, borderRadius: 10, marginBottom: 8, background: 'var(--product-bg)', color: 'var(--text)', border: '1px solid rgba(255,255,255,0.15)', fontSize: '0.85rem' }}>
+                  <option value="">Escolha uma opção...</option>
+                  {p.variations.map((v: string) => <option key={v} value={v}>{v}</option>)}
+                </select>
+              )}
+              {whatsappNumber ? (
+                <a href={waProductLink(p)} target="_blank" rel="noreferrer"
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', padding: 10, borderRadius: 10, background: '#25d366', color: 'white', textDecoration: 'none', fontWeight: 700, fontSize: '0.9rem' }}>
+                  <i className="fa-brands fa-whatsapp" /> Pedir no WhatsApp
+                </a>
+              ) : <p style={{ fontSize: '0.75rem', color: '#eab308', margin: 0, textAlign: 'center' }}>Configure o WhatsApp da loja.</p>}
+            </div>
           )}
         </div>
       </div>

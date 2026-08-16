@@ -39,9 +39,22 @@ function buildNav(role: string | undefined, modulos: string[]): NavEntry[] {
   const agendamento = has('agendamento');
   const disparo = has('disparo');
   const vendaCatalogo = has('venda_catalogo');
+  const vitrine = has('vitrine');
   const isEmployee = role === 'employee';
 
   const nav: NavEntry[] = [{ to: '/dashboard', label: 'Dashboard', icon: 'fa-chart-line' }];
+
+  // ── Modo vitrine (mostruário; sem pedidos/pagamento) ──
+  if (vitrine) {
+    nav.push({ to: '/products', label: 'Produtos', icon: 'fa-box' });
+    if (isEmployee) return nav;
+    nav.push({ divider: true });
+    nav.push({ to: '/stores', label: 'Lojas', icon: 'fa-store' });
+    nav.push({ to: '/users', label: 'Equipe', icon: 'fa-user' });
+    nav.push({ to: '/catalog-settings', label: 'Configuração', icon: 'fa-sliders' });
+    nav.push({ to: '/billing', label: 'Assinatura', icon: 'fa-receipt' });
+    return nav;
+  }
 
   // ── Modo catálogo (venda_catalogo) ──
   if (vendaCatalogo) {

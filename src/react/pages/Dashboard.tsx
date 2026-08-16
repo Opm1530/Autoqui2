@@ -4,7 +4,7 @@ import { dbService } from '../../services/db';
 import { toast } from '../../services/toast';
 import { useAuth } from '../useAuth';
 
-interface Checklist { lojaOk: boolean; waOk: boolean; prodOk: boolean; pagOk: boolean; }
+interface Checklist { mode: 'catalogo' | 'vitrine'; lojaOk: boolean; waOk: boolean; prodOk: boolean; pagOk: boolean; waCfgOk: boolean; }
 
 interface Metrics {
   messages: number;
@@ -53,25 +53,29 @@ export function Dashboard() {
       const needsMessages = mods.includes('atendimento');
       const needsOrders = mods.includes('venda') || mods.includes('venda_catalogo');
       const needsCatalog = mods.includes('venda_catalogo');
+      const isVitrine = mods.includes('vitrine');
+      const needsProdutos = needsCatalog || isVitrine;
 
       const [messages, orders, products, instancias, lojaConfigs] = await Promise.all([
         needsMessages ? dbService.getAll('messages', { field: 'empresaId', operator: '==', value: companyId }) : Promise.resolve([]),
         needsOrders ? dbService.getAll('pedidos', { field: 'empresaId', operator: '==', value: companyId }) : Promise.resolve([]),
-        needsCatalog ? dbService.getAll('products', { field: 'companyId', operator: '==', value: companyId }) : Promise.resolve([]),
-        needsCatalog ? dbService.getAll('instancias', { field: 'empresaId', operator: '==', value: companyId }) : Promise.resolve([]),
-        needsCatalog ? dbService.getAll('loja_config', { field: 'empresaId', operator: '==', value: companyId }) : Promise.resolve([]),
+        needsProdutos ? dbService.getAll('products', { field: 'companyId', operator: '==', value: companyId }) : Promise.resolve([]),
+        needsProdutos ? dbService.getAll('instancias', { field: 'empresaId', operator: '==', value: companyId }) : Promise.resolve([]),
+        needsProdutos ? dbService.getAll('loja_config', { field: 'empresaId', operator: '==', value: companyId }) : Promise.resolve([]),
       ]);
 
-      // Checklist de primeiros passos (só pra quem tem catálogo).
-      if (needsCatalog) {
+      // Checklist de primeiros passos (catálogo ou vitrine).
+      if (needsProdutos) {
         const lojaOk = (companyDoc?.stores || []).some((s: any) => (s.address || '').trim());
-        // Pagamento pronto se tiver Mercado Pago OU uma chave PIX manual configurada.
         const temPixManual = (lojaConfigs as any[]).some((c: any) => (c?.design?.pixKey || '').trim());
+        const waCfgOk = (lojaConfigs as any[]).some((c: any) => (c?.design?.whatsapp || '').trim());
         setChecklist({
+          mode: isVitrine ? 'vitrine' : 'catalogo',
           lojaOk,
           waOk: (instancias as any[]).length > 0,
           prodOk: (products as any[]).length > 0,
           pagOk: companyDoc?.mercadoPagoAtivo === true || temPixManual,
+          waCfgOk,
         });
         setShared(localStorage.getItem('onb_shared_' + companyId) === '1');
       }
@@ -138,13 +142,17 @@ export function Dashboard() {
   };
 
   // Passos de onboarding. `to` navega; `action` executa algo na hora.
-  const steps = checklist ? [
+  const steps = !checklist ? [] : checklist.mode === 'vitrine' ? [
+    { key: 'prod', label: 'Adicione seu primeiro produto', hint: 'Foto, descrição e variações', done: checklist.prodOk, icon: 'fa-box', to: '/products' },
+    { key: 'wacfg', label: 'Configure seu WhatsApp', hint: 'É pra onde vão os pedidos da vitrine', done: checklist.waCfgOk, icon: 'fa-whatsapp', brand: true, to: '/catalog-settings?sec=pagamento' },
+    { key: 'share', label: 'Compartilhe sua vitrine', hint: 'Copie o link e divulgue', done: shared, icon: 'fa-share-nodes', action: shareCatalog },
+  ] : [
     { key: 'loja', label: 'Configure sua loja', hint: 'Nome e endereço de entrega', done: checklist.lojaOk, icon: 'fa-store', to: '/stores' },
     { key: 'wa', label: 'Conecte seu WhatsApp', hint: 'Vincule seu número por QR Code', done: checklist.waOk, icon: 'fa-whatsapp', brand: true, to: '/instances' },
     { key: 'prod', label: 'Adicione seu primeiro produto', hint: 'Monte seu catálogo', done: checklist.prodOk, icon: 'fa-box', to: '/products' },
     { key: 'pag', label: 'Configure como receber', hint: 'Chave PIX manual ou Mercado Pago', done: checklist.pagOk, icon: 'fa-money-bill', to: '/catalog-settings?sec=pagamento' },
     { key: 'share', label: 'Compartilhe seu catálogo', hint: 'Copie o link e divulgue', done: shared, icon: 'fa-share-nodes', action: shareCatalog },
-  ] : [];
+  ];
   const doneCount = steps.filter((s) => s.done).length;
   const showChecklist = checklist && doneCount < steps.length;
 
