@@ -195,7 +195,7 @@ export function Instances() {
 
       {instances.length === 0 ? (
         <div className="card" style={{ textAlign: 'center', padding: '3rem 2rem', color: 'var(--text-muted)' }}>
-          <i className="fa-brands fa-whatsapp" style={{ fontSize: '2.5rem', color: 'var(--text-dim)', display: 'block', marginBottom: 12 }} />
+          <i className="fa-brands fa-whatsapp" style={{ fontSize: '2.5rem', color: 'var(--text-dim)', display: 'block', margin: '0 auto 12px', width: 'fit-content' }} />
           Nenhuma instância criada ainda.
         </div>
       ) : (
