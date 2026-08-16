@@ -316,10 +316,11 @@ export function Catalog() {
       ? (cats.find((c) => c.id === vitrineCat)?.products || [])
       : data.products
     ).filter(matchesSearch);
+    // Paleta bege editorial fixa (independe das cores do catálogo escuro).
     const vtVars: React.CSSProperties = {
-      ['--vt-bg' as any]: design.secondaryColor || '#efe9e0',
-      ['--vt-ink' as any]: design.textColor || '#2b2620',
-      ['--vt-accent' as any]: design.primaryColor || '#8a6d4b',
+      ['--vt-bg' as any]: '#efe9e0',
+      ['--vt-ink' as any]: '#2b2620',
+      ['--vt-accent' as any]: '#8a6d4b',
       ['--vt-muted' as any]: '#8c8378',
     };
     return (
