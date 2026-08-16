@@ -109,7 +109,7 @@ export function Leads() {
             </thead>
             <tbody>
               {total === 0 ? (
-                <tr><td colSpan={isOnlyCatalog ? 3 : 4} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>Nenhum lead encontrado.</td></tr>
+                <tr><td colSpan={isOnlyCatalog ? 3 : 4} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>{search.trim() ? 'Nenhum lead encontrado com essa busca.' : 'Seus contatos aparecerão aqui conforme os clientes interagirem com você.'}</td></tr>
               ) : pageItems.map((lead) => {
                 const statusLead = (lead.statusLead || 'novo').toLowerCase();
                 const statusAtend = normAtend((lead.statusAtendimento || 'bot').toLowerCase());

@@ -170,7 +170,7 @@ export function Orders() {
             </thead>
             <tbody>
               {total === 0 ? (
-                <tr><td colSpan={6} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>Nenhum pedido encontrado.</td></tr>
+                <tr><td colSpan={6} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>{search.trim() ? 'Nenhum pedido encontrado com essa busca.' : 'Seus pedidos aparecerão aqui assim que os clientes comprarem pelo seu catálogo.'}</td></tr>
               ) : pageItems.map((order) => {
                 const status = (order.status || 'em_montagem').toLowerCase();
                 const nome = leadName(order.leadId, order.nome || order.leadName);

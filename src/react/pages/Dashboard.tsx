@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { dbService } from '../../services/db';
 import { toast } from '../../services/toast';
 import { useAuth } from '../useAuth';
+
+interface Checklist { lojaOk: boolean; waOk: boolean; prodOk: boolean; pixOk: boolean; }
 
 interface Metrics {
   messages: number;
@@ -36,6 +39,8 @@ export function Dashboard() {
   const [metrics, setMetrics] = useState<Metrics>({ messages: 0, payments: 0, orders_pending: 0, today: 0 });
   const [catalog, setCatalog] = useState<CatalogMetrics | null>(null);
   const [stores, setStores] = useState<any[]>([]);
+  const [checklist, setChecklist] = useState<Checklist | null>(null);
+  const [shared, setShared] = useState(false);
 
   useEffect(() => {
     if (!companyId) return;
@@ -49,11 +54,24 @@ export function Dashboard() {
       const needsOrders = mods.includes('venda') || mods.includes('venda_catalogo');
       const needsCatalog = mods.includes('venda_catalogo');
 
-      const [messages, orders, products] = await Promise.all([
+      const [messages, orders, products, instancias] = await Promise.all([
         needsMessages ? dbService.getAll('messages', { field: 'empresaId', operator: '==', value: companyId }) : Promise.resolve([]),
         needsOrders ? dbService.getAll('pedidos', { field: 'empresaId', operator: '==', value: companyId }) : Promise.resolve([]),
         needsCatalog ? dbService.getAll('products', { field: 'companyId', operator: '==', value: companyId }) : Promise.resolve([]),
+        needsCatalog ? dbService.getAll('instancias', { field: 'empresaId', operator: '==', value: companyId }) : Promise.resolve([]),
       ]);
+
+      // Checklist de primeiros passos (só pra quem tem catálogo).
+      if (needsCatalog) {
+        const lojaOk = (companyDoc?.stores || []).some((s: any) => (s.address || '').trim());
+        setChecklist({
+          lojaOk,
+          waOk: (instancias as any[]).length > 0,
+          prodOk: (products as any[]).length > 0,
+          pixOk: companyDoc?.mercadoPagoAtivo === true,
+        });
+        setShared(localStorage.getItem('onb_shared_' + companyId) === '1');
+      }
 
       const m: Metrics = { messages: 0, payments: 0, orders_pending: 0, today: 0 };
       m.messages = (messages as any[]).filter((x: any) => x.role === 'assistente').length;
@@ -108,9 +126,59 @@ export function Dashboard() {
     const url = `${window.location.origin}/catalog/${storeId}`;
     navigator.clipboard.writeText(url).then(() => toast.success('Link copiado!'));
   };
+  const shareCatalog = () => {
+    const store = stores[0];
+    if (!store) { toast.error('Crie uma loja primeiro.'); return; }
+    copyLink(store.id);
+    localStorage.setItem('onb_shared_' + companyId, '1');
+    setShared(true);
+  };
+
+  // Passos de onboarding. `to` navega; `action` executa algo na hora.
+  const steps = checklist ? [
+    { key: 'loja', label: 'Configure sua loja', hint: 'Nome e endereço de entrega', done: checklist.lojaOk, icon: 'fa-store', to: '/stores' },
+    { key: 'wa', label: 'Conecte seu WhatsApp', hint: 'Vincule seu número por QR Code', done: checklist.waOk, icon: 'fa-whatsapp', brand: true, to: '/instances' },
+    { key: 'prod', label: 'Adicione seu primeiro produto', hint: 'Monte seu catálogo', done: checklist.prodOk, icon: 'fa-box', to: '/products' },
+    { key: 'pix', label: 'Ative o pagamento PIX', hint: 'Conecte o Mercado Pago', done: checklist.pixOk, icon: 'fa-money-bill', to: '/mercado-pago' },
+    { key: 'share', label: 'Compartilhe seu catálogo', hint: 'Copie o link e divulgue', done: shared, icon: 'fa-share-nodes', action: shareCatalog },
+  ] : [];
+  const doneCount = steps.filter((s) => s.done).length;
+  const showChecklist = checklist && doneCount < steps.length;
 
   return (
     <div>
+      {showChecklist && (
+        <div className="card" style={{ marginBottom: '1.5rem', border: '1px solid rgba(99,102,241,0.3)', background: 'rgba(99,102,241,0.04)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
+            <div>
+              <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 10 }}><i className="fa-solid fa-rocket" style={{ color: '#818cf8' }} /> Primeiros passos</h3>
+              <p style={{ margin: '4px 0 0', color: 'var(--text-muted)', fontSize: '0.9rem' }}>Complete a configuração para começar a vender.</p>
+            </div>
+            <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#818cf8' }}>{doneCount}/{steps.length}</div>
+          </div>
+          <div style={{ height: 6, background: 'rgba(255,255,255,0.08)', borderRadius: 3, overflow: 'hidden', marginBottom: 16 }}>
+            <div style={{ width: `${(doneCount / steps.length) * 100}%`, height: '100%', background: 'linear-gradient(90deg,#6366f1,#a855f7)', borderRadius: 3, transition: 'width 0.4s' }} />
+          </div>
+          <div style={{ display: 'grid', gap: 8 }}>
+            {steps.map((s) => (
+              <div key={s.key} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 12, background: s.done ? 'rgba(16,185,129,0.06)' : 'rgba(255,255,255,0.02)', border: `1px solid ${s.done ? 'rgba(16,185,129,0.2)' : 'var(--border-color)'}` }}>
+                <div style={{ width: 34, height: 34, borderRadius: 10, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: s.done ? 'rgba(16,185,129,0.15)' : 'rgba(99,102,241,0.12)', color: s.done ? '#34d399' : '#818cf8' }}>
+                  <i className={`${s.brand ? 'fa-brands' : 'fa-solid'} ${s.done ? 'fa-check' : s.icon}`} />
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 600, fontSize: '0.95rem', textDecoration: s.done ? 'line-through' : 'none', opacity: s.done ? 0.7 : 1 }}>{s.label}</div>
+                  {!s.done && <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{s.hint}</div>}
+                </div>
+                {!s.done && (s.to
+                  ? <Link to={s.to} className="btn-primary" style={{ padding: '6px 14px', fontSize: '0.85rem', flexShrink: 0 }}>Fazer</Link>
+                  : <button className="btn-primary" style={{ padding: '6px 14px', fontSize: '0.85rem', flexShrink: 0 }} onClick={s.action}>Copiar link</button>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="dashboard-grid">
         {modulos.includes('atendimento') && <StatCard icon="fa-message" iconCls="primary" label="Mensagens pela IA" value={String(metrics.messages)} />}
         {hasVenda && <>

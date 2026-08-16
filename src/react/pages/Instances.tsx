@@ -196,7 +196,8 @@ export function Instances() {
       {instances.length === 0 ? (
         <div className="card" style={{ textAlign: 'center', padding: '3rem 2rem', color: 'var(--text-muted)' }}>
           <i className="fa-brands fa-whatsapp" style={{ fontSize: '2.5rem', color: 'var(--text-dim)', display: 'block', margin: '0 auto 12px', width: 'fit-content' }} />
-          Nenhuma instância criada ainda.
+          <p style={{ margin: '0 0 16px' }}>Conecte seu WhatsApp para atender e receber pedidos. É rápido: crie a instância e leia o QR Code.</p>
+          <button className="btn-primary" onClick={() => setShowNew(true)}><i className="fa-solid fa-plus" style={{ color: '#fff' }} /> Conectar meu WhatsApp</button>
         </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.25rem', marginTop: '1.25rem' }}>

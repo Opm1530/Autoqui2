@@ -186,6 +186,13 @@ export function Shell() {
           <Outlet />
         </div>
 
+        {/* Ajuda: fala direto com o atendimento (donos/colaboradores) */}
+        {user?.role !== 'admin' && (
+          <a className="help-fab" href="https://wa.me/5564999983832" target="_blank" rel="noreferrer" title="Precisa de ajuda? Fale conosco">
+            <i className="fa-brands fa-whatsapp" /><span>Precisa de ajuda?</span>
+          </a>
+        )}
+
         {/* Bottom nav (mobile) */}
         <nav className="mobile-bottom-nav">
           {mobile.map((item) => (

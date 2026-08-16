@@ -248,7 +248,17 @@ export function Products() {
             </thead>
             <tbody>
               {total === 0 ? (
-                <tr><td colSpan={7} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>Nenhum {labelSingular.toLowerCase()} encontrado.</td></tr>
+                <tr><td colSpan={7} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
+                  {(search || catFilter || storeFilter) ? (
+                    <>Nenhum {labelSingular.toLowerCase()} encontrado com esse filtro.</>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
+                      <i className="fa-solid fa-box-open" style={{ fontSize: '2.2rem', color: 'var(--text-dim)' }} />
+                      <div>Você ainda não tem nenhum {labelSingular.toLowerCase()}. Adicione o primeiro para montar seu catálogo.</div>
+                      <button className="btn-primary" onClick={() => { setEditProduct(null); setShowProductModal(true); }}><i className="fa-solid fa-plus" style={{ color: '#fff' }} /> Adicionar {labelSingular.toLowerCase()}</button>
+                    </div>
+                  )}
+                </td></tr>
               ) : pageItems.map((p) => {
                 const img = getProductImageUrl(p);
                 return (
