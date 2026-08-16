@@ -24,6 +24,16 @@
 .lp-btn-secondary-lp:hover { background: rgba(255,255,255,0.06); transform: translateY(-3px); }
 .lp-section { padding: 120px 10%; position: relative; z-index: 1; }
 .lp-section.alt { background: rgba(255,255,255,0.015); }
+/* Botão WhatsApp (verde) — CTA de venda assistida (IA/consultor) */
+.lp-btn-wa { background: #25d366; color: #fff; padding: 1.1rem 2.4rem; border-radius: 14px; font-weight: 700; text-decoration: none; font-size: 1.05rem; display: inline-flex; align-items: center; gap: 10px; transition: all 0.3s; box-shadow: 0 10px 30px rgba(37,211,102,0.25); }
+.lp-btn-wa:hover { transform: translateY(-3px); filter: brightness(1.05); box-shadow: 0 15px 40px rgba(37,211,102,0.35); }
+/* Badges de contexto do pilar */
+.lp-badge.ok { background: rgba(37,211,102,0.12); border-color: rgba(37,211,102,0.28); color: #34d399; }
+.lp-badge.wa { background: rgba(37,211,102,0.12); border-color: rgba(37,211,102,0.28); color: #25d366; }
+/* Visual de ícone para os pilares (substitui imagens externas, sempre carrega) */
+.lp-feat-visual { aspect-ratio: 4 / 3; border-radius: 32px; display: flex; align-items: center; justify-content: center; background: var(--lp-glass); border: 1px solid var(--lp-border); box-shadow: 0 40px 100px -20px rgba(0,0,0,0.5); position: relative; overflow: hidden; }
+.lp-feat-visual i { font-size: 7rem; position: relative; z-index: 1; }
+.lp-feat-visual::after { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at 50% 42%, currentColor 0%, transparent 62%); opacity: 0.16; }
 .lp-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: center; max-width: 1200px; margin: 0 auto; }
 .lp-grid-2.reverse { direction: rtl; }
 .lp-grid-2.reverse > * { direction: ltr; }
