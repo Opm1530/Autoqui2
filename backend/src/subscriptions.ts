@@ -215,20 +215,24 @@ export async function mySubscription(uid: string): Promise<any> {
 
 // Decide o acesso da empresa. Ordem: isento → livre; sem plano → livre (clientes
 // atuais sem plano seguem funcionando); authorized → livre; dentro do teste →
-// livre; cancelada / teste vencido / inadimplente além da tolerância → bloqueia.
+// livre (mesmo se cancelou — o teste de 7 dias sempre roda até o fim); depois do
+// teste: cancelada / teste vencido / inadimplente além da tolerância → bloqueia.
 export function computeAccess(company: any, toleranciaDias: number): { bloqueada: boolean; emTrial: boolean; diasRestantesTrial: number } {
   const livre = (emTrial = false, dias = 0) => ({ bloqueada: false, emTrial, diasRestantesTrial: dias });
   if (!company || company.isento) return livre();
   const a = company.assinatura;
   if (!a || !a.planId) return livre();
   if (a.status === 'authorized') return livre();
-  if (a.status === 'cancelled') return { bloqueada: true, emTrial: false, diasRestantesTrial: 0 };
 
+  // Teste vale até o fim, independentemente de ter cancelado no meio.
   const now = Date.now();
   const trialMs = toMs(a.trialAte);
   if (trialMs && now < trialMs) {
     return livre(true, Math.ceil((trialMs - now) / 86400000));
   }
+
+  // Fora do teste: cancelada bloqueia.
+  if (a.status === 'cancelled') return { bloqueada: true, emTrial: false, diasRestantesTrial: 0 };
 
   const inadMs = toMs(a.inadimplenteDesde);
   if (inadMs && now - inadMs <= toleranciaDias * 86400000) return livre();

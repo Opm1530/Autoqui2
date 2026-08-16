@@ -61,7 +61,8 @@ export function Billing({ wall = false }: { wall?: boolean }) {
     </div>
   );
 
-  const st = assinatura?.status ? STATUS_LABEL[assinatura.status] : null;
+  // Em teste, mostra "Teste grátis" mesmo que o status cru seja outro (ex.: cancelou no meio).
+  const badge = trial.emTrial ? STATUS_LABEL.trial : (assinatura?.status ? STATUS_LABEL[assinatura.status] : null);
 
   return (
     <div style={{ maxWidth: 720, margin: wall ? '2rem auto' : '0 auto' }}>
@@ -91,16 +92,16 @@ export function Billing({ wall = false }: { wall?: boolean }) {
           <div>
             <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>Plano atual</div>
             <div style={{ fontWeight: 700, fontSize: '1.1rem' }}>{assinatura.planoNome || '—'} {assinatura.valor ? `· R$ ${Number(assinatura.valor).toFixed(2)}/mês` : ''}</div>
-            {st && <span className="badge" style={{ marginTop: 6, background: st.color + '22', color: st.color, border: `1px solid ${st.color}44` }}>{st.label}</span>}
+            {badge && <span className="badge" style={{ marginTop: 6, background: badge.color + '22', color: badge.color, border: `1px solid ${badge.color}44` }}>{badge.label}</span>}
           </div>
-          {assinatura.status !== 'cancelled' && <button className="btn-secondary" style={{ color: '#f87171', borderColor: 'rgba(239,68,68,0.35)' }} onClick={cancel}>Cancelar assinatura</button>}
+          {assinatura.status === 'authorized' && <button className="btn-secondary" style={{ color: '#f87171', borderColor: 'rgba(239,68,68,0.35)' }} onClick={cancel}>Cancelar assinatura</button>}
         </div>
       )}
 
       {/* Planos disponíveis */}
       {(!assinatura || assinatura.status !== 'authorized') && (
         <>
-          <h3 style={{ marginBottom: 12 }}>{assinatura ? 'Reative escolhendo um plano' : 'Escolha um plano'}</h3>
+          <h3 style={{ marginBottom: 12 }}>{trial.emTrial ? 'Assine para continuar após o teste' : assinatura ? 'Reative escolhendo um plano' : 'Escolha um plano'}</h3>
           {plans.length === 0 ? (
             <div className="card" style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>Nenhum plano disponível no momento. Contate o administrador.</div>
           ) : (
