@@ -7,7 +7,7 @@ import './landing.css';
 
 type Plan = { id: string; nome: string; valor: number; maxLojas: number };
 
-const WA = 'https://wa.me/5564996168691';
+const WA = 'https://wa.me/5564999983832';
 
 const FAQS = [
   { q: 'Como funciona a implementação do AutoQui?', a: 'É instantâneo! Após criar sua conta, você vincula seu WhatsApp por QR Code e já pode configurar seus produtos e fluxos de atendimento em poucos minutos.' },
