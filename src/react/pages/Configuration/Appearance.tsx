@@ -31,6 +31,10 @@ export function Appearance({ companyId, storeId, design, vitrine = false, onSave
   const [heroTitle, setHeroTitle] = useState(design.vitrineHeroTitle || '');
   const [heroSubtitle, setHeroSubtitle] = useState(design.vitrineHeroSubtitle || '');
   const [heroCta, setHeroCta] = useState(design.vitrineHeroCta || '');
+  const [vtBg, setVtBg] = useState(design.vtBg || '#efe9e0');
+  const [vtInk, setVtInk] = useState(design.vtInk || '#2b2620');
+  const [vtAccent, setVtAccent] = useState(design.vtAccent || '#8a6d4b');
+  const [vtCard, setVtCard] = useState(design.vtCard || '#ffffff');
   const [primary, setPrimary] = useState(design.primaryColor || '#6366f1');
   const [secondary, setSecondary] = useState(design.secondaryColor || '#0f172a');
   const [textColor, setTextColor] = useState(design.textColor || '#ffffff');
@@ -67,7 +71,8 @@ export function Appearance({ companyId, storeId, design, vitrine = false, onSave
       if (bannerMobileFile.current) { const r = ref(storage, `banners/${companyId}/${storeId}_mobile`); await uploadBytes(r, bannerMobileFile.current); bannerMobileUrl = await getDownloadURL(r); }
 
       const newDesign = { ...design, primaryColor: primary, secondaryColor: secondary, textColor, priceColor, productBgColor: productBg, logoUrl, themeId, bannerUrl, bannerMobileUrl, metaDescription: meta,
-        vitrineBar: barMsg.trim(), vitrineHeroTitle: heroTitle.trim(), vitrineHeroSubtitle: heroSubtitle.trim(), vitrineHeroCta: heroCta.trim() };
+        vitrineBar: barMsg.trim(), vitrineHeroTitle: heroTitle.trim(), vitrineHeroSubtitle: heroSubtitle.trim(), vitrineHeroCta: heroCta.trim(),
+        vtBg, vtInk, vtAccent, vtCard };
       await onSave({ design: newDesign });
       toast.success('Aparência salva!');
     } catch (e) { toast.error('Erro ao salvar aparência.'); throw e; }
@@ -121,15 +126,26 @@ export function Appearance({ companyId, storeId, design, vitrine = false, onSave
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 16, marginBottom: '1.25rem' }}>
-        <ColorField label="Cor Principal" value={primary} onChange={setPrimary} />
-        <ColorField label="Cor de Fundo" value={secondary} onChange={setSecondary} />
-      </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 16, marginBottom: '1.25rem' }}>
-        <ColorField label="Cor do Texto" value={textColor} onChange={setTextColor} />
-        <ColorField label="Cor do Preço" value={priceColor} onChange={setPriceColor} />
-        <ColorField label="Fundo do Produto" value={productBg} onChange={setProductBg} />
-      </div>
+      {vitrine ? (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 16, marginBottom: '1.25rem' }}>
+          <ColorField label="Fundo da vitrine" value={vtBg} onChange={setVtBg} />
+          <ColorField label="Cor dos cartões" value={vtCard} onChange={setVtCard} />
+          <ColorField label="Cor do texto" value={vtInk} onChange={setVtInk} />
+          <ColorField label="Cor de destaque" value={vtAccent} onChange={setVtAccent} />
+        </div>
+      ) : (
+        <>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 16, marginBottom: '1.25rem' }}>
+            <ColorField label="Cor Principal" value={primary} onChange={setPrimary} />
+            <ColorField label="Cor de Fundo" value={secondary} onChange={setSecondary} />
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 16, marginBottom: '1.25rem' }}>
+            <ColorField label="Cor do Texto" value={textColor} onChange={setTextColor} />
+            <ColorField label="Cor do Preço" value={priceColor} onChange={setPriceColor} />
+            <ColorField label="Fundo do Produto" value={productBg} onChange={setProductBg} />
+          </div>
+        </>
+      )}
 
       {!vitrine && (
         <div className="cat-field">
