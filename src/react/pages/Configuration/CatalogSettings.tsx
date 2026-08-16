@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { dbService } from '../../../services/db';
 import { dataApi } from '../../../services/dataApi';
 import { adminApi } from '../../../services/adminApi';
@@ -21,7 +22,9 @@ export function CatalogSettings() {
   const [lojaConfigs, setLojaConfigs] = useState<any[]>([]);
   const [hasMercadoPago, setHasMercadoPago] = useState(false);
   const [activeStoreId, setActiveStoreId] = useState('');
-  const [section, setSection] = useState<'geral' | 'design' | 'mensagens' | 'pagamento'>('geral');
+  const [params] = useSearchParams();
+  const initialSection = (['geral', 'design', 'mensagens', 'pagamento'] as const).find((s) => s === params.get('sec')) || 'geral';
+  const [section, setSection] = useState<'geral' | 'design' | 'mensagens' | 'pagamento'>(initialSection);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

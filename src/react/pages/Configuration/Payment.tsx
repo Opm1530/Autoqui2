@@ -72,6 +72,19 @@ export function Payment({ config, hasMercadoPago, onSave }: Props) {
     <div className="card" style={{ marginBottom: '1.5rem' }}>
       <div className="config-section-title"><i className="fa-solid fa-credit-card" style={{ color: 'var(--primary)' }} /> Pagamento</div>
 
+      {/* Explica as duas formas de receber por PIX */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 12, marginBottom: '1.25rem' }}>
+        <div style={{ padding: 14, borderRadius: 10, background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.25)' }}>
+          <p style={{ margin: '0 0 4px', fontWeight: 700, fontSize: '0.9rem' }}><i className="fa-solid fa-key" style={{ color: '#818cf8', marginRight: 6 }} />PIX manual (chave própria)</p>
+          <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-muted)' }}>Preencha sua <strong>chave PIX</strong> abaixo. O cliente paga direto pra você e anexa o comprovante — você confirma o pagamento na mão. Sem taxa, sem Mercado Pago.</p>
+        </div>
+        <div style={{ padding: 14, borderRadius: 10, background: 'rgba(16,185,129,0.06)', border: '1px solid rgba(16,185,129,0.25)' }}>
+          <p style={{ margin: '0 0 4px', fontWeight: 700, fontSize: '0.9rem' }}><i className="fa-solid fa-bolt" style={{ color: '#34d399', marginRight: 6 }} />PIX automático (Mercado Pago)</p>
+          <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-muted)' }}>O sistema gera o PIX e <strong>confirma o pagamento sozinho</strong>. Requer conectar sua conta Mercado Pago. Ideal pra quem tem muito volume.</p>
+        </div>
+      </div>
+      <p style={{ fontSize: '0.82rem', color: 'var(--text-dim)', margin: '0 0 1.25rem' }}>Você pode usar as duas ao mesmo tempo — o cliente escolhe no catálogo. Para receber por PIX, basta <strong>uma</strong> delas configurada.</p>
+
       <div className="cat-field">
         <label className="config-label">WhatsApp de Atendimento (DDD + 9 dígitos)</label>
         <input type="text" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} className="config-input" placeholder="Ex: 11999999999" maxLength={11} />
