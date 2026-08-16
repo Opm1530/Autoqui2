@@ -131,23 +131,25 @@ export function Appearance({ companyId, storeId, design, vitrine = false, onSave
         <ColorField label="Fundo do Produto" value={productBg} onChange={setProductBg} />
       </div>
 
-      <div className="cat-field">
-        <label className="config-label">Layout do Catálogo</label>
-        <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 12 }}>Escolha a apresentação visual dos seus produtos.</p>
-        <div className="theme-card-grid">
-          {THEMES.map((t) => (
-            <div key={t.id} className={'theme-card' + (themeId === t.id ? ' active' : '')} onClick={() => setThemeId(t.id)}>
-              <div className="theme-card-preview">
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 3, height: '100%' }}>
-                  {[0, 1, 2, 3].map((i) => <div key={i} style={{ background: 'rgba(99,102,241,.2)', borderRadius: 4 }} />)}
+      {!vitrine && (
+        <div className="cat-field">
+          <label className="config-label">Layout do Catálogo</label>
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 12 }}>Escolha a apresentação visual dos seus produtos.</p>
+          <div className="theme-card-grid">
+            {THEMES.map((t) => (
+              <div key={t.id} className={'theme-card' + (themeId === t.id ? ' active' : '')} onClick={() => setThemeId(t.id)}>
+                <div className="theme-card-preview">
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 3, height: '100%' }}>
+                    {[0, 1, 2, 3].map((i) => <div key={i} style={{ background: 'rgba(99,102,241,.2)', borderRadius: 4 }} />)}
+                  </div>
                 </div>
+                <div className="theme-card-name"><i className={`fa-solid ${t.icon}`} style={{ marginRight: 5 }} />{t.name}</div>
+                <div className="theme-card-desc">{t.desc}</div>
               </div>
-              <div className="theme-card-name"><i className={`fa-solid ${t.icon}`} style={{ marginRight: 5 }} />{t.name}</div>
-              <div className="theme-card-desc">{t.desc}</div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1rem', marginBottom: '1rem' }}>
         <p style={{ fontSize: '0.9rem', fontWeight: 700, margin: '0 0 1rem', display: 'flex', alignItems: 'center', gap: 8 }}>

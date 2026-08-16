@@ -183,5 +183,5 @@ const SECTIONS = [
 const SECTIONS_VITRINE = [
   { key: 'geral', label: 'Geral', icon: 'fa-sliders' },
   { key: 'design', label: 'Design', icon: 'fa-palette' },
-  { key: 'pagamento', label: 'Contato', icon: 'fa-whatsapp' },
+  { key: 'pagamento', label: 'Contato', icon: 'fa-comment-dots' },
 ];
