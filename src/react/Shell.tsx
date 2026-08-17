@@ -12,6 +12,8 @@ import { useAuth } from './useAuth';
 interface NavItem { to: string; label: string; icon: string; }
 type NavEntry = NavItem | { divider: true };
 
+const HELP_WA = 'https://wa.me/5564999983832'; // atendimento da plataforma (item "Ajuda")
+
 const TITLES: Record<string, string> = {
   '/dashboard': 'Dashboard', '/orders': 'Pedidos', '/products': 'Produtos',
   '/leads': 'Leads', '/stores': 'Lojas', '/users': 'Usuários',
@@ -175,6 +177,12 @@ export function Shell() {
                 <span>{item.label}</span>
               </NavLink>
             ))}
+          {user?.role !== 'admin' && (
+            <a className="nav-item" href={HELP_WA} target="_blank" rel="noreferrer">
+              <span className="icon">{iconEl('fa-brands fa-whatsapp')}</span>
+              <span>Ajuda</span>
+            </a>
+          )}
         </nav>
         <div className="sidebar-footer">
           <div className="user-profile">
@@ -198,13 +206,6 @@ export function Shell() {
         <div className="page-container">
           <Outlet />
         </div>
-
-        {/* Ajuda: fala direto com o atendimento (donos/colaboradores) */}
-        {user?.role !== 'admin' && (
-          <a className="help-fab" href="https://wa.me/5564999983832" target="_blank" rel="noreferrer" title="Precisa de ajuda? Fale conosco">
-            <i className="fa-brands fa-whatsapp" /><span>Precisa de ajuda?</span>
-          </a>
-        )}
 
         {/* Bottom nav (mobile) */}
         <nav className="mobile-bottom-nav">
