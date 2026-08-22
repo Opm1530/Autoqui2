@@ -70,9 +70,10 @@ export async function saveCompany(uid: string, payload: { id?: string; data: any
 }
 
 // ─── FERRAMENTAS (hub) — o dono liga/desliga módulos na própria empresa ───────
-// Auto-serviço: o dono ativa/desativa uma ferramenta. Catálogo e Vitrine são
-// mutuamente exclusivos (mesma loja não é as duas coisas ao mesmo tempo).
+// Auto-serviço. Dois tipos: CANAIS ("como você vende") são mutuamente exclusivos
+// — só um por conta; CAMADAS (IA, campanhas) somam livremente.
 const TOOLS = new Set(['venda_catalogo', 'vitrine', 'atendimento', 'agendamento', 'disparo']);
+const CANAIS = new Set(['venda_catalogo', 'vitrine', 'agendamento']); // + 'ecommerce' quando integrar
 export async function toggleTool(uid: string, toolKey: string, active: boolean): Promise<{ modulos: string[] }> {
   const user = await getUser(uid);
   if (user.role !== 'owner' && user.role !== 'admin') throw new Error('forbidden');
@@ -83,8 +84,8 @@ export async function toggleTool(uid: string, toolKey: string, active: boolean):
   const company = await getDoc('companies', companyId);
   let mods: string[] = Array.isArray(company?.modulos_ativos) ? [...company.modulos_ativos] : [];
   if (active) {
-    if (toolKey === 'venda_catalogo') mods = mods.filter((m) => m !== 'vitrine');
-    if (toolKey === 'vitrine') mods = mods.filter((m) => m !== 'venda_catalogo');
+    // Ativar um canal desativa os outros canais (escolha um).
+    if (CANAIS.has(toolKey)) mods = mods.filter((m) => !CANAIS.has(m));
     if (!mods.includes(toolKey)) mods.push(toolKey);
   } else {
     mods = mods.filter((m) => m !== toolKey);
