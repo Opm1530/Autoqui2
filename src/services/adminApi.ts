@@ -28,4 +28,6 @@ export const adminApi = {
   deleteUser: (id: string) => authFetch('/api/users/delete', { id }),
   // settings
   saveWebhooks: (data: any) => authFetch('/api/settings/webhooks', { data }),
+  // ferramentas (hub)
+  toggleTool: (toolKey: string, active: boolean): Promise<{ modulos: string[] }> => authFetch('/api/tools/toggle', { toolKey, active }),
 };

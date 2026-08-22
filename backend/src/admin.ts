@@ -69,6 +69,30 @@ export async function saveCompany(uid: string, payload: { id?: string; data: any
   return { id: ref.id };
 }
 
+// ─── FERRAMENTAS (hub) — o dono liga/desliga módulos na própria empresa ───────
+// Auto-serviço: o dono ativa/desativa uma ferramenta. Catálogo e Vitrine são
+// mutuamente exclusivos (mesma loja não é as duas coisas ao mesmo tempo).
+const TOOLS = new Set(['venda_catalogo', 'vitrine', 'atendimento', 'agendamento', 'disparo']);
+export async function toggleTool(uid: string, toolKey: string, active: boolean): Promise<{ modulos: string[] }> {
+  const user = await getUser(uid);
+  if (user.role !== 'owner' && user.role !== 'admin') throw new Error('forbidden');
+  const companyId = user.companyId;
+  if (!companyId) throw new Error('no_company');
+  if (!TOOLS.has(toolKey)) throw new Error('ferramenta_invalida');
+
+  const company = await getDoc('companies', companyId);
+  let mods: string[] = Array.isArray(company?.modulos_ativos) ? [...company.modulos_ativos] : [];
+  if (active) {
+    if (toolKey === 'venda_catalogo') mods = mods.filter((m) => m !== 'vitrine');
+    if (toolKey === 'vitrine') mods = mods.filter((m) => m !== 'venda_catalogo');
+    if (!mods.includes(toolKey)) mods.push(toolKey);
+  } else {
+    mods = mods.filter((m) => m !== toolKey);
+  }
+  await db.collection('companies').doc(companyId).update({ modulos_ativos: mods });
+  return { modulos: mods };
+}
+
 export async function toggleCompanyStatus(uid: string, id: string, status: string): Promise<{ ok: boolean }> {
   const user = await getUser(uid);
   assertAdmin(user);

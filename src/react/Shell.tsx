@@ -15,7 +15,7 @@ type NavEntry = NavItem | { divider: true };
 const HELP_WA = 'https://wa.me/5564999983832'; // atendimento da plataforma (item "Ajuda")
 
 const TITLES: Record<string, string> = {
-  '/dashboard': 'Dashboard', '/orders': 'Pedidos', '/products': 'Produtos',
+  '/dashboard': 'Dashboard', '/tools': 'Ferramentas', '/orders': 'Pedidos', '/products': 'Produtos',
   '/leads': 'Leads', '/stores': 'Lojas', '/users': 'Usuários',
   '/instances': 'Instâncias', '/catalog-settings': 'Configuração',
   '/mercado-pago': 'Mercado Pago', '/campaigns': 'Campanhas',
@@ -45,6 +45,8 @@ function buildNav(role: string | undefined, modulos: string[]): NavEntry[] {
   const isEmployee = role === 'employee';
 
   const nav: NavEntry[] = [{ to: '/dashboard', label: 'Dashboard', icon: 'fa-chart-line' }];
+  // Hub de ferramentas — o dono ativa/gerencia as ferramentas da conta.
+  if (role === 'owner') nav.push({ to: '/tools', label: 'Ferramentas', icon: 'fa-shapes' });
 
   // ── Modo vitrine (mostruário; sem pedidos/pagamento) ──
   if (vitrine) {

@@ -13,7 +13,7 @@ import { connectMp, disconnectMp, mpStatus } from './mercadopago.js';
 import {
   saveCompany, toggleCompanyStatus, setCompanyStores,
   createEmployee, updateUser, setUserActive, deleteUser, saveWebhooks,
-  previewRemoveStore, removeStore,
+  previewRemoveStore, removeStore, toggleTool,
 } from './admin.js';
 import {
   connectPlatformMp, platformMpStatus, disconnectPlatformMp,
@@ -215,6 +215,7 @@ app.post('/api/users/set-active', requireAuth, wrap((req) => setUserActive(req.u
 app.post('/api/users/delete', requireAuth, wrap((req) => deleteUser(req.uid, String(req.body?.id))));
 
 app.post('/api/settings/webhooks', requireAuth, wrap((req) => saveWebhooks(req.uid, req.body?.data || {})));
+app.post('/api/tools/toggle', requireAuth, wrap((req) => toggleTool(req.uid, String(req.body?.toolKey), !!req.body?.active)));
 
 // ── Assinaturas (mensalidade dos clientes via MP da plataforma) ──
 app.post('/api/platform-mp/connect', requireAuth, wrap((req) => connectPlatformMp(req.uid, String(req.body?.accessToken || ''))));
