@@ -37,75 +37,58 @@ const ADMIN_NAV: NavEntry[] = [
 function buildNav(role: string | undefined, modulos: string[]): NavEntry[] {
   if (role === 'admin') return ADMIN_NAV;
   const has = (m: string) => modulos.includes(m);
+  const vitrine = has('vitrine');
+  const vendaCatalogo = has('venda_catalogo');
   const venda = has('venda');
   const agendamento = has('agendamento');
+  const atendimento = has('atendimento');
   const disparo = has('disparo');
-  const vendaCatalogo = has('venda_catalogo');
-  const vitrine = has('vitrine');
   const isEmployee = role === 'employee';
+  const usaInstancia = atendimento || disparo || vendaCatalogo || venda || agendamento;
+  const usaPagamento = vendaCatalogo || venda || agendamento;
 
-  const nav: NavEntry[] = [{ to: '/dashboard', label: 'Dashboard', icon: 'fa-chart-line' }];
-  // Hub de ferramentas — o dono ativa/gerencia as ferramentas da conta.
-  if (role === 'owner') nav.push({ to: '/tools', label: 'Ferramentas', icon: 'fa-shapes' });
+  // Empilhável: canais (exclusivos) definem o núcleo; camadas (IA/Campanhas) somam.
+  // add() evita item duplicado quando duas ferramentas apontam pra mesma rota.
+  const nav: NavEntry[] = [];
+  const seen = new Set<string>();
+  const add = (item: NavItem) => { if (!seen.has(item.to)) { seen.add(item.to); nav.push(item); } };
 
-  // ── Modo vitrine (mostruário; sem pedidos/pagamento) ──
+  add({ to: '/dashboard', label: 'Dashboard', icon: 'fa-chart-line' });
+  if (role === 'owner') add({ to: '/tools', label: 'Ferramentas', icon: 'fa-shapes' });
+
+  // ── Canal (só um ativo por vez) ──
   if (vitrine) {
-    nav.push({ to: '/products', label: 'Produtos', icon: 'fa-box' });
-    if (isEmployee) return nav;
-    nav.push({ divider: true });
-    nav.push({ to: '/stores', label: 'Lojas', icon: 'fa-store' });
-    nav.push({ to: '/users', label: 'Equipe', icon: 'fa-user' });
-    nav.push({ to: '/catalog-settings', label: 'Configuração', icon: 'fa-sliders' });
-    nav.push({ to: '/billing', label: 'Assinatura', icon: 'fa-receipt' });
-    return nav;
+    add({ to: '/products', label: 'Produtos', icon: 'fa-box' });
+  } else if (agendamento) {
+    add({ to: '/products', label: 'Serviços', icon: 'fa-list-check' });
+    add({ to: '/schedule-clients', label: 'Clientes', icon: 'fa-users' });
+    add({ to: '/schedule', label: 'Agenda', icon: 'fa-calendar-alt' });
+  } else if (vendaCatalogo || venda) {
+    add({ to: '/orders', label: 'Pedidos', icon: 'fa-clipboard-list' });
+    add({ to: '/products', label: 'Produtos', icon: 'fa-box' });
   }
 
-  // ── Modo catálogo (venda_catalogo) ──
-  if (vendaCatalogo) {
-    nav.push({ to: '/orders', label: 'Pedidos', icon: 'fa-clipboard-list' });
-    nav.push({ to: '/products', label: 'Produtos', icon: 'fa-box' });
-    nav.push({ to: '/leads', label: 'Leads', icon: 'fa-people-group' });
-    if (disparo) nav.push({ to: '/campaigns', label: 'Campanhas', icon: 'fa-bullhorn' });
-    if (isEmployee) return nav;
-    nav.push({ divider: true });
-    nav.push({ to: '/stores', label: 'Lojas', icon: 'fa-store' });
-    nav.push({ to: '/users', label: 'Equipe', icon: 'fa-user' });
-    nav.push({ to: '/instances', label: 'Instâncias', icon: 'fa-brands fa-whatsapp' });
-    nav.push({ to: '/catalog-settings', label: 'Configuração', icon: 'fa-sliders' });
-    nav.push({ to: '/mercado-pago', label: 'Mercado Pago', icon: 'fa-credit-card' });
-    nav.push({ to: '/billing', label: 'Assinatura', icon: 'fa-receipt' });
-    return nav;
-  }
-
-  // ── Modo padrão (atendimento / venda / agendamento) ──
-  if (venda) {
-    nav.push({ to: '/orders', label: 'Pedidos', icon: 'fa-clipboard-list' });
-    nav.push({ to: '/products', label: 'Produtos', icon: 'fa-box' });
-  }
-  if (agendamento) {
-    nav.push({ to: '/products', label: 'Serviços', icon: 'fa-list-check' });
-    nav.push({ to: '/schedule-clients', label: 'Clientes', icon: 'fa-users' });
-    nav.push({ to: '/schedule', label: 'Agenda', icon: 'fa-calendar-alt' });
-  }
-  nav.push({ to: '/leads', label: 'Leads', icon: 'fa-people-group' });
-  if (disparo) nav.push({ to: '/campaigns', label: 'Campanhas', icon: 'fa-bullhorn' });
+  // ── Camadas (somam sobre qualquer canal) ──
+  if (atendimento || vendaCatalogo || venda) add({ to: '/leads', label: 'Leads', icon: 'fa-people-group' });
+  if (disparo) add({ to: '/campaigns', label: 'Campanhas', icon: 'fa-bullhorn' });
 
   if (isEmployee) return nav;
 
+  // ── Gestão (dono) ──
   nav.push({ divider: true });
-  nav.push({ to: '/stores', label: 'Lojas', icon: 'fa-store' });
-  nav.push({ to: '/users', label: 'Equipe', icon: 'fa-user' });
-  nav.push({ to: '/instances', label: 'Instâncias', icon: 'fa-brands fa-whatsapp' });
-  nav.push({ to: '/catalog-settings', label: 'Configuração', icon: 'fa-sliders' });
-  nav.push({ to: '/mercado-pago', label: 'Mercado Pago', icon: 'fa-credit-card' });
-  nav.push({ to: '/billing', label: 'Assinatura', icon: 'fa-receipt' });
+  add({ to: '/stores', label: 'Lojas', icon: 'fa-store' });
+  add({ to: '/users', label: 'Equipe', icon: 'fa-user' });
+  if (usaInstancia) add({ to: '/instances', label: 'Instâncias', icon: 'fa-brands fa-whatsapp' });
+  add({ to: '/catalog-settings', label: 'Configuração', icon: 'fa-sliders' });
+  if (usaPagamento) add({ to: '/mercado-pago', label: 'Mercado Pago', icon: 'fa-credit-card' });
+  add({ to: '/billing', label: 'Assinatura', icon: 'fa-receipt' });
   return nav;
 }
 
 // Itens principais para a barra inferior no mobile (máx 5).
 function mobileNav(nav: NavEntry[]): NavItem[] {
   const items = nav.filter((n): n is NavItem => !('divider' in n));
-  const priority = ['/dashboard', '/orders', '/products', '/leads', '/catalog-settings'];
+  const priority = ['/dashboard', '/tools', '/products', '/orders', '/leads', '/schedule', '/campaigns'];
   const picked = priority.map((p) => items.find((i) => i.to === p)).filter(Boolean) as NavItem[];
   if (picked.length >= 3) return picked.slice(0, 5);
   return items.slice(0, 5);
