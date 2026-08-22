@@ -25,6 +25,7 @@ import { AdminMigration } from './pages/Admin/AdminMigration';
 import { Plans } from './pages/Admin/Plans';
 import { Billing } from './pages/Billing';
 import { Tools } from './pages/Tools';
+import { Ecommerce } from './pages/Ecommerce';
 import { LandingPage } from './pages/Landing/LandingPage';
 
 function Protected() {
@@ -71,6 +72,7 @@ export function App() {
           <Route element={<Protected />}>
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/tools" element={<Tools />} />
+            <Route path="/ecommerce" element={<Ecommerce />} />
             <Route path="/orders" element={<Orders />} />
             <Route path="/products" element={<Products />} />
             <Route path="/leads" element={<Leads />} />

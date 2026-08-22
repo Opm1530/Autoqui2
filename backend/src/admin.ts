@@ -72,8 +72,8 @@ export async function saveCompany(uid: string, payload: { id?: string; data: any
 // ─── FERRAMENTAS (hub) — o dono liga/desliga módulos na própria empresa ───────
 // Auto-serviço. Dois tipos: CANAIS ("como você vende") são mutuamente exclusivos
 // — só um por conta; CAMADAS (IA, campanhas) somam livremente.
-const TOOLS = new Set(['venda_catalogo', 'vitrine', 'atendimento', 'agendamento', 'disparo']);
-const CANAIS = new Set(['venda_catalogo', 'vitrine', 'agendamento']); // + 'ecommerce' quando integrar
+const TOOLS = new Set(['venda_catalogo', 'vitrine', 'atendimento', 'agendamento', 'disparo', 'ecommerce']);
+const CANAIS = new Set(['venda_catalogo', 'vitrine', 'agendamento', 'ecommerce']);
 export async function toggleTool(uid: string, toolKey: string, active: boolean): Promise<{ modulos: string[] }> {
   const user = await getUser(uid);
   if (user.role !== 'owner' && user.role !== 'admin') throw new Error('forbidden');

@@ -15,7 +15,7 @@ type NavEntry = NavItem | { divider: true };
 const HELP_WA = 'https://wa.me/5564999983832'; // atendimento da plataforma (item "Ajuda")
 
 const TITLES: Record<string, string> = {
-  '/dashboard': 'Dashboard', '/tools': 'Ferramentas', '/orders': 'Pedidos', '/products': 'Produtos',
+  '/dashboard': 'Dashboard', '/tools': 'Ferramentas', '/ecommerce': 'E-commerce', '/orders': 'Pedidos', '/products': 'Produtos',
   '/leads': 'Leads', '/stores': 'Lojas', '/users': 'Usuários',
   '/instances': 'Instâncias', '/catalog-settings': 'Configuração',
   '/mercado-pago': 'Mercado Pago', '/campaigns': 'Campanhas',
@@ -43,8 +43,9 @@ function buildNav(role: string | undefined, modulos: string[]): NavEntry[] {
   const agendamento = has('agendamento');
   const atendimento = has('atendimento');
   const disparo = has('disparo');
+  const ecommerce = has('ecommerce');
   const isEmployee = role === 'employee';
-  const usaInstancia = atendimento || disparo || vendaCatalogo || venda || agendamento;
+  const usaInstancia = atendimento || disparo || vendaCatalogo || venda || agendamento || ecommerce;
   const usaPagamento = vendaCatalogo || venda || agendamento;
 
   // Empilhável: canais (exclusivos) definem o núcleo; camadas (IA/Campanhas) somam.
@@ -66,6 +67,8 @@ function buildNav(role: string | undefined, modulos: string[]): NavEntry[] {
   } else if (vendaCatalogo || venda) {
     add({ to: '/orders', label: 'Pedidos', icon: 'fa-clipboard-list' });
     add({ to: '/products', label: 'Produtos', icon: 'fa-box' });
+  } else if (ecommerce) {
+    add({ to: '/ecommerce', label: 'E-commerce', icon: 'fa-store' });
   }
 
   // ── Camadas (somam sobre qualquer canal) ──

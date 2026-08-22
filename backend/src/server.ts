@@ -24,6 +24,7 @@ import { createDoc, updateDoc, deleteDoc } from './collections.js';
 import { loadUser } from './currentUser.js';
 import { assertInstanceOwner, assertCanCreate, shareQr, qrByToken, statusByToken } from './waInstances.js';
 import { rateLimit, verifyMpSignature } from './security.js';
+import { ecommerceRouter } from './ecommerce/router.js';
 
 // Empresa do usuário logado (a partir do doc users/{uid}).
 async function companyOf(uid: string): Promise<string> {
@@ -216,6 +217,9 @@ app.post('/api/users/delete', requireAuth, wrap((req) => deleteUser(req.uid, Str
 
 app.post('/api/settings/webhooks', requireAuth, wrap((req) => saveWebhooks(req.uid, req.body?.data || {})));
 app.post('/api/tools/toggle', requireAuth, wrap((req) => toggleTool(req.uid, String(req.body?.toolKey), !!req.body?.active)));
+
+// ── Módulo E-commerce (NuvemShop) ──
+app.use('/api/ecommerce', ecommerceRouter);
 
 // ── Assinaturas (mensalidade dos clientes via MP da plataforma) ──
 app.post('/api/platform-mp/connect', requireAuth, wrap((req) => connectPlatformMp(req.uid, String(req.body?.accessToken || ''))));

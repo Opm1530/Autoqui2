@@ -36,3 +36,7 @@ export const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || 'ginannymoreira@gmail.c
 // chamadas forjadas. Se vazio, mantém o comportamento antigo (só re-verifica na
 // API do MP) — assim não quebra em produção antes de você configurar o segredo.
 export const MP_WEBHOOK_SECRET = process.env.MP_WEBHOOK_SECRET || '';
+
+// App NuvemShop (módulo E-commerce). client_id/secret do app no Partner Portal.
+export const NUVEMSHOP_APP_ID = process.env.NUVEMSHOP_APP_ID || '';
+export const NUVEMSHOP_APP_SECRET = process.env.NUVEMSHOP_APP_SECRET || '';
