@@ -19,7 +19,7 @@ async function companyOf(uid: string, needOwner = false): Promise<string> {
 
 const webhookUrl = (companyId: string) => `${PUBLIC_BASE_URL}/api/ecommerce/webhook/${companyId}`;
 
-async function getIntegration(companyId: string): Promise<any | null> {
+export async function getIntegration(companyId: string): Promise<any | null> {
   const snap = await db.collection('ecommerce_integrations')
     .where('companyId', '==', companyId).where('active', '==', true).limit(1).get();
   return snap.empty ? null : { id: snap.docs[0].id, ...snap.docs[0].data() };

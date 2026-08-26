@@ -110,3 +110,5 @@ export const extractProducts = (order: any): string => {
   const products = order?.products || order?.items || [];
   return products.map((p: any) => `• ${p.name || p.product_name || 'Produto'} (x${p.quantity || 1})`).join('\n');
 };
+export const formatTotal = (value: any): string =>
+  new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(parseFloat(value || '0'));

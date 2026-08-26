@@ -19,4 +19,7 @@ export const ecommerceApi = {
   connectManual: (storeId: string, accessToken: string) => req('/integration', 'POST', { storeId, accessToken }),
   reregister: () => req('/integration/reregister', 'POST'),
   disconnect: () => req('/integration', 'DELETE'),
+  // automações
+  automations: (): Promise<any[]> => req('/automations', 'GET'),
+  saveAutomation: (a: { trigger: string; enabled: boolean; delayMinutes: number; messageTemplate: string; whatsappInstance: string }) => req('/automations', 'POST', a),
 };
