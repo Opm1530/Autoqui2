@@ -47,6 +47,9 @@ function buildNav(role: string | undefined, modulos: string[]): NavEntry[] {
   const isEmployee = role === 'employee';
   const usaInstancia = atendimento || disparo || vendaCatalogo || venda || agendamento || ecommerce;
   const usaPagamento = vendaCatalogo || venda || agendamento;
+  // Loja própria no AutoQui (tem Lojas + Configuração de catálogo). Atendimento,
+  // Campanhas e E-commerce (NuvemShop) não são vitrine própria aqui.
+  const temLojaPropria = vendaCatalogo || venda || vitrine || agendamento;
 
   // Empilhável: canais (exclusivos) definem o núcleo; camadas (IA/Campanhas) somam.
   // add() evita item duplicado quando duas ferramentas apontam pra mesma rota.
@@ -79,10 +82,10 @@ function buildNav(role: string | undefined, modulos: string[]): NavEntry[] {
 
   // ── Gestão (dono) ──
   nav.push({ divider: true });
-  add({ to: '/stores', label: 'Lojas', icon: 'fa-store' });
+  if (temLojaPropria) add({ to: '/stores', label: 'Lojas', icon: 'fa-store' });
   add({ to: '/users', label: 'Equipe', icon: 'fa-user' });
   if (usaInstancia) add({ to: '/instances', label: 'Instâncias', icon: 'fa-brands fa-whatsapp' });
-  add({ to: '/catalog-settings', label: 'Configuração', icon: 'fa-sliders' });
+  if (temLojaPropria) add({ to: '/catalog-settings', label: 'Configuração', icon: 'fa-sliders' });
   if (usaPagamento) add({ to: '/mercado-pago', label: 'Mercado Pago', icon: 'fa-credit-card' });
   add({ to: '/billing', label: 'Assinatura', icon: 'fa-receipt' });
   return nav;
