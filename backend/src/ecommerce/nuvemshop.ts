@@ -97,6 +97,20 @@ export async function getAbandonedCheckouts(storeId: string, token: string, minI
   return res.ok ? res.data || [] : [];
 }
 
+// Pedidos paginados desde uma data (para Analytics/CRM).
+export async function listOrders(storeId: string, token: string, sinceISO?: string, maxPages = 12, perPage = 200) {
+  const all: any[] = [];
+  for (let page = 1; page <= maxPages; page++) {
+    const params = new URLSearchParams({ per_page: String(perPage), page: String(page), fields: 'id,total,customer,created_at,payment_status,status,products' });
+    if (sinceISO) params.set('created_at_min', sinceISO);
+    const res = await request('GET', storeId, token, `/orders?${params}`);
+    if (!res.ok || !Array.isArray(res.data) || !res.data.length) break;
+    all.push(...res.data);
+    if (res.data.length < perPage) break;
+  }
+  return all;
+}
+
 export async function listPendingOrders(storeId: string, token: string, cutoffISO: string) {
   const params = new URLSearchParams({ payment_status: 'pending', created_at_max: cutoffISO, per_page: '50' });
   const res = await request('GET', storeId, token, `/orders?${params}`);

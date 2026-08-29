@@ -6,6 +6,7 @@ import { requireAuth } from '../auth.js';
 import { integrationStatus, oauthUrl, testConnection, connectManual, reregister, disconnect, oauthCallback } from './integrations.js';
 import { getAutomations, saveAutomation, deleteAutomation } from './automations.js';
 import { processEcommerceEvent } from './webhook.js';
+import { analytics, crm } from './analytics.js';
 
 const wrap = (fn: (req: any) => Promise<any>) => async (req: any, res: any) => {
   try { res.json(await fn(req)); }
@@ -42,3 +43,7 @@ ecommerceRouter.delete('/integration', requireAuth, wrap((req) => disconnect(req
 ecommerceRouter.get('/automations', requireAuth, wrap((req) => getAutomations(req.uid)));
 ecommerceRouter.post('/automations', requireAuth, wrap((req) => saveAutomation(req.uid, req.body || {})));
 ecommerceRouter.delete('/automations/:trigger', requireAuth, wrap((req) => deleteAutomation(req.uid, String(req.params.trigger))));
+
+// Analytics + CRM (leitura, cache 30min).
+ecommerceRouter.get('/analytics', requireAuth, wrap((req) => analytics(req.uid, req.query.days)));
+ecommerceRouter.get('/crm', requireAuth, wrap((req) => crm(req.uid, req.query.days)));

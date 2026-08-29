@@ -22,4 +22,7 @@ export const ecommerceApi = {
   // automações
   automations: (): Promise<any[]> => req('/automations', 'GET'),
   saveAutomation: (a: { trigger: string; enabled: boolean; delayMinutes: number; messageTemplate: string; whatsappInstance: string }) => req('/automations', 'POST', a),
+  // analytics + crm
+  analytics: (days: number) => req(`/analytics?days=${days}`, 'GET'),
+  crm: (days: number) => req(`/crm?days=${days}`, 'GET'),
 };

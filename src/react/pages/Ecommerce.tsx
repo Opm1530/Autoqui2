@@ -5,6 +5,8 @@ import { toast } from '../../services/toast';
 import { confirm } from '../../services/confirm';
 import { SkeletonCards } from '../components/Skeleton';
 import { EcommerceAutomations } from './EcommerceAutomations';
+import { EcommerceAnalytics } from './EcommerceAnalytics';
+import { EcommerceCRM } from './EcommerceCRM';
 
 export function Ecommerce() {
   const [params, setParams] = useSearchParams();
@@ -14,7 +16,7 @@ export function Ecommerce() {
   const [manual, setManual] = useState(false);
   const [storeId, setStoreId] = useState('');
   const [token, setToken] = useState('');
-  const [tab, setTab] = useState<'conexao' | 'automacoes'>('conexao');
+  const [tab, setTab] = useState<'conexao' | 'automacoes' | 'analytics' | 'crm'>('conexao');
 
   async function load() {
     const r = await ecommerceApi.integration().catch(() => ({ connected: false }));
@@ -69,13 +71,18 @@ export function Ecommerce() {
       <div className="page-header"><h2 className="page-title">E-commerce · NuvemShop</h2></div>
 
       {integ?.connected && (
-        <div className="campaign-tabs" style={{ margin: '0 0 1rem' }}>
+        <div className="campaign-tabs" style={{ margin: '0 0 1rem', flexWrap: 'wrap' }}>
           <button className={'tab-btn' + (tab === 'conexao' ? ' active' : '')} onClick={() => setTab('conexao')}><i className="fa-solid fa-plug" /> Conexão</button>
           <button className={'tab-btn' + (tab === 'automacoes' ? ' active' : '')} onClick={() => setTab('automacoes')}><i className="fa-solid fa-robot" /> Automações</button>
+          <button className={'tab-btn' + (tab === 'analytics' ? ' active' : '')} onClick={() => setTab('analytics')}><i className="fa-solid fa-chart-line" /> Analytics</button>
+          <button className={'tab-btn' + (tab === 'crm' ? ' active' : '')} onClick={() => setTab('crm')}><i className="fa-solid fa-users" /> CRM</button>
         </div>
       )}
 
-      {integ?.connected && tab === 'automacoes' ? <EcommerceAutomations /> : integ?.connected ? (
+      {integ?.connected && tab === 'automacoes' ? <EcommerceAutomations />
+        : integ?.connected && tab === 'analytics' ? <EcommerceAnalytics />
+        : integ?.connected && tab === 'crm' ? <EcommerceCRM />
+        : integ?.connected ? (
         <div className="card" style={{ marginTop: '1rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16 }}>
             <div style={{ width: 48, height: 48, borderRadius: 12, background: 'rgba(16,185,129,0.12)', color: '#34d399', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.4rem' }}><i className="fa-solid fa-circle-check" /></div>
