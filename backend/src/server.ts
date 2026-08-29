@@ -26,6 +26,7 @@ import { assertInstanceOwner, assertCanCreate, shareQr, qrByToken, statusByToken
 import { rateLimit, verifyMpSignature } from './security.js';
 import { ecommerceRouter } from './ecommerce/router.js';
 import { startEcommerceJobs } from './ecommerce/jobs.js';
+import { storefrontPublicRouter, storefrontAuthRouter } from './ecommerce/storefront.js';
 
 // Empresa do usuário logado (a partir do doc users/{uid}).
 async function companyOf(uid: string): Promise<string> {
@@ -41,6 +42,11 @@ const app = express();
 app.set('trust proxy', 1);
 
 app.use(express.json({ limit: '256kb' }));
+
+// Storefront (widgets na loja NuvemShop): CORS ABERTO, montado ANTES do cors
+// global, porque roda em domínios de loja que não estão na lista de origens.
+app.use('/api/ecommerce/storefront', storefrontPublicRouter);
+
 app.use(
   cors({
     origin(origin, cb) {
@@ -221,6 +227,7 @@ app.post('/api/tools/toggle', requireAuth, wrap((req) => toggleTool(req.uid, Str
 
 // ── Módulo E-commerce (NuvemShop) ──
 app.use('/api/ecommerce', ecommerceRouter);
+app.use('/api/ecommerce', storefrontAuthRouter);
 
 // ── Assinaturas (mensalidade dos clientes via MP da plataforma) ──
 app.post('/api/platform-mp/connect', requireAuth, wrap((req) => connectPlatformMp(req.uid, String(req.body?.accessToken || ''))));

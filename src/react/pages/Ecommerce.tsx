@@ -7,6 +7,7 @@ import { SkeletonCards } from '../components/Skeleton';
 import { EcommerceAutomations } from './EcommerceAutomations';
 import { EcommerceAnalytics } from './EcommerceAnalytics';
 import { EcommerceCRM } from './EcommerceCRM';
+import { EcommerceWidgets } from './EcommerceWidgets';
 
 export function Ecommerce() {
   const [params, setParams] = useSearchParams();
@@ -16,7 +17,7 @@ export function Ecommerce() {
   const [manual, setManual] = useState(false);
   const [storeId, setStoreId] = useState('');
   const [token, setToken] = useState('');
-  const [tab, setTab] = useState<'conexao' | 'automacoes' | 'analytics' | 'crm'>('conexao');
+  const [tab, setTab] = useState<'conexao' | 'automacoes' | 'analytics' | 'crm' | 'widgets'>('conexao');
 
   async function load() {
     const r = await ecommerceApi.integration().catch(() => ({ connected: false }));
@@ -76,12 +77,14 @@ export function Ecommerce() {
           <button className={'tab-btn' + (tab === 'automacoes' ? ' active' : '')} onClick={() => setTab('automacoes')}><i className="fa-solid fa-robot" /> Automações</button>
           <button className={'tab-btn' + (tab === 'analytics' ? ' active' : '')} onClick={() => setTab('analytics')}><i className="fa-solid fa-chart-line" /> Analytics</button>
           <button className={'tab-btn' + (tab === 'crm' ? ' active' : '')} onClick={() => setTab('crm')}><i className="fa-solid fa-users" /> CRM</button>
+          <button className={'tab-btn' + (tab === 'widgets' ? ' active' : '')} onClick={() => setTab('widgets')}><i className="fa-solid fa-wand-magic-sparkles" /> Vitrine</button>
         </div>
       )}
 
       {integ?.connected && tab === 'automacoes' ? <EcommerceAutomations />
         : integ?.connected && tab === 'analytics' ? <EcommerceAnalytics />
         : integ?.connected && tab === 'crm' ? <EcommerceCRM />
+        : integ?.connected && tab === 'widgets' ? <EcommerceWidgets />
         : integ?.connected ? (
         <div className="card" style={{ marginTop: '1rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16 }}>

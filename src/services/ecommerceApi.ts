@@ -25,4 +25,8 @@ export const ecommerceApi = {
   // analytics + crm
   analytics: (days: number) => req(`/analytics?days=${days}`, 'GET'),
   crm: (days: number) => req(`/crm?days=${days}`, 'GET'),
+  // widgets de vitrine
+  widgets: (): Promise<any> => req('/widgets', 'GET'),
+  saveWidget: (section: string, data: any) => req('/widgets', 'POST', { section, data }),
+  loaderUrl: () => `${API_BASE_URL}/api/ecommerce/storefront/loader.js`,
 };
