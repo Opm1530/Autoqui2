@@ -25,6 +25,7 @@ import { loadUser } from './currentUser.js';
 import { assertInstanceOwner, assertCanCreate, shareQr, qrByToken, statusByToken } from './waInstances.js';
 import { rateLimit, verifyMpSignature } from './security.js';
 import { ecommerceRouter } from './ecommerce/router.js';
+import { startEcommerceJobs } from './ecommerce/jobs.js';
 
 // Empresa do usuário logado (a partir do doc users/{uid}).
 async function companyOf(uid: string): Promise<string> {
@@ -376,4 +377,5 @@ app.get('/api/wa/instance-exists/:name', requireAuth, wrap(async (req) => {
 
 app.listen(PORT, () => {
   console.log(`[autoqui-backend] ouvindo na porta ${PORT}`);
+  startEcommerceJobs();
 });

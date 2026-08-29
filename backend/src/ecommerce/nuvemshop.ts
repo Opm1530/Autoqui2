@@ -97,6 +97,18 @@ export async function getAbandonedCheckouts(storeId: string, token: string, minI
   return res.ok ? res.data || [] : [];
 }
 
+export async function listPendingOrders(storeId: string, token: string, cutoffISO: string) {
+  const params = new URLSearchParams({ payment_status: 'pending', created_at_max: cutoffISO, per_page: '50' });
+  const res = await request('GET', storeId, token, `/orders?${params}`);
+  return res.ok ? res.data || [] : [];
+}
+
+export async function listCustomers(storeId: string, token: string, cutoffISO: string) {
+  const params = new URLSearchParams({ created_at_max: cutoffISO, per_page: '50', sort_by: 'created_at', sort_direction: 'desc' });
+  const res = await request('GET', storeId, token, `/customers?${params}`);
+  return res.ok ? res.data || [] : [];
+}
+
 // ── Helpers de payload ──
 export function extractPhone(order: any): string | null {
   const raw = order?.customer?.phone || order?.contact_phone || order?.billing_address?.phone || order?.shipping_address?.phone || '';

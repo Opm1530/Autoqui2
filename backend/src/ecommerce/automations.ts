@@ -70,6 +70,12 @@ export async function wasSentRecently(companyId: string, entityId: string, trigg
   return ms > 0 && (Date.now() - ms) / 3600000 < ttlHours;
 }
 
+// Dedupe simples (existência, sem TTL) — usado pelos crons.
+export async function wasSentEver(companyId: string, entityId: string, trigger: string): Promise<boolean> {
+  const doc = await db.collection('ecommerce_sent_events').doc(`${companyId}_${entityId}_${trigger}`).get();
+  return doc.exists;
+}
+
 export async function markSent(companyId: string, entityId: string, trigger: string, phone: string) {
   await db.collection('ecommerce_sent_events').doc(`${companyId}_${entityId}_${trigger}`).set({
     companyId, orderId: String(entityId), trigger, phone, sentAt: Timestamp.now(),
