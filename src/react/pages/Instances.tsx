@@ -258,15 +258,23 @@ export function Instances() {
       {/* Modal nova instância */}
       {showNew && (
         <div className="modal" style={{ display: 'flex' }} onClick={(e) => { if (e.target === e.currentTarget) setShowNew(false); }}>
-          <div className="modal-content glass">
+          <div className="modal-content glass" style={{ maxWidth: 440 }}>
             <span className="close-modal" onClick={() => setShowNew(false)}>&times;</span>
-            <h2>Nova Instância</h2>
-            <form onSubmit={createInstance}>
+            <div style={{ display: 'flex', gap: 14, alignItems: 'center', marginBottom: 6 }}>
+              <div style={{ width: 46, height: 46, borderRadius: 12, flexShrink: 0, background: 'rgba(37,211,102,0.14)', color: '#25d366', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.3rem' }}>
+                <i className="fa-brands fa-whatsapp" />
+              </div>
+              <div>
+                <h2 style={{ margin: 0 }}>Nova Instância</h2>
+                <p style={{ margin: '2px 0 0', color: 'var(--text-muted)', fontSize: '0.88rem' }}>Dê um nome e gere o QR Code para conectar um WhatsApp.</p>
+              </div>
+            </div>
+            <form onSubmit={createInstance} style={{ marginTop: 18 }}>
               <div className="form-group">
                 <label>Identificador da Instância (Uso Interno)</label>
                 <input type="text" value={newName} onChange={(e) => setNewName(e.target.value)} required placeholder="Ex: Matriz 01, Vendas Norte..." />
               </div>
-              <button type="submit" className="btn-primary full-width" style={{ marginTop: '1rem' }} disabled={creating}>
+              <button type="submit" className="btn-primary full-width" style={{ marginTop: 6 }} disabled={creating}>
                 {creating ? <><i className="fa-solid fa-spinner fa-spin" /> Criando...</> : 'Criar e Gerar QR Code'}
               </button>
             </form>

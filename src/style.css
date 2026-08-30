@@ -1061,8 +1061,8 @@ ul {
   height: 100vh;
   background: rgba(0, 0, 0, 0.7);
   display: flex;
-  align-items: flex-start;
-  justify-content: center;
+  align-items: center;          /* centraliza vertical */
+  justify-content: center;      /* centraliza horizontal */
   z-index: 1000;
   opacity: 1;
   visibility: visible;
@@ -1088,6 +1088,7 @@ ul {
   box-shadow: var(--shadow-lg);
   max-height: 90vh;
   overflow-y: auto;
+  margin: auto;                 /* mantém centralizado e permite rolar se alto */
 }
 
 .modal-content.big-modal {

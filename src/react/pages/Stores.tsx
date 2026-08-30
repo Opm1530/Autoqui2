@@ -189,10 +189,20 @@ export function Stores() {
         <div className="modal" style={{ display: 'flex' }} onClick={(e) => { if (e.target === e.currentTarget) setModal(null); }}>
           <div className="modal-content glass" style={{ maxWidth: 440 }}>
             <span className="close-modal" onClick={() => setModal(null)}>&times;</span>
-            <h2>{modal.id ? 'Editar negócio' : 'Configurar negócio'}</h2>
-            <div className="form-group"><label>Nome do negócio</label><input type="text" value={modal.name} onChange={(e) => setModal({ ...modal, name: e.target.value })} placeholder="Ex: Minha Loja" /></div>
-            <div className="form-group"><label>Endereço (para entrega)</label><input type="text" value={modal.address} onChange={(e) => setModal({ ...modal, address: e.target.value })} placeholder="Rua, número, bairro, cidade" /></div>
-            <button className="btn-primary full-width" onClick={saveStore}>Salvar</button>
+            <div style={{ display: 'flex', gap: 14, alignItems: 'center', marginBottom: 6 }}>
+              <div style={{ width: 46, height: 46, borderRadius: 12, flexShrink: 0, background: 'rgba(132,204,22,0.14)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem' }}>
+                <i className="fa-solid fa-store" />
+              </div>
+              <div>
+                <h2 style={{ margin: 0 }}>{modal.id ? 'Editar negócio' : 'Configurar negócio'}</h2>
+                <p style={{ margin: '2px 0 0', color: 'var(--text-muted)', fontSize: '0.88rem' }}>Nome e endereço usados no seu catálogo e nas entregas.</p>
+              </div>
+            </div>
+            <form onSubmit={(e) => { e.preventDefault(); saveStore(); }} style={{ marginTop: 18 }}>
+              <div className="form-group"><label>Nome do negócio</label><input type="text" value={modal.name} onChange={(e) => setModal({ ...modal, name: e.target.value })} placeholder="Ex: Minha Loja" /></div>
+              <div className="form-group"><label>Endereço (para entrega)</label><input type="text" value={modal.address} onChange={(e) => setModal({ ...modal, address: e.target.value })} placeholder="Rua, número, bairro, cidade" /></div>
+              <button type="submit" className="btn-primary full-width" style={{ marginTop: 6 }}>Salvar</button>
+            </form>
           </div>
         </div>
       )}
