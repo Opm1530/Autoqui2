@@ -26,6 +26,7 @@ import { Plans } from './pages/Admin/Plans';
 import { Billing } from './pages/Billing';
 import { Tools } from './pages/Tools';
 import { Ecommerce } from './pages/Ecommerce';
+import { FarmaQui } from './pages/FarmaQui';
 import { LandingPage } from './pages/Landing/LandingPage';
 
 function Protected() {
@@ -73,6 +74,7 @@ export function App() {
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/tools" element={<Tools />} />
             <Route path="/ecommerce" element={<Ecommerce />} />
+            <Route path="/farmaqui" element={<FarmaQui />} />
             <Route path="/orders" element={<Orders />} />
             <Route path="/products" element={<Products />} />
             <Route path="/leads" element={<Leads />} />

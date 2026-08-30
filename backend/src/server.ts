@@ -27,6 +27,7 @@ import { rateLimit, verifyMpSignature } from './security.js';
 import { ecommerceRouter } from './ecommerce/router.js';
 import { startEcommerceJobs } from './ecommerce/jobs.js';
 import { storefrontPublicRouter, storefrontAuthRouter } from './ecommerce/storefront.js';
+import { handleIncoming, activateCapture, captureStatus } from './farmaqui.js';
 
 // Empresa do usuário logado (a partir do doc users/{uid}).
 async function companyOf(uid: string): Promise<string> {
@@ -228,6 +229,15 @@ app.post('/api/tools/toggle', requireAuth, wrap((req) => toggleTool(req.uid, Str
 // ── Módulo E-commerce (NuvemShop) ──
 app.use('/api/ecommerce', ecommerceRouter);
 app.use('/api/ecommerce', storefrontAuthRouter);
+
+// ── FarmaQui (CRM) ──
+// Público: o Evolution chama quando chega mensagem (captura de lead). Responde rápido.
+app.post('/api/wa/incoming/:companyId', (req, res) => {
+  res.status(200).json({ ok: true });
+  handleIncoming(String(req.params.companyId), req.body || {}).catch((err) => console.error('[farmaqui] incoming erro:', err?.message));
+});
+app.post('/api/farmaqui/activate', requireAuth, wrap((req) => activateCapture(req.uid, String(req.body?.instanceName || ''))));
+app.get('/api/farmaqui/status', requireAuth, wrap((req) => captureStatus(req.uid)));
 
 // ── Assinaturas (mensalidade dos clientes via MP da plataforma) ──
 app.post('/api/platform-mp/connect', requireAuth, wrap((req) => connectPlatformMp(req.uid, String(req.body?.accessToken || ''))));

@@ -1,0 +1,85 @@
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { dbService } from '../../services/db';
+import { farmaquiApi } from '../../services/farmaquiApi';
+import { toast } from '../../services/toast';
+import { useAuth } from '../useAuth';
+import { SkeletonCards } from '../components/Skeleton';
+
+export function FarmaQui() {
+  const { user } = useAuth();
+  const companyId = user?.companyId || '';
+  const [loading, setLoading] = useState(true);
+  const [status, setStatus] = useState<{ ativa: boolean; instancia: string }>({ ativa: false, instancia: '' });
+  const [instances, setInstances] = useState<any[]>([]);
+  const [sel, setSel] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  async function load() {
+    const [st, insts] = await Promise.all([
+      farmaquiApi.status().catch(() => ({ ativa: false, instancia: '' })),
+      dbService.getAll('instancias', { field: 'empresaId', operator: '==', value: companyId }).catch(() => []),
+    ]);
+    setStatus(st);
+    setInstances(insts as any[]);
+    setSel(st.instancia || (insts as any[])[0]?.nome || '');
+    setLoading(false);
+  }
+  useEffect(() => { if (companyId) load(); }, [companyId]);
+
+  async function activate() {
+    if (!sel) { toast.warning('Selecione a instância de WhatsApp.'); return; }
+    setBusy(true);
+    try { await farmaquiApi.activate(sel); toast.success('Captura de leads ativada!'); await load(); }
+    catch (e: any) { toast.error('Erro: ' + (e.message || e)); }
+    finally { setBusy(false); }
+  }
+
+  if (loading) return <SkeletonCards count={1} lines={3} />;
+
+  return (
+    <div style={{ maxWidth: 720 }}>
+      <div className="page-header"><h2 className="page-title">FarmaQui · Relacionamento</h2></div>
+
+      <div className="card" style={{ marginTop: '1rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 12 }}>
+          <div style={{ width: 48, height: 48, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.4rem', background: status.ativa ? 'rgba(16,185,129,0.12)' : 'rgba(20,184,166,0.12)', color: status.ativa ? '#34d399' : '#14b8a6' }}>
+            <i className={`fa-solid ${status.ativa ? 'fa-circle-check' : 'fa-user-plus'}`} />
+          </div>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: '1.05rem' }}>Captura automática de leads</div>
+            <p style={{ margin: '2px 0 0', color: 'var(--text-muted)', fontSize: '0.9rem' }}>Todo mundo que mandar mensagem no seu WhatsApp vira um lead automaticamente.</p>
+          </div>
+        </div>
+
+        {status.ativa ? (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', background: 'rgba(16,185,129,0.06)', border: '1px solid rgba(16,185,129,0.25)', borderRadius: 12, padding: 14 }}>
+            <div style={{ fontSize: '0.9rem' }}><i className="fa-solid fa-circle-check" style={{ color: '#34d399' }} /> Captura ativa na instância <strong>{status.instancia}</strong></div>
+            <Link to="/leads" className="btn-primary" style={{ padding: '8px 16px' }}>Ver clientes</Link>
+          </div>
+        ) : instances.length === 0 ? (
+          <div style={{ background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: 12, padding: 14, fontSize: '0.9rem' }}>
+            <i className="fa-solid fa-triangle-exclamation" style={{ color: '#fbbf24' }} /> Conecte primeiro uma instância de WhatsApp em <strong>Instâncias</strong>.
+          </div>
+        ) : (
+          <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end', flexWrap: 'wrap' }}>
+            <div style={{ flex: 1, minWidth: 200 }}>
+              <label className="config-label">Instância do WhatsApp</label>
+              <select className="config-select" value={sel} onChange={(e) => setSel(e.target.value)}>
+                {instances.map((i) => <option key={i.id} value={i.nome}>{i.nome}</option>)}
+              </select>
+            </div>
+            <button className="btn-primary" disabled={busy} onClick={activate} style={{ background: '#14b8a6' }}>{busy ? 'Ativando...' : 'Ativar captura'}</button>
+          </div>
+        )}
+        <p style={{ fontSize: '0.78rem', color: 'var(--text-dim)', margin: '12px 0 0' }}>
+          Use uma instância <strong>dedicada</strong> ao FarmaQui — ao ativar, o webhook dela passa a apontar para o AutoQui.
+        </p>
+      </div>
+
+      <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.82rem', marginTop: '1.25rem' }}>
+        Em breve: última compra + lembrete de recompra (ciclo configurável) e ofertas programadas no grupo.
+      </p>
+    </div>
+  );
+}
