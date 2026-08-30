@@ -82,8 +82,8 @@ export function Payment({ config, hasMercadoPago, vitrine = false, onSave }: Pro
       {/* Explica as duas formas de receber por PIX */}
       {!vitrine && <>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 12, marginBottom: '1.25rem' }}>
-          <div style={{ padding: 14, borderRadius: 10, background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.25)' }}>
-            <p style={{ margin: '0 0 4px', fontWeight: 700, fontSize: '0.9rem' }}><i className="fa-solid fa-key" style={{ color: '#818cf8', marginRight: 6 }} />PIX manual (chave própria)</p>
+          <div style={{ padding: 14, borderRadius: 10, background: 'rgba(132, 204, 22,0.06)', border: '1px solid rgba(132, 204, 22,0.25)' }}>
+            <p style={{ margin: '0 0 4px', fontWeight: 700, fontSize: '0.9rem' }}><i className="fa-solid fa-key" style={{ color: '#a3e635', marginRight: 6 }} />PIX manual (chave própria)</p>
             <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-muted)' }}>Preencha sua <strong>chave PIX</strong> abaixo. O cliente paga direto pra você e anexa o comprovante — você confirma o pagamento na mão. Sem taxa, sem Mercado Pago.</p>
           </div>
           <div style={{ padding: 14, borderRadius: 10, background: 'rgba(16,185,129,0.06)', border: '1px solid rgba(16,185,129,0.25)' }}>
@@ -110,7 +110,7 @@ export function Payment({ config, hasMercadoPago, vitrine = false, onSave }: Pro
       <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1.25rem', marginBottom: '1.25rem' }}>
         <p style={{ fontSize: '0.9rem', fontWeight: 700, margin: '0 0 1rem', display: 'flex', alignItems: 'center', gap: 8 }}><i className="fa-solid fa-truck" style={{ color: 'var(--primary)' }} /> Taxas de Entrega por Bairro</p>
         <p style={{ fontSize: '0.8rem', color: 'var(--text-dim)', marginBottom: 12 }}>Defina o preço da entrega para cada bairro. Para aplicar o mesmo valor a múltiplos bairros, separe-os por vírgula (Ex: Centro, Vila Nova).</p>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 120px', gap: 12, marginBottom: 16, padding: 12, background: 'rgba(99,102,241,0.05)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: 10, alignItems: 'end' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 120px', gap: 12, marginBottom: 16, padding: 12, background: 'rgba(132, 204, 22,0.05)', border: '1px solid rgba(132, 204, 22,0.2)', borderRadius: 10, alignItems: 'end' }}>
           <div>
             <label className="config-label">Taxa genérica (bairros não listados)</label>
             <p style={{ fontSize: '0.75rem', color: 'var(--text-dim)', margin: '0 0 6px' }}>Aplicada quando o cliente informa um bairro que não está na lista.</p>
@@ -126,7 +126,7 @@ export function Payment({ config, hasMercadoPago, vitrine = false, onSave }: Pro
         <div>
           {bairros.length === 0 ? <p style={{ fontSize: '0.85rem', color: 'var(--text-dim)' }}>Nenhum bairro com entrega configurado.</p>
             : bairros.map((b, idx) => (
-              <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-color)', borderRadius: 8, marginBottom: 6 }}>
+              <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', background: 'rgba(23, 37, 28, 0.03)', border: '1px solid var(--border-color)', borderRadius: 8, marginBottom: 6 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1 }}>
                   <span style={{ fontWeight: 600 }}>{b.bairros}</span>
                   <span style={{ fontSize: '0.85rem', color: 'var(--primary)', fontWeight: 700 }}>R$ {Number(b.preco).toFixed(2)}</span>
@@ -157,12 +157,12 @@ export function Payment({ config, hasMercadoPago, vitrine = false, onSave }: Pro
         <div>
           {cupons.length === 0 ? <p style={{ fontSize: '0.85rem', color: 'var(--text-dim)' }}>Nenhum cupom cadastrado ainda.</p>
             : cupons.map((c, idx) => (
-              <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-color)', borderRadius: 8, marginBottom: 6 }}>
+              <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', background: 'rgba(23, 37, 28, 0.03)', border: '1px solid var(--border-color)', borderRadius: 8, marginBottom: 6 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
                   <span style={{ fontFamily: 'monospace', fontWeight: 700, color: 'var(--primary)' }}>{c.codigo}</span>
                   <span className={`badge ${c.ativo !== false ? 'success' : 'warning'}`}>{c.ativo !== false ? 'Ativo' : 'Inativo'}</span>
                   <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{c.tipo === 'percent' ? c.desconto + '%' : 'R$ ' + Number(c.desconto).toFixed(2)} de desconto</span>
-                  {c.valorMinimo > 0 && <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)', background: 'rgba(255,255,255,0.05)', padding: '2px 6px', borderRadius: 4 }}>Min: R$ {Number(c.valorMinimo).toFixed(2)}</span>}
+                  {c.valorMinimo > 0 && <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)', background: 'rgba(23, 37, 28, 0.05)', padding: '2px 6px', borderRadius: 4 }}>Min: R$ {Number(c.valorMinimo).toFixed(2)}</span>}
                 </div>
                 <button onClick={() => deleteCupom(idx)} style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#ef4444', borderRadius: 6, padding: '4px 10px', cursor: 'pointer' }}><i className="fa-solid fa-trash" /></button>
               </div>

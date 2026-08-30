@@ -35,7 +35,7 @@ export function Appearance({ companyId, storeId, design, vitrine = false, onSave
   const [vtInk, setVtInk] = useState(design.vtInk || '#2b2620');
   const [vtAccent, setVtAccent] = useState(design.vtAccent || '#8a6d4b');
   const [vtCard, setVtCard] = useState(design.vtCard || '#ffffff');
-  const [primary, setPrimary] = useState(design.primaryColor || '#6366f1');
+  const [primary, setPrimary] = useState(design.primaryColor || '#84cc16');
   const [secondary, setSecondary] = useState(design.secondaryColor || '#0f172a');
   const [textColor, setTextColor] = useState(design.textColor || '#ffffff');
   const [priceColor, setPriceColor] = useState(design.priceColor || '#ffffff');
@@ -156,7 +156,7 @@ export function Appearance({ companyId, storeId, design, vitrine = false, onSave
               <div key={t.id} className={'theme-card' + (themeId === t.id ? ' active' : '')} onClick={() => setThemeId(t.id)}>
                 <div className="theme-card-preview">
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 3, height: '100%' }}>
-                    {[0, 1, 2, 3].map((i) => <div key={i} style={{ background: 'rgba(99,102,241,.2)', borderRadius: 4 }} />)}
+                    {[0, 1, 2, 3].map((i) => <div key={i} style={{ background: 'rgba(132, 204, 22,.2)', borderRadius: 4 }} />)}
                   </div>
                 </div>
                 <div className="theme-card-name"><i className={`fa-solid ${t.icon}`} style={{ marginRight: 5 }} />{t.name}</div>

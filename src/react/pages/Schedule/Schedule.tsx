@@ -14,7 +14,7 @@ interface Appointment {
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: string }> = {
-  agendado: { label: 'Agendado', color: '#6366f1', icon: 'fa-clock' },
+  agendado: { label: 'Agendado', color: '#84cc16', icon: 'fa-clock' },
   confirmado: { label: 'Confirmado', color: '#10b981', icon: 'fa-circle-check' },
   concluido: { label: 'Concluído', color: '#64748b', icon: 'fa-flag-checkered' },
   cancelado: { label: 'Cancelado', color: '#ef4444', icon: 'fa-ban' },
@@ -310,7 +310,7 @@ function ApptModal({ companyId, services, clientes, editing, defaultDate, onClos
               <option value="">Selecione um cliente...</option>
               {clientes.map((c) => <option key={c.id} value={c.id}>{c.nome}{c.telefone ? ' — ' + c.telefone : ''}</option>)}
             </select>
-            {clientes.length === 0 && <p style={{ fontSize: '0.8rem', color: '#f59e0b', marginTop: 4 }}><i className="fa-solid fa-triangle-exclamation" /> Nenhum cliente cadastrado. <a href="/schedule-clients" style={{ color: '#6366f1' }}>Cadastrar clientes</a></p>}
+            {clientes.length === 0 && <p style={{ fontSize: '0.8rem', color: '#f59e0b', marginTop: 4 }}><i className="fa-solid fa-triangle-exclamation" /> Nenhum cliente cadastrado. <a href="/schedule-clients" style={{ color: '#84cc16' }}>Cadastrar clientes</a></p>}
           </div>
           <div>
             <label className="config-label">Serviço</label>

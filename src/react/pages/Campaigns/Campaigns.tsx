@@ -369,12 +369,12 @@ function DetailModal({ campaign: c, onClose }: { campaign: any; onClose: () => v
         </div>
         <div style={{ marginBottom: '2rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontWeight: 600, fontSize: '0.9rem' }}><span>Progresso do Envio</span><span>{progress}%</span></div>
-          <div style={{ width: '100%', height: 12, background: 'var(--surface-hover)', borderRadius: 6, overflow: 'hidden', border: '1px solid var(--border-color)' }}><div style={{ width: `${progress}%`, height: '100%', background: 'linear-gradient(90deg, var(--primary) 0%, #818cf8 100%)', borderRadius: 6 }} /></div>
+          <div style={{ width: '100%', height: 12, background: 'var(--surface-hover)', borderRadius: 6, overflow: 'hidden', border: '1px solid var(--border-color)' }}><div style={{ width: `${progress}%`, height: '100%', background: 'linear-gradient(90deg, var(--primary) 0%, #a3e635 100%)', borderRadius: 6 }} /></div>
         </div>
         <div className="card" style={{ background: 'var(--surface-hover)', padding: '1.5rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: '1.25rem', fontWeight: 600 }}><i className="fa-solid fa-message" style={{ color: 'var(--primary)' }} /> Variações de Mensagem <span className="badge secondary" style={{ fontSize: '0.75rem' }}>{msgs.filter(Boolean).length}</span></div>
           {msgs.map((m: string, idx: number) => (
-            <div key={idx} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-color)', borderRadius: 10, padding: '1rem 1.25rem', marginBottom: '0.75rem' }}>
+            <div key={idx} style={{ background: 'rgba(23, 37, 28, 0.03)', border: '1px solid var(--border-color)', borderRadius: 10, padding: '1rem 1.25rem', marginBottom: '0.75rem' }}>
               <div style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase', marginBottom: '0.5rem' }}><i className="fa-solid fa-comment" /> Mensagem #{idx + 1}</div>
               <div style={{ whiteSpace: 'pre-wrap', fontSize: '0.92rem', lineHeight: 1.65 }}>{m}</div>
             </div>

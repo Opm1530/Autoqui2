@@ -94,7 +94,7 @@ export function Stores() {
             return (
               <div key={s.id} className="card" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <div style={{ width: 44, height: 44, borderRadius: 12, flexShrink: 0, background: 'rgba(99,102,241,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)', fontSize: '1.2rem' }}>
+                  <div style={{ width: 44, height: 44, borderRadius: 12, flexShrink: 0, background: 'rgba(132, 204, 22,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)', fontSize: '1.2rem' }}>
                     <i className="fa-solid fa-store" />
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
@@ -124,7 +124,7 @@ export function Stores() {
                     <button className="btn-secondary" style={{ flex: 1, justifyContent: 'center', ...(s.active ? { color: '#f87171', borderColor: 'rgba(239,68,68,0.35)' } : { color: '#34d399', borderColor: 'rgba(16,185,129,0.35)' }) }} onClick={() => toggleStatus(s)}>
                       <i className={`fa-solid ${s.active ? 'fa-store-slash' : 'fa-store'}`} /> {s.active ? 'Desativar' : 'Ativar'}
                     </button>
-                    <button className="btn-secondary" style={{ flex: 1, justifyContent: 'center', color: freteAtivo ? '#fbbf24' : '#818cf8', borderColor: freteAtivo ? 'rgba(245,158,11,0.4)' : 'rgba(99,102,241,0.4)' }} onClick={() => toggleFrete(s)}>
+                    <button className="btn-secondary" style={{ flex: 1, justifyContent: 'center', color: freteAtivo ? '#fbbf24' : '#a3e635', borderColor: freteAtivo ? 'rgba(245,158,11,0.4)' : 'rgba(132, 204, 22,0.4)' }} onClick={() => toggleFrete(s)}>
                       <i className={`fa-solid ${freteAtivo ? 'fa-truck-ramp-box' : 'fa-truck'}`} /> {freteAtivo ? 'Frete Off' : 'Frete On'}
                     </button>
                   </div>

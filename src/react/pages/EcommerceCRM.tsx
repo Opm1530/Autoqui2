@@ -3,7 +3,7 @@ import { ecommerceApi } from '../../services/ecommerceApi';
 import { SkeletonCards } from '../components/Skeleton';
 
 const brl = (v: number) => `R$ ${Number(v || 0).toFixed(2)}`;
-const SEG_COLOR: Record<string, string> = { campeao: '#f59e0b', fiel: '#22c55e', novo: '#6366f1', ocasional: '#0ea5e9', risco: '#f97316', perdido: '#ef4444' };
+const SEG_COLOR: Record<string, string> = { campeao: '#f59e0b', fiel: '#22c55e', novo: '#84cc16', ocasional: '#0ea5e9', risco: '#f97316', perdido: '#ef4444' };
 const RISK: Record<string, { label: string; color: string }> = { baixo: { label: 'Baixo', color: '#22c55e' }, medio: { label: 'Médio', color: '#f59e0b' }, alto: { label: 'Alto', color: '#ef4444' } };
 
 export function EcommerceCRM() {
@@ -59,7 +59,7 @@ export function EcommerceCRM() {
           <tbody>
             {filtered.length === 0 ? <tr><td colSpan={8} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>Nenhum cliente.</td></tr>
               : filtered.slice(0, 200).map((c, i) => (
-                <tr key={i} style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                <tr key={i} style={{ borderTop: '1px solid rgba(23, 37, 28, 0.05)' }}>
                   <td style={{ padding: '10px 12px' }}><div style={{ fontWeight: 600 }}>{c.name}</div><div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{c.phone || c.email}</div></td>
                   <td><span style={{ color: SEG_COLOR[c.segment], fontWeight: 600 }}>{(data.segments.find((s: any) => s.key === c.segment) || {}).label || c.segment}</span></td>
                   <td>{c.orders}</td>

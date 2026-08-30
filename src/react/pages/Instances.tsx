@@ -243,7 +243,7 @@ export function Instances() {
                   {connected && (
                     <button className="btn-secondary" style={{ flex: 1, justifyContent: 'center', color: '#fbbf24', borderColor: 'rgba(245,158,11,0.4)' }} onClick={() => logoutInstance(inst)}><i className="fa-solid fa-right-from-bracket" /> Desconectar</button>
                   )}
-                  <button className="btn-secondary" title="Compartilhar link de conexão" style={{ color: '#818cf8', borderColor: 'rgba(99,102,241,0.4)' }} onClick={() => shareQR(inst.nome)}><i className="fa-solid fa-share-nodes" /></button>
+                  <button className="btn-secondary" title="Compartilhar link de conexão" style={{ color: '#a3e635', borderColor: 'rgba(132, 204, 22,0.4)' }} onClick={() => shareQR(inst.nome)}><i className="fa-solid fa-share-nodes" /></button>
                   <button className="btn-secondary" title="Excluir" style={{ color: '#f87171', borderColor: 'rgba(239,68,68,0.35)' }} onClick={() => deleteInstance(inst)}><i className="fa-solid fa-trash" /></button>
                 </div>
               </div>

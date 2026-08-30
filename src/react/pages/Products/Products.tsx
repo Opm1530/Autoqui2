@@ -171,7 +171,7 @@ export function Products() {
         </div>
 
         {catalogLink && (
-          <div style={{ flex: 1, minWidth: 300, maxWidth: 500, background: 'rgba(99,102,241,0.1)', border: '1px dashed var(--primary)', borderRadius: 12, padding: '10px 15px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+          <div style={{ flex: 1, minWidth: 300, maxWidth: 500, background: 'rgba(132, 204, 22,0.1)', border: '1px dashed var(--primary)', borderRadius: 12, padding: '10px 15px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
             <div style={{ flex: 1, overflow: 'hidden' }}>
               <span style={{ fontSize: '0.7rem', color: 'var(--primary)', fontWeight: 700, textTransform: 'uppercase', display: 'block', marginBottom: 2 }}>Link do Catálogo</span>
               <input readOnly value={catalogLink} style={{ width: '100%', background: 'transparent', border: 'none', color: 'white', fontSize: '0.85rem', textOverflow: 'ellipsis', outline: 'none' }} />
@@ -221,7 +221,7 @@ export function Products() {
       {selected.size > 0 && (
         <div className="bulk-actions-bar">
           <span style={{ fontWeight: 700 }}>{selected.size} item(ns) selecionado(s)</span>
-          <div style={{ height: 20, width: 1, background: 'rgba(255,255,255,0.3)' }} />
+          <div style={{ height: 20, width: 1, background: 'rgba(23, 37, 28, 0.3)' }} />
           <span>Mover para categoria:</span>
           <select value={bulkCat} onChange={(e) => setBulkCat(e.target.value)} className="bulk-select-cat">
             <option value="">Selecione...</option>

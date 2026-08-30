@@ -132,7 +132,7 @@ export function CatalogSettings() {
         <>
           <div className="card" style={{ marginBottom: '1.5rem' }}>
             <div className="config-section-title"><i className="fa-solid fa-link" style={{ color: 'var(--primary)' }} /> Link do Catálogo</div>
-            <div style={{ display: 'flex', gap: 10, alignItems: 'center', background: 'rgba(99,102,241,0.06)', border: '1px dashed rgba(99,102,241,0.3)', borderRadius: 'var(--radius-md)', padding: '0.75rem 1rem' }}>
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center', background: 'rgba(132, 204, 22,0.06)', border: '1px dashed rgba(132, 204, 22,0.3)', borderRadius: 'var(--radius-md)', padding: '0.75rem 1rem' }}>
               <i className="fa-solid fa-store" style={{ color: 'var(--primary)' }} />
               <input type="text" value={currentLink} readOnly style={{ flex: 1, background: 'transparent', border: 'none', color: 'var(--text-main)', fontSize: '0.9rem', outline: 'none' }} />
               <button className="btn-save-msg" onClick={() => navigator.clipboard.writeText(currentLink).then(() => toast.success('Link copiado!'))}><i className="fa-solid fa-copy" /> Copiar</button>

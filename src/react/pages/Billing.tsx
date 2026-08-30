@@ -8,7 +8,7 @@ import { SkeletonCards } from '../components/Skeleton';
 
 const STATUS_LABEL: Record<string, { label: string; color: string }> = {
   authorized: { label: 'Ativa', color: '#34d399' },
-  trial: { label: 'Teste grátis', color: '#818cf8' },
+  trial: { label: 'Teste grátis', color: '#a3e635' },
   pending: { label: 'Aguardando autorização', color: '#fbbf24' },
   paused: { label: 'Pausada', color: '#fbbf24' },
   cancelled: { label: 'Cancelada', color: '#f87171' },
@@ -77,8 +77,8 @@ export function Billing({ wall = false }: { wall?: boolean }) {
 
       {/* Banner de teste grátis */}
       {!wall && trial.emTrial && (
-        <div className="card" style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: 14, background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.3)' }}>
-          <i className="fa-solid fa-gift" style={{ fontSize: '1.6rem', color: '#818cf8' }} />
+        <div className="card" style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: 14, background: 'rgba(132, 204, 22,0.08)', border: '1px solid rgba(132, 204, 22,0.3)' }}>
+          <i className="fa-solid fa-gift" style={{ fontSize: '1.6rem', color: '#a3e635' }} />
           <div>
             <div style={{ fontWeight: 700 }}>Você está no teste grátis</div>
             <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>{trial.dias === 1 ? 'Falta 1 dia' : `Faltam ${trial.dias} dias`}. Assine abaixo para não perder o acesso quando o teste acabar.</div>

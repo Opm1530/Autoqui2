@@ -20,8 +20,8 @@ type Tool = {
 };
 
 const TOOLS: Tool[] = [
-  { key: 'venda_catalogo', name: 'Catálogo', desc: 'Loja própria com carrinho e pagamento (PIX / Mercado Pago). O cliente monta o pedido e você recebe pronto.', icon: 'fa-bag-shopping', color: '#6366f1', group: 'canal', open: '/products' },
-  { key: 'vitrine', name: 'Vitrine', desc: 'Mostruário elegante sem checkout — o cliente vê os produtos e pede direto no WhatsApp.', icon: 'fa-image', color: '#a855f7', group: 'canal', open: '/products' },
+  { key: 'venda_catalogo', name: 'Catálogo', desc: 'Loja própria com carrinho e pagamento (PIX / Mercado Pago). O cliente monta o pedido e você recebe pronto.', icon: 'fa-bag-shopping', color: '#84cc16', group: 'canal', open: '/products' },
+  { key: 'vitrine', name: 'Vitrine', desc: 'Mostruário elegante sem checkout — o cliente vê os produtos e pede direto no WhatsApp.', icon: 'fa-image', color: '#4d7c0f', group: 'canal', open: '/products' },
   { key: 'agendamento', name: 'Agendamento', desc: 'Agenda de serviços com confirmação e lembretes automáticos. Ideal para clínicas, salões e consultorias.', icon: 'fa-calendar-check', color: '#f59e0b', group: 'canal', open: '/schedule' },
   { key: 'ecommerce', name: 'E-commerce (NuvemShop)', desc: 'Conecte sua loja NuvemShop: automações de WhatsApp e (em breve) analytics e CRM.', icon: 'fa-store', color: '#0ea5e9', group: 'canal', open: '/ecommerce' },
   { key: 'farmaqui', name: 'FarmaQui (CRM)', desc: 'Captura quem manda mensagem no WhatsApp como lead, marca última compra e (em breve) lembra a recompra. Ideal para farmácias e recorrência.', icon: 'fa-prescription-bottle-medical', color: '#14b8a6', group: 'canal', open: '/farmaqui' },
@@ -104,7 +104,7 @@ export function Tools() {
               ? <span className="badge" style={{ background: 'rgba(148,163,184,0.15)', color: '#94a3b8', border: '1px solid rgba(148,163,184,0.3)' }}>Em breve</span>
               : active
                 ? <span className="badge" style={{ background: 'rgba(16,185,129,0.15)', color: '#34d399', border: '1px solid rgba(16,185,129,0.3)' }}><i className="fa-solid fa-circle-check" /> Ativa</span>
-                : <span className="badge" style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)', border: '1px solid var(--border-color)' }}>Disponível</span>}
+                : <span className="badge" style={{ background: 'rgba(23, 37, 28, 0.05)', color: 'var(--text-muted)', border: '1px solid var(--border-color)' }}>Disponível</span>}
           </div>
         </div>
         <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', lineHeight: 1.6, margin: 0, flex: 1 }}>{t.desc}</p>

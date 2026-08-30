@@ -164,8 +164,8 @@ export function Catalog({ storeId: storeIdProp }: { storeId?: string } = {}) {
   const permitirEntrega = isFreteAbertoAgora(config, store);
 
   const cssVars: React.CSSProperties = {
-    ['--primary-cat' as any]: design.primaryColor || '#6366f1',
-    ['--primary-glow' as any]: (design.primaryColor || '#6366f1') + '4D',
+    ['--primary-cat' as any]: design.primaryColor || '#84cc16',
+    ['--primary-glow' as any]: (design.primaryColor || '#84cc16') + '4D',
     ['--bg' as any]: design.secondaryColor || '#0f172a',
     ['--glass' as any]: 'rgba(255,255,255,0.05)',
     ['--text' as any]: design.textColor || '#ffffff',
@@ -584,7 +584,7 @@ export function Catalog({ storeId: storeIdProp }: { storeId?: string } = {}) {
             <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 12, padding: 12, fontSize: '0.9rem', display: 'flex', flexWrap: 'wrap', gap: 8 }}>
               <span style={{ background: 'rgba(59,130,246,0.1)', color: '#60a5fa', border: '1px solid rgba(59,130,246,0.2)', padding: '4px 8px', borderRadius: 6, fontSize: '0.8rem' }}><i className="fa-solid fa-money-bill" /> Na Entrega/Retirada</span>
               {data.pixKey && <span style={{ background: 'rgba(16,185,129,0.1)', color: '#4ade80', border: '1px solid rgba(16,185,129,0.2)', padding: '4px 8px', borderRadius: 6, fontSize: '0.8rem' }}><i className="fa-brands fa-pix" /> PIX</span>}
-              {data.isMpActive && <span style={{ background: 'rgba(99,102,241,0.1)', color: '#818cf8', border: '1px solid rgba(99,102,241,0.2)', padding: '4px 8px', borderRadius: 6, fontSize: '0.8rem' }}><i className="fa-solid fa-credit-card" /> Mercado Pago</span>}
+              {data.isMpActive && <span style={{ background: 'rgba(132, 204, 22,0.1)', color: '#a3e635', border: '1px solid rgba(132, 204, 22,0.2)', padding: '4px 8px', borderRadius: 6, fontSize: '0.8rem' }}><i className="fa-solid fa-credit-card" /> Mercado Pago</span>}
             </div>
           </div>
         </div>

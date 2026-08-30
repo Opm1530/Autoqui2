@@ -127,7 +127,7 @@ export function EcommerceAutomations() {
                         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8 }}>
                           {a.vars.map((v) => (
                             <button key={v} type="button" onClick={() => patch(a.trigger, { messageTemplate: s.messageTemplate + `{{${v}}}` })}
-                              style={{ fontSize: '0.72rem', padding: '3px 8px', borderRadius: 6, background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.3)', color: '#818cf8', cursor: 'pointer', fontFamily: 'monospace' }}>{`{{${v}}}`}</button>
+                              style={{ fontSize: '0.72rem', padding: '3px 8px', borderRadius: 6, background: 'rgba(132, 204, 22,0.12)', border: '1px solid rgba(132, 204, 22,0.3)', color: '#a3e635', cursor: 'pointer', fontFamily: 'monospace' }}>{`{{${v}}}`}</button>
                           ))}
                         </div>
                       </div>

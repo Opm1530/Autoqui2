@@ -215,13 +215,13 @@ export function CheckoutModals({ cart, subtotal, storeId, companyId, data, onClo
       <Header title={<><i className="fa-solid fa-box" /> Como deseja receber?</>} onX={onClose} />
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
         <div className="delivery-card" onClick={() => { if (permitirEntrega !== false && flatBairros.length > 0) setDeliveryType('entrega'); }}
-          style={{ padding: 18, borderRadius: 16, border: `2px solid ${deliveryType === 'entrega' ? 'var(--primary-cat)' : 'rgba(255,255,255,0.1)'}`, background: deliveryType === 'entrega' ? 'rgba(99,102,241,0.08)' : 'transparent', cursor: permitirEntrega !== false && flatBairros.length > 0 ? 'pointer' : 'not-allowed', opacity: permitirEntrega !== false && flatBairros.length > 0 ? 1 : 0.5, display: 'flex', alignItems: 'center', gap: 16 }}>
-          <div style={{ width: 48, height: 48, borderRadius: 12, background: 'rgba(99,102,241,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><i className="fa-solid fa-truck" style={{ fontSize: '1.3rem', color: 'var(--primary-cat)' }} /></div>
+          style={{ padding: 18, borderRadius: 16, border: `2px solid ${deliveryType === 'entrega' ? 'var(--primary-cat)' : 'rgba(255,255,255,0.1)'}`, background: deliveryType === 'entrega' ? 'rgba(132, 204, 22,0.08)' : 'transparent', cursor: permitirEntrega !== false && flatBairros.length > 0 ? 'pointer' : 'not-allowed', opacity: permitirEntrega !== false && flatBairros.length > 0 ? 1 : 0.5, display: 'flex', alignItems: 'center', gap: 16 }}>
+          <div style={{ width: 48, height: 48, borderRadius: 12, background: 'rgba(132, 204, 22,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><i className="fa-solid fa-truck" style={{ fontSize: '1.3rem', color: 'var(--primary-cat)' }} /></div>
           <div><p style={{ margin: 0, fontWeight: 700 }}>Entrega</p><p style={{ margin: '4px 0 0', color: permitirEntrega !== false && flatBairros.length > 0 ? '#94a3b8' : '#ef4444', fontSize: '0.85rem' }}>{permitirEntrega !== false && flatBairros.length > 0 ? 'Receber no endereço informado' : 'Entrega indisponível no momento'}</p></div>
         </div>
         <div className="delivery-card" onClick={() => setDeliveryType('retirada')}
-          style={{ padding: 18, borderRadius: 16, border: `2px solid ${deliveryType === 'retirada' ? 'var(--primary-cat)' : 'rgba(255,255,255,0.1)'}`, background: deliveryType === 'retirada' ? 'rgba(99,102,241,0.08)' : 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 16 }}>
-          <div style={{ width: 48, height: 48, borderRadius: 12, background: 'rgba(99,102,241,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><i className="fa-solid fa-store" style={{ fontSize: '1.3rem', color: 'var(--primary-cat)' }} /></div>
+          style={{ padding: 18, borderRadius: 16, border: `2px solid ${deliveryType === 'retirada' ? 'var(--primary-cat)' : 'rgba(255,255,255,0.1)'}`, background: deliveryType === 'retirada' ? 'rgba(132, 204, 22,0.08)' : 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 16 }}>
+          <div style={{ width: 48, height: 48, borderRadius: 12, background: 'rgba(132, 204, 22,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><i className="fa-solid fa-store" style={{ fontSize: '1.3rem', color: 'var(--primary-cat)' }} /></div>
           <div><p style={{ margin: 0, fontWeight: 700 }}>Retirada na Loja</p><p style={{ margin: '4px 0 0', color: '#94a3b8', fontSize: '0.85rem' }}>Buscar pessoalmente no estabelecimento</p></div>
         </div>
       </div>
@@ -273,7 +273,7 @@ export function CheckoutModals({ cart, subtotal, storeId, companyId, data, onClo
 
       {/* Confirmação do endereço antes de pagar */}
       {deliveryType === 'entrega' && (
-        <div style={{ background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.25)', borderRadius: 12, padding: '12px 14px', marginBottom: 14, display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+        <div style={{ background: 'rgba(132, 204, 22,0.06)', border: '1px solid rgba(132, 204, 22,0.25)', borderRadius: 12, padding: '12px 14px', marginBottom: 14, display: 'flex', alignItems: 'flex-start', gap: 10 }}>
           <i className="fa-solid fa-location-dot" style={{ color: 'var(--primary-cat)', marginTop: 3, flexShrink: 0 }} />
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', marginBottom: 2 }}>Entregar em</div>
@@ -293,7 +293,7 @@ export function CheckoutModals({ cart, subtotal, storeId, companyId, data, onClo
           {showCoupon && <div>
             <div style={{ display: 'flex', gap: 8 }}>
               <input value={couponInput} onChange={(e) => setCouponInput(e.target.value)} placeholder="Código do cupom" style={{ ...inputStyle, textTransform: 'uppercase' }} />
-              <button onClick={applyCoupon} style={{ padding: '10px 16px', background: 'rgba(99,102,241,0.2)', color: 'var(--primary-cat)', border: '1px solid rgba(99,102,241,0.3)', borderRadius: 10, cursor: 'pointer', fontWeight: 700, whiteSpace: 'nowrap' }}><i className="fa-solid fa-check" /> Aplicar</button>
+              <button onClick={applyCoupon} style={{ padding: '10px 16px', background: 'rgba(132, 204, 22,0.2)', color: 'var(--primary-cat)', border: '1px solid rgba(132, 204, 22,0.3)', borderRadius: 10, cursor: 'pointer', fontWeight: 700, whiteSpace: 'nowrap' }}><i className="fa-solid fa-check" /> Aplicar</button>
             </div>
             {couponMsg && <p style={{ fontSize: '0.8rem', margin: '4px 0 0', color: couponMsg.ok ? '#10b981' : '#ef4444' }}>{couponMsg.text}</p>}
           </div>}
@@ -308,8 +308,8 @@ export function CheckoutModals({ cart, subtotal, storeId, companyId, data, onClo
               <div style={{ marginTop: -4, padding: 16, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <p style={{ margin: 0, fontSize: '0.8rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>Escolha como pagar:</p>
                 <div style={{ display: 'flex', gap: 10 }}>
-                  <button className="btn-sub-method" onClick={() => setSubMethod('dinheiro')} style={{ background: subMethod === 'dinheiro' ? 'rgba(99,102,241,0.2)' : 'rgba(255,255,255,0.05)', borderColor: subMethod === 'dinheiro' ? 'var(--primary-cat)' : 'rgba(255,255,255,0.1)' }}><i className="fa-solid fa-money-bill-1" style={{ marginRight: 6 }} /> Dinheiro</button>
-                  <button className="btn-sub-method" onClick={() => setSubMethod('cartao')} style={{ background: subMethod === 'cartao' ? 'rgba(99,102,241,0.2)' : 'rgba(255,255,255,0.05)', borderColor: subMethod === 'cartao' ? 'var(--primary-cat)' : 'rgba(255,255,255,0.1)' }}><i className="fa-solid fa-credit-card" style={{ marginRight: 6 }} /> Cartão</button>
+                  <button className="btn-sub-method" onClick={() => setSubMethod('dinheiro')} style={{ background: subMethod === 'dinheiro' ? 'rgba(132, 204, 22,0.2)' : 'rgba(255,255,255,0.05)', borderColor: subMethod === 'dinheiro' ? 'var(--primary-cat)' : 'rgba(255,255,255,0.1)' }}><i className="fa-solid fa-money-bill-1" style={{ marginRight: 6 }} /> Dinheiro</button>
+                  <button className="btn-sub-method" onClick={() => setSubMethod('cartao')} style={{ background: subMethod === 'cartao' ? 'rgba(132, 204, 22,0.2)' : 'rgba(255,255,255,0.05)', borderColor: subMethod === 'cartao' ? 'var(--primary-cat)' : 'rgba(255,255,255,0.1)' }}><i className="fa-solid fa-credit-card" style={{ marginRight: 6 }} /> Cartão</button>
                 </div>
                 {subMethod === 'dinheiro' && <div style={{ padding: 12, background: 'rgba(255,255,255,0.02)', borderRadius: 10, border: '1px solid rgba(255,255,255,0.05)' }}><label style={{ display: 'block', fontSize: '0.75rem', color: '#94a3b8', marginBottom: 8, fontWeight: 600 }}>Precisa de troco para quanto?</label><div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ color: '#94a3b8', fontWeight: 700 }}>R$</span><input type="number" value={troco} onChange={(e) => setTroco(e.target.value)} placeholder="Ex: 50,00" style={{ ...inputStyle, fontWeight: 700 }} /></div></div>}
                 <button disabled={!subMethod || !!busy} onClick={payDelivery} style={{ opacity: subMethod ? 1 : 0.5, padding: 14, borderRadius: 12, background: 'var(--primary-cat)', color: 'white', border: 'none', cursor: subMethod ? 'pointer' : 'not-allowed', fontWeight: 800, fontSize: '1rem' }}>{busy === 'delivery' ? <><i className="fa-solid fa-spinner fa-spin" /> Processando...</> : <><i className="fa-solid fa-check" style={{ marginRight: 8 }} /> Confirmar Pedido</>}</button>
@@ -367,7 +367,7 @@ export function CheckoutModals({ cart, subtotal, storeId, companyId, data, onClo
       <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'rgba(16,185,129,0.15)', border: '2px solid rgba(16,185,129,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}><i className="fa-solid fa-circle-check" style={{ fontSize: '2.5rem', color: '#10b981' }} /></div>
       <h2 style={{ margin: '0 0 10px', fontSize: '1.4rem', fontWeight: 800 }}>Pedido Confirmado!</h2>
       <p style={{ color: '#94a3b8', marginBottom: 20 }}>Seu pedido foi recebido com sucesso.</p>
-      <div style={{ background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: 12, padding: 16, marginBottom: 20 }}>
+      <div style={{ background: 'rgba(132, 204, 22,0.1)', border: '1px solid rgba(132, 204, 22,0.2)', borderRadius: 12, padding: 16, marginBottom: 20 }}>
         <span style={{ fontSize: '0.8rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 700 }}>Número do Pedido</span>
         <p style={{ margin: '6px 0 0', fontSize: '1.5rem', fontWeight: 800, letterSpacing: 3, color: 'var(--primary-cat)' }}>#{orderId.slice(0, 8).toUpperCase()}</p>
       </div>

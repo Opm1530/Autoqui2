@@ -30,7 +30,7 @@ export function StatusBadge({ status, compact }: { status: string; compact?: boo
 
 export function DeliveryBadge({ entrega, compact }: { entrega: string; compact?: boolean }) {
   if (entrega === 'retirada') {
-    return badge('badge secondary', { background: 'rgba(139,92,246,0.1)', color: '#a78bfa', border: '1px solid rgba(139,92,246,0.2)' }, 'fa-store', 'Retirada', compact);
+    return badge('badge secondary', { background: 'rgba(139,92,246,0.1)', color: '#a3e635', border: '1px solid rgba(139,92,246,0.2)' }, 'fa-store', 'Retirada', compact);
   }
   return badge('badge info', { background: 'rgba(59,130,246,0.1)', color: '#60a5fa', border: '1px solid rgba(59,130,246,0.2)' }, 'fa-truck', 'Entrega', compact);
 }

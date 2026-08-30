@@ -155,7 +155,7 @@ export function OrderModal({ order, companyId, storeName, clientName, clientPhon
               <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 8 }}>Itens do pedido</div>
               <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
                 {itens.length > 0 ? itens.map((i: any, idx: number) => (
-                  <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 1rem', borderBottom: idx < itens.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}>
+                  <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 1rem', borderBottom: idx < itens.length - 1 ? '1px solid rgba(23, 37, 28, 0.05)' : 'none' }}>
                     <div>
                       <span style={{ fontWeight: 600 }}>{i.quantidade}x {i.item}</span>
                       {i.observacao && <small style={{ display: 'block', color: 'var(--text-dim)' }}>Obs: {i.observacao}</small>}
@@ -205,7 +205,7 @@ export function OrderModal({ order, companyId, storeName, clientName, clientPhon
 
         {/* Intervenção do atendente */}
         {intervirOpen && (
-          <div style={{ margin: '0 1.5rem 1rem', padding: 14, background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-color)', borderRadius: 12 }}>
+          <div style={{ margin: '0 1.5rem 1rem', padding: 14, background: 'rgba(23, 37, 28, 0.03)', border: '1px solid var(--border-color)', borderRadius: 12 }}>
             <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 8 }}>
               <i className="fa-brands fa-whatsapp" style={{ color: '#25d366' }} /> Mensagem para o cliente
             </label>
@@ -240,7 +240,7 @@ export function OrderModal({ order, companyId, storeName, clientName, clientPhon
           )}
           {!isTerminal && !isCatalog && (
             <button className="btn-lead-action" disabled={busy} onClick={() => setIntervirOpen((o) => !o)}
-              style={{ background: 'rgba(99,102,241,0.12)', borderColor: 'rgba(99,102,241,0.35)' }}>
+              style={{ background: 'rgba(132, 204, 22,0.12)', borderColor: 'rgba(132, 204, 22,0.35)' }}>
               <i className="fa-solid fa-comment-dots" /> Intervir
             </button>
           )}

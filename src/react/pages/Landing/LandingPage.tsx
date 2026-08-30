@@ -68,7 +68,7 @@ export function LandingPage() {
             </ul>
             <Link to="/signup" className="lp-btn-primary-lp" style={{ padding: '0.9rem 2rem', fontSize: '1rem' }}>Começar teste grátis</Link>
           </div>
-          <div className="lp-feat-visual" style={{ color: '#6366f1' }}><i className="fa-solid fa-store" /></div>
+          <div className="lp-feat-visual" style={{ color: '#84cc16' }}><i className="fa-solid fa-store" /></div>
         </div>
       </section>
 
@@ -87,7 +87,7 @@ export function LandingPage() {
             <p style={{ fontSize: '0.95rem', marginBottom: '1.5rem' }}>A IA é configurada junto com um especialista, no tom da sua empresa. Fale com a gente para ativar.</p>
             <a href={WA} target="_blank" rel="noreferrer" className="lp-btn-wa"><i className="fa-brands fa-whatsapp" /> Falar no WhatsApp</a>
           </div>
-          <div className="lp-feat-visual" style={{ color: '#a855f7' }}><i className="fa-solid fa-robot" /></div>
+          <div className="lp-feat-visual" style={{ color: '#4d7c0f' }}><i className="fa-solid fa-robot" /></div>
         </div>
       </section>
 
@@ -120,7 +120,7 @@ export function LandingPage() {
               <div key={p.id} className="lp-card" style={{ textAlign: 'center' }}>
                 <div className="lp-card-icon" style={{ margin: '0 auto' }}><i className="fa-solid fa-store" /></div>
                 <h3>{p.nome}</h3>
-                <div style={{ fontSize: '2.2rem', fontWeight: 800, color: 'var(--lp-primary, #6366f1)', margin: '0.5rem 0' }}>
+                <div style={{ fontSize: '2.2rem', fontWeight: 800, color: 'var(--lp-primary, #84cc16)', margin: '0.5rem 0' }}>
                   R$ {Number(p.valor).toFixed(2)}<span style={{ fontSize: '0.9rem', opacity: 0.7, fontWeight: 400 }}>/mês</span>
                 </div>
                 <p>{lojasLabel(p.maxLojas)} · catálogo, pedidos e campanhas inclusos.</p>
@@ -132,7 +132,7 @@ export function LandingPage() {
           {/* IA é à parte — ativada com consultor */}
           <div className="lp-card" style={{ maxWidth: 760, margin: '2.5rem auto 0', display: 'flex', alignItems: 'center', gap: 24, flexWrap: 'wrap', justifyContent: 'center', textAlign: 'center' }}>
             <div style={{ flex: 1, minWidth: 260, textAlign: 'left' }}>
-              <h3 style={{ marginBottom: 8 }}><i className="fa-solid fa-robot" style={{ color: '#a855f7', marginRight: 10 }} />Quer IA de atendimento?</h3>
+              <h3 style={{ marginBottom: 8 }}><i className="fa-solid fa-robot" style={{ color: '#4d7c0f', marginRight: 10 }} />Quer IA de atendimento?</h3>
               <p style={{ margin: 0 }}>A IA não entra no autoatendimento: ela é configurada junto com um consultor, no tom da sua empresa. Fale com a gente para ativar.</p>
             </div>
             <a href={WA} target="_blank" rel="noreferrer" className="lp-btn-wa"><i className="fa-brands fa-whatsapp" /> Falar no WhatsApp</a>

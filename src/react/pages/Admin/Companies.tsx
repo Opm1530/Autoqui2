@@ -232,7 +232,7 @@ function CompanyModal({ editing, onClose, onSaved, onRemoved }: { editing: any |
               const on = modules.includes(m.value);
               return (
                 <button type="button" key={m.value} onClick={() => setModules((prev) => toggleModule(prev, m.value))}
-                  className="store-checkbox-card" style={{ border: on ? '1px solid var(--primary)' : undefined, background: on ? 'rgba(99,102,241,0.15)' : undefined }}>
+                  className="store-checkbox-card" style={{ border: on ? '1px solid var(--primary)' : undefined, background: on ? 'rgba(132, 204, 22,0.15)' : undefined }}>
                   <i className={`fa-solid ${on ? 'fa-square-check' : 'fa-square'}`} style={{ color: on ? 'var(--primary)' : 'var(--text-dim)' }} />
                   <span className="checkbox-label">{m.label}</span>
                 </button>

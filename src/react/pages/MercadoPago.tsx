@@ -125,7 +125,7 @@ export function MercadoPago() {
           </div>
         )}
 
-        <div style={{ background: 'rgba(99, 102, 241, 0.05)', border: '1px solid rgba(99, 102, 241, 0.1)', borderRadius: 10, padding: 15, display: 'flex', gap: 12, marginTop: 20 }}>
+        <div style={{ background: 'rgba(132, 204, 22, 0.05)', border: '1px solid rgba(132, 204, 22, 0.1)', borderRadius: 10, padding: 15, display: 'flex', gap: 12, marginTop: 20 }}>
           <i className="fa-solid fa-shield-halved" style={{ color: 'var(--primary)', marginTop: 3 }} />
           <div style={{ fontSize: '0.85rem', lineHeight: 1.5, color: 'var(--text-muted)' }}>
             O token é guardado <strong>no servidor</strong>, numa área protegida — nunca fica exposto no navegador nem no catálogo. Usado apenas para comunicação oficial com o Mercado Pago.

@@ -159,21 +159,21 @@ export function Dashboard() {
   return (
     <div>
       {showChecklist && (
-        <div className="card" style={{ marginBottom: '1.5rem', border: '1px solid rgba(99,102,241,0.3)', background: 'rgba(99,102,241,0.04)' }}>
+        <div className="card" style={{ marginBottom: '1.5rem', border: '1px solid rgba(132, 204, 22,0.3)', background: 'rgba(132, 204, 22,0.04)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
             <div>
-              <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 10 }}><i className="fa-solid fa-rocket" style={{ color: '#818cf8' }} /> Primeiros passos</h3>
+              <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 10 }}><i className="fa-solid fa-rocket" style={{ color: '#a3e635' }} /> Primeiros passos</h3>
               <p style={{ margin: '4px 0 0', color: 'var(--text-muted)', fontSize: '0.9rem' }}>Complete a configuração para começar a vender.</p>
             </div>
-            <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#818cf8' }}>{doneCount}/{steps.length}</div>
+            <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#a3e635' }}>{doneCount}/{steps.length}</div>
           </div>
-          <div style={{ height: 6, background: 'rgba(255,255,255,0.08)', borderRadius: 3, overflow: 'hidden', marginBottom: 16 }}>
-            <div style={{ width: `${(doneCount / steps.length) * 100}%`, height: '100%', background: 'linear-gradient(90deg,#6366f1,#a855f7)', borderRadius: 3, transition: 'width 0.4s' }} />
+          <div style={{ height: 6, background: 'rgba(23, 37, 28, 0.08)', borderRadius: 3, overflow: 'hidden', marginBottom: 16 }}>
+            <div style={{ width: `${(doneCount / steps.length) * 100}%`, height: '100%', background: 'linear-gradient(90deg,#84cc16,#4d7c0f)', borderRadius: 3, transition: 'width 0.4s' }} />
           </div>
           <div style={{ display: 'grid', gap: 8 }}>
             {steps.map((s) => (
-              <div key={s.key} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 12, background: s.done ? 'rgba(16,185,129,0.06)' : 'rgba(255,255,255,0.02)', border: `1px solid ${s.done ? 'rgba(16,185,129,0.2)' : 'var(--border-color)'}` }}>
-                <div style={{ width: 34, height: 34, borderRadius: 10, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: s.done ? 'rgba(16,185,129,0.15)' : 'rgba(99,102,241,0.12)', color: s.done ? '#34d399' : '#818cf8' }}>
+              <div key={s.key} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 12, background: s.done ? 'rgba(16,185,129,0.06)' : 'rgba(23, 37, 28, 0.02)', border: `1px solid ${s.done ? 'rgba(16,185,129,0.2)' : 'var(--border-color)'}` }}>
+                <div style={{ width: 34, height: 34, borderRadius: 10, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: s.done ? 'rgba(16,185,129,0.15)' : 'rgba(132, 204, 22,0.12)', color: s.done ? '#34d399' : '#a3e635' }}>
                   <i className={`${s.brand ? 'fa-brands' : 'fa-solid'} ${s.done ? 'fa-check' : s.icon}`} />
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
@@ -210,7 +210,7 @@ export function Dashboard() {
             {catalog.lowStockProducts.length === 0 ? (
               <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Todos os produtos com estoque adequado.</p>
             ) : catalog.lowStockProducts.map((p: any) => (
-              <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+              <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: '1px solid rgba(23, 37, 28, 0.05)' }}>
                 <span style={{ fontSize: '0.85rem', fontWeight: 500 }}>{p.name}</span>
                 <span className={`badge ${p.stock === 0 ? 'danger' : 'warning'}`}>{p.stock === 0 ? 'Esgotado' : `${p.stock} un.`}</span>
               </div>
@@ -225,7 +225,7 @@ export function Dashboard() {
             {catalog.topProducts.length === 0 ? (
               <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Nenhum pedido com itens ainda.</p>
             ) : catalog.topProducts.map((p, i) => (
-              <div key={p.name} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+              <div key={p.name} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 0', borderBottom: '1px solid rgba(23, 37, 28, 0.05)' }}>
                 <span style={{ fontSize: '1rem', fontWeight: 900, minWidth: 20, color: i === 0 ? '#f59e0b' : i === 1 ? '#94a3b8' : i === 2 ? '#b45309' : 'var(--text-dim)' }}>{i + 1}</span>
                 <span style={{ flex: 1, fontSize: '0.85rem', fontWeight: 500 }}>{p.name}</span>
                 <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{p.qty} un.</span>
@@ -250,8 +250,8 @@ export function Dashboard() {
                     <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{String(h).padStart(2, '0')}h – {String(h + 1).padStart(2, '0')}h</span>
                     <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{cnt} pedido{cnt !== 1 ? 's' : ''}</span>
                   </div>
-                  <div style={{ height: 6, background: 'rgba(255,255,255,0.08)', borderRadius: 3, overflow: 'hidden' }}>
-                    <div style={{ width: `${pct}%`, height: '100%', background: i === 0 ? 'var(--primary)' : 'rgba(99,102,241,0.4)', borderRadius: 3 }} />
+                  <div style={{ height: 6, background: 'rgba(23, 37, 28, 0.08)', borderRadius: 3, overflow: 'hidden' }}>
+                    <div style={{ width: `${pct}%`, height: '100%', background: i === 0 ? 'var(--primary)' : 'rgba(132, 204, 22,0.4)', borderRadius: 3 }} />
                   </div>
                 </div>
               );
@@ -266,7 +266,7 @@ export function Dashboard() {
           {stores.map((store) => (
             <div key={store.id} className="card">
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-                <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(99,102,241,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)' }}><i className="fa-solid fa-store" /></div>
+                <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(132, 204, 22,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)' }}><i className="fa-solid fa-store" /></div>
                 <div style={{ fontWeight: 700 }}>{store.name}</div>
               </div>
               <div style={{ display: 'flex', gap: 8 }}>

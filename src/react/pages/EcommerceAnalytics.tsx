@@ -37,8 +37,8 @@ export function EcommerceAnalytics() {
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1rem' }}>
         <Stat label="Faturamento" value={brl(data.revenue)} icon="fa-money-bill-trend-up" color="#22c55e" />
-        <Stat label="Pedidos pagos" value={String(data.orderCount)} icon="fa-bag-shopping" color="#6366f1" />
-        <Stat label="Ticket médio" value={brl(data.avgTicket)} icon="fa-receipt" color="#a855f7" />
+        <Stat label="Pedidos pagos" value={String(data.orderCount)} icon="fa-bag-shopping" color="#84cc16" />
+        <Stat label="Ticket médio" value={brl(data.avgTicket)} icon="fa-receipt" color="#4d7c0f" />
         <Stat label="LTV médio" value={brl(data.ltv)} icon="fa-gem" color="#0ea5e9" />
         <Stat label="Recompra" value={`${Number(data.repurchaseRate || 0).toFixed(0)}%`} icon="fa-repeat" color="#f59e0b" />
         <Stat label="Clientes" value={String(data.customers)} icon="fa-users" color="#ef4444" />
@@ -50,14 +50,14 @@ export function EcommerceAnalytics() {
           {(data.months || []).length === 0 ? <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Sem dados no período.</p> : (data.months || []).map((m: any) => (
             <div key={m.month} style={{ marginBottom: 10 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginBottom: 3 }}><span>{mesLabel(m.month)}</span><span style={{ color: 'var(--text-muted)' }}>{brl(m.revenue)} · {m.count}</span></div>
-              <div style={{ height: 6, background: 'rgba(255,255,255,0.08)', borderRadius: 3 }}><div style={{ width: `${(m.revenue / maxRev) * 100}%`, height: '100%', background: 'var(--primary)', borderRadius: 3 }} /></div>
+              <div style={{ height: 6, background: 'rgba(23, 37, 28, 0.08)', borderRadius: 3 }}><div style={{ width: `${(m.revenue / maxRev) * 100}%`, height: '100%', background: 'var(--primary)', borderRadius: 3 }} /></div>
             </div>
           ))}
         </div>
         <div className="card">
           <h4 style={{ margin: '0 0 1rem' }}><i className="fa-solid fa-trophy" style={{ color: '#f59e0b' }} /> Top 5 produtos</h4>
           {(data.topProducts || []).length === 0 ? <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Sem vendas no período.</p> : (data.topProducts || []).map((p: any, i: number) => (
-            <div key={p.name} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+            <div key={p.name} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 0', borderBottom: '1px solid rgba(23, 37, 28, 0.05)' }}>
               <span style={{ fontWeight: 900, color: i === 0 ? '#f59e0b' : 'var(--text-dim)', minWidth: 18 }}>{i + 1}</span>
               <span style={{ flex: 1, fontSize: '0.88rem' }}>{p.name}</span>
               <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{p.qty}un</span>

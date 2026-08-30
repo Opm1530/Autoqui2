@@ -24,8 +24,8 @@ export function EcommerceWidgets() {
   return (
     <div style={{ display: 'grid', gap: '1.25rem' }}>
       {/* Setup do script */}
-      <div className="card" style={{ borderColor: 'rgba(99,102,241,0.3)', background: 'rgba(99,102,241,0.04)' }}>
-        <div style={{ fontWeight: 700, marginBottom: 6 }}><i className="fa-solid fa-plug-circle-bolt" style={{ color: '#818cf8' }} /> Ativação na loja (uma vez)</div>
+      <div className="card" style={{ borderColor: 'rgba(132, 204, 22,0.3)', background: 'rgba(132, 204, 22,0.04)' }}>
+        <div style={{ fontWeight: 700, marginBottom: 6 }}><i className="fa-solid fa-plug-circle-bolt" style={{ color: '#a3e635' }} /> Ativação na loja (uma vez)</div>
         <p style={{ margin: '0 0 10px', fontSize: '0.88rem', color: 'var(--text-muted)' }}>
           Pra os widgets aparecerem na sua loja NuvemShop, cadastre este script no app (Partner Portal) e <strong>reconecte a loja</strong> uma vez para autorizar:
         </p>

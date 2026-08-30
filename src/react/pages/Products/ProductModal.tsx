@@ -268,7 +268,7 @@ function StoreMultiSelect({ stores, storeIds, onToggle }: { stores: any[]; store
           {selected.length === 0
             ? <span style={{ color: 'var(--text-dim)' }}>Selecione uma loja</span>
             : selected.map((s) => (
-              <span key={s.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.4)', color: '#c7d2fe', borderRadius: 6, padding: '2px 8px', fontSize: '0.8rem' }}>
+              <span key={s.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(132, 204, 22,0.15)', border: '1px solid rgba(132, 204, 22,0.4)', color: '#d9f0a3', borderRadius: 6, padding: '2px 8px', fontSize: '0.8rem' }}>
                 {s.name}
                 <i className="fa-solid fa-xmark" style={{ cursor: 'pointer' }} onClick={(e) => { e.stopPropagation(); onToggle(s.id); }} />
               </span>
@@ -284,7 +284,7 @@ function StoreMultiSelect({ stores, storeIds, onToggle }: { stores: any[]; store
             const on = storeIds.includes(s.id);
             return (
               <label key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 6, cursor: 'pointer' }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.05)')}
+                onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(23, 37, 28, 0.05)')}
                 onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
                 <input type="checkbox" checked={on} onChange={() => onToggle(s.id)} style={{ width: 16, height: 16, accentColor: 'var(--primary)' }} />
                 <span style={{ fontSize: '0.9rem' }}>{s.name}</span>
@@ -419,7 +419,7 @@ function ItemCard({ it, isAgendamento, isVitrine, labelSingular, categories, onP
               <i className="fa-solid fa-tag" /> Ativar Promoção
             </label>
             {it.promoActive && (
-              <div style={{ marginTop: 10, borderRadius: 8, background: 'rgba(99, 102, 241, 0.05)', padding: 12, border: '1px solid rgba(99, 102, 241, 0.2)' }}>
+              <div style={{ marginTop: 10, borderRadius: 8, background: 'rgba(132, 204, 22, 0.05)', padding: 12, border: '1px solid rgba(132, 204, 22, 0.2)' }}>
                 <div className="input-row">
                   <div className="field">
                     <label>Título da Promoção</label>

@@ -136,7 +136,7 @@ export function Orders() {
 
       {/* Toggles de loja */}
       {stores.length > 0 && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, padding: '0.85rem 1rem', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 12, marginBottom: '1rem' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, padding: '0.85rem 1rem', background: 'rgba(23, 37, 28, 0.03)', border: '1px solid rgba(23, 37, 28, 0.07)', borderRadius: 12, marginBottom: '1rem' }}>
           {stores.map((store) => {
             const cfg = lojaConfigs.find((c) => c.lojaId === store.id) || {};
             const lojaFechada = cfg.lojaFechada === true;
