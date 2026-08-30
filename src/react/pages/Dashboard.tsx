@@ -8,35 +8,39 @@ interface Checklist { mode: 'catalogo' | 'vitrine'; lojaOk: boolean; waOk: boole
 
 interface Metrics {
   messages: number;
-  payments: number;
+  vendasMes: number;
+  ticketMes: number;
+  pendingValue: number;
   orders_pending: number;
   today: number;
   salesTrend: number | null;
   ticketTrend: number | null;
+  todayTrend: number | null;
 }
 interface CatalogMetrics {
   lowStockProducts: any[];
   topProducts: { name: string; qty: number; revenue: number }[];
   bestHours: [number, number][];
-  avgTicket: number;
 }
 
 // Formatação BR só na apresentação (não altera os dados salvos).
 const fmtInt = (n: number) => n.toLocaleString('pt-BR');
 const fmtBRL = (n: number) => 'R$ ' + n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-function StatCard({ label, value, trend, green }: { label: string; value: string; trend?: number | null; green?: boolean }) {
+function StatCard({ label, value, trend, trendLabel = 'vs mês passado', subtitle, green }: { label: string; value: string; trend?: number | null; trendLabel?: string; subtitle?: string; green?: boolean }) {
   const up = (trend ?? 0) >= 0;
   return (
     <div className={'stats-card card' + (green ? ' stats-card-green' : '')}>
       <div className="stats-card-label">{label}</div>
       <div className="stats-card-value">{value}</div>
-      {trend != null && (
+      {trend != null ? (
         <div className={'stats-trend ' + (up ? 'up' : 'down')}>
           <i className={`fa-solid ${up ? 'fa-arrow-trend-up' : 'fa-arrow-trend-down'}`} />
-          {up ? '+' : ''}{Math.round(trend)}% <span>vs mês passado</span>
+          {up ? '+' : ''}{Math.round(trend)}% <span>{trendLabel}</span>
         </div>
-      )}
+      ) : subtitle ? (
+        <div className="stats-subtitle">{subtitle}</div>
+      ) : null}
     </div>
   );
 }
@@ -46,7 +50,7 @@ export function Dashboard() {
   const companyId = user?.companyId || '';
 
   const [modulos, setModulos] = useState<string[]>([]);
-  const [metrics, setMetrics] = useState<Metrics>({ messages: 0, payments: 0, orders_pending: 0, today: 0, salesTrend: null, ticketTrend: null });
+  const [metrics, setMetrics] = useState<Metrics>({ messages: 0, vendasMes: 0, ticketMes: 0, pendingValue: 0, orders_pending: 0, today: 0, salesTrend: null, ticketTrend: null, todayTrend: null });
   const [catalog, setCatalog] = useState<CatalogMetrics | null>(null);
   const [stores, setStores] = useState<any[]>([]);
   const [checklist, setChecklist] = useState<Checklist | null>(null);
@@ -90,39 +94,41 @@ export function Dashboard() {
         setShared(localStorage.getItem('onb_shared_' + companyId) === '1');
       }
 
-      const m: Metrics = { messages: 0, payments: 0, orders_pending: 0, today: 0, salesTrend: null, ticketTrend: null };
+      const m: Metrics = { messages: 0, vendasMes: 0, ticketMes: 0, pendingValue: 0, orders_pending: 0, today: 0, salesTrend: null, ticketTrend: null, todayTrend: null };
       m.messages = (messages as any[]).filter((x: any) => x.role === 'assistente').length;
 
       const ordersArr = orders as any[];
-      m.orders_pending = ordersArr.filter((o: any) => {
+      const pendentes = ordersArr.filter((o: any) => {
         const st = (o.status || 'em_montagem').toLowerCase();
         if (o.arquivado) return false;
         return st !== 'finalizado' && st !== 'cancelado';
-      }).length;
+      });
+      m.orders_pending = pendentes.length;
+      m.pendingValue = pendentes.reduce((s: number, o: any) => s + (o.value || o.total || 0), 0);
 
-      // Faixas de mês (para a comparação "vs mês passado").
+      // Faixas de mês (comparação "vs mês passado") e de dia (hoje vs ontem).
       const nowD = new Date();
       const thisMonthStart = new Date(nowD.getFullYear(), nowD.getMonth(), 1);
       const lastMonthStart = new Date(nowD.getFullYear(), nowD.getMonth() - 1, 1);
-      let totalSales = 0, ordersToday = 0, ordersPaid = 0;
-      let salesThis = 0, salesLast = 0, paidThis = 0, paidLast = 0;
       const today = new Date(); today.setHours(0, 0, 0, 0);
+      const yesterday = new Date(today); yesterday.setDate(yesterday.getDate() - 1);
+      let salesThis = 0, salesLast = 0, paidThis = 0, paidLast = 0, ordersToday = 0, ordersYesterday = 0;
       ordersArr.forEach((o: any) => {
         const d = o.criadoEm?.toDate ? o.criadoEm.toDate() : new Date(o.criadoEm || 0);
         if (o.status === 'finalizado') {
           const v = o.value || o.total || 0;
-          totalSales += v; ordersPaid++;
           if (d >= thisMonthStart) { salesThis += v; paidThis++; }
           else if (d >= lastMonthStart && d < thisMonthStart) { salesLast += v; paidLast++; }
         }
         if (d >= today) ordersToday++;
+        else if (d >= yesterday && d < today) ordersYesterday++;
       });
-      m.payments = totalSales; m.today = ordersToday;
       const pct = (cur: number, prev: number) => (prev > 0 ? ((cur - prev) / prev) * 100 : (cur > 0 ? 100 : null));
+      m.vendasMes = salesThis; m.today = ordersToday;
+      m.ticketMes = paidThis ? salesThis / paidThis : 0;
       m.salesTrend = pct(salesThis, salesLast);
-      const ticketThis = paidThis ? salesThis / paidThis : 0;
-      const ticketLast = paidLast ? salesLast / paidLast : 0;
-      m.ticketTrend = pct(ticketThis, ticketLast);
+      m.ticketTrend = pct(m.ticketMes, paidLast ? salesLast / paidLast : 0);
+      m.todayTrend = pct(ordersToday, ordersYesterday);
       setMetrics(m);
 
       if (needsCatalog) {
@@ -147,8 +153,7 @@ export function Dashboard() {
         });
         const topProducts = Array.from(salesMap.values()).sort((a, b) => b.qty - a.qty).slice(0, 5);
         const bestHours = Array.from(hourMap.entries()).sort((a, b) => b[1] - a[1]).slice(0, 3) as [number, number][];
-        const avgTicket = ordersPaid > 0 ? totalSales / ordersPaid : 0;
-        setCatalog({ lowStockProducts, topProducts, bestHours, avgTicket });
+        setCatalog({ lowStockProducts, topProducts, bestHours });
       }
     })();
   }, [companyId]);
@@ -223,10 +228,11 @@ export function Dashboard() {
       <div className="dashboard-grid">
         {modulos.includes('atendimento') && <StatCard label="Mensagens pela IA" value={fmtInt(metrics.messages)} />}
         {hasVenda && <>
-          <StatCard green label="Total em Vendas" value={fmtBRL(metrics.payments)} trend={metrics.salesTrend} />
-          <StatCard label="Pedidos Pendentes" value={fmtInt(metrics.orders_pending)} />
-          <StatCard label="Pedidos Hoje" value={fmtInt(metrics.today)} />
-          {catalog && <StatCard label="Ticket Médio" value={fmtBRL(catalog.avgTicket)} trend={metrics.ticketTrend} />}
+          <StatCard green label="Vendas no mês" value={fmtBRL(metrics.vendasMes)} trend={metrics.salesTrend} />
+          <StatCard label="Pedidos Pendentes" value={fmtInt(metrics.orders_pending)}
+            subtitle={metrics.pendingValue > 0 ? `${fmtBRL(metrics.pendingValue)} a receber` : (metrics.orders_pending > 0 ? 'aguardando conclusão' : 'tudo em dia ✓')} />
+          <StatCard label="Pedidos Hoje" value={fmtInt(metrics.today)} trend={metrics.todayTrend} trendLabel="vs ontem" />
+          {catalog && <StatCard label="Ticket Médio" value={fmtBRL(metrics.ticketMes)} trend={metrics.ticketTrend} />}
         </>}
       </div>
 
