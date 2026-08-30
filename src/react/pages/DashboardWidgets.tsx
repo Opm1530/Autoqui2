@@ -35,8 +35,12 @@ export function MonthlyBars({ data }: { data: { label: string; recebidos: number
         {data.map((d, i) => (
           <div key={i} className="mbars-col">
             <div className="mbars-bars">
-              <div className="mbar" style={{ height: `${(d.recebidos / max) * 100}%`, background: '#14532d' }} title={`Recebidos: ${d.recebidos}`} />
-              <div className="mbar" style={{ height: `${(d.pagos / max) * 100}%`, background: '#84cc16' }} title={`Pagos: ${d.pagos}`} />
+              <div className="mbar" style={{ height: `${(d.recebidos / max) * 100}%`, background: '#14532d' }} title={`Recebidos: ${d.recebidos}`}>
+                <span className="mbar-num">{d.recebidos}</span>
+              </div>
+              <div className="mbar" style={{ height: `${(d.pagos / max) * 100}%`, background: '#84cc16' }} title={`Pagos: ${d.pagos}`}>
+                <span className="mbar-num">{d.pagos}</span>
+              </div>
             </div>
             <span className="mbars-label">{d.label}</span>
           </div>
@@ -131,8 +135,8 @@ export function RecentOrders({ items }: { items: { nome: string; value: number; 
                   <div className="recent-date">{fmtDate(o.data)}</div>
                 </div>
                 <div className="recent-right">
+                  <div className={`recent-status ${st.cls}`}>{st.label}</div>
                   <div className="recent-value">{fmtBRL(o.value)}</div>
-                  <span className={`badge ${st.cls}`}>{st.label}</span>
                 </div>
               </div>
             );

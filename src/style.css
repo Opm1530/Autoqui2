@@ -270,8 +270,10 @@ ul {
 
 /* ── Dashboard: visualizações de vendas ── */
 .dash-row-2 { display: grid; grid-template-columns: 2fr 1fr; gap: 1.25rem; margin-top: 1.5rem; }
-.dash-row-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.25rem; margin-top: 1.25rem; }
-@media (max-width: 900px) { .dash-row-2 { grid-template-columns: 1fr; } }
+/* Últimos pedidos (alto, à esquerda) + coluna lateral empilhada (horários/assinatura) */
+.dash-row-3 { display: grid; grid-template-columns: 1.15fr 1fr; gap: 1.25rem; margin-top: 1.25rem; align-items: start; }
+.dash-side-col { display: flex; flex-direction: column; gap: 1.25rem; }
+@media (max-width: 900px) { .dash-row-2, .dash-row-3 { grid-template-columns: 1fr; } }
 
 .viz-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 1.25rem; }
 .viz-head h4 { margin: 0; font-size: 1rem; font-weight: 700; }
@@ -281,11 +283,12 @@ ul {
 .viz-empty { color: var(--text-muted); font-size: 0.85rem; text-align: center; padding: 1.75rem 0; }
 
 /* Barras verticais */
-.mbars { display: flex; align-items: flex-end; gap: 10px; height: 180px; }
+.mbars { display: flex; align-items: flex-end; gap: 10px; height: 200px; padding-top: 22px; box-sizing: border-box; }
 .mbars-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px; height: 100%; }
 .mbars-bars { flex: 1; width: 100%; display: flex; align-items: flex-end; justify-content: center; gap: 5px; }
-.mbar { width: 15px; border-radius: 6px 6px 0 0; min-height: 3px; transition: height 0.4s ease; }
-.mbars-label { font-size: 0.75rem; color: var(--text-muted); text-transform: capitalize; }
+.mbar { position: relative; width: 20px; border-radius: 6px 6px 0 0; min-height: 3px; transition: height 0.4s ease; }
+.mbar-num { position: absolute; top: -18px; left: 50%; transform: translateX(-50%); font-size: 0.72rem; font-weight: 700; color: var(--text-muted); }
+.mbars-label { font-size: 0.78rem; color: var(--text-muted); text-transform: capitalize; }
 
 /* Donut */
 .donut-wrap { display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap; }
@@ -315,8 +318,13 @@ ul {
 .recent-info { flex: 1; min-width: 0; }
 .recent-name { font-weight: 600; font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .recent-date { font-size: 0.78rem; color: var(--text-muted); }
-.recent-right { display: flex; flex-direction: column; gap: 4px; align-items: flex-end; flex-shrink: 0; }
-.recent-value { font-weight: 700; font-size: 0.9rem; }
+.recent-right { display: flex; flex-direction: column; gap: 3px; align-items: flex-end; flex-shrink: 0; }
+.recent-status { font-size: 0.9rem; font-weight: 600; }
+.recent-status.success { color: var(--success); }
+.recent-status.warning { color: var(--warning); }
+.recent-status.info { color: var(--info); }
+.recent-status.danger { color: var(--danger); }
+.recent-value { font-size: 0.82rem; color: var(--text-muted); font-weight: 500; }
 
 /* Card de assinatura */
 .sub-card { display: flex; flex-direction: column; }

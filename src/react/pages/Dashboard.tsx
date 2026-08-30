@@ -145,9 +145,9 @@ export function Dashboard() {
 
       // ── Visualizações de vendas ──
       if (needsOrders) {
-        // Barras: últimos 6 meses (recebidos = criados; pagos = finalizados).
-        const months = Array.from({ length: 6 }, (_, k) => {
-          const dt = new Date(nowD.getFullYear(), nowD.getMonth() - (5 - k), 1);
+        // Barras: últimos 3 meses (recebidos = criados; pagos = finalizados).
+        const months = Array.from({ length: 3 }, (_, k) => {
+          const dt = new Date(nowD.getFullYear(), nowD.getMonth() - (2 - k), 1);
           return { y: dt.getFullYear(), m: dt.getMonth(), label: MESES_PT[dt.getMonth()], recebidos: 0, pagos: 0 };
         });
         ordersArr.forEach((o: any) => {
@@ -166,7 +166,7 @@ export function Dashboard() {
 
         // Lista: últimos pedidos.
         const recent = [...ordersArr].filter((o: any) => !o.arquivado)
-          .sort((a: any, b: any) => orderDate(b).getTime() - orderDate(a).getTime()).slice(0, 6)
+          .sort((a: any, b: any) => orderDate(b).getTime() - orderDate(a).getTime()).slice(0, 8)
           .map((o: any) => ({ nome: o.nome || o.leadName || o.clientName || 'Cliente', value: o.value || o.total || 0, data: orderDate(o), status: (o.status || 'em_montagem').toLowerCase() }));
 
         setSalesViz({ monthly: months.map(({ label, recebidos, pagos }) => ({ label, recebidos, pagos })), bairros, totalPedidos: ordersArr.length, recent });
@@ -284,8 +284,10 @@ export function Dashboard() {
         </div>
         <div className="dash-row-3">
           <RecentOrders items={salesViz.recent} />
-          <BestHours data={catalog?.bestHours || []} />
-          <SubscriptionCard sub={sub} />
+          <div className="dash-side-col">
+            <BestHours data={catalog?.bestHours || []} />
+            <SubscriptionCard sub={sub} />
+          </div>
         </div>
       </>}
     </div>
