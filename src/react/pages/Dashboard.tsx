@@ -3,6 +3,18 @@ import { Link } from 'react-router-dom';
 import { dbService } from '../../services/db';
 import { toast } from '../../services/toast';
 import { useAuth } from '../useAuth';
+import { subscriptionApi } from '../../services/subscriptionApi';
+import { MonthlyBars, BairroDonut, BestHours, RecentOrders, SubscriptionCard, fmtInt, fmtBRL } from './DashboardWidgets';
+
+const MESES_PT = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+const orderDate = (o: any): Date => (o.criadoEm?.toDate ? o.criadoEm.toDate() : new Date(o.criadoEm || o.createdAt || 0));
+
+interface SalesViz {
+  monthly: { label: string; recebidos: number; pagos: number }[];
+  bairros: { name: string; count: number }[];
+  totalPedidos: number;
+  recent: { nome: string; value: number; data: Date; status: string }[];
+}
 
 interface Checklist { mode: 'catalogo' | 'vitrine'; lojaOk: boolean; waOk: boolean; prodOk: boolean; pagOk: boolean; waCfgOk: boolean; }
 
@@ -22,10 +34,6 @@ interface CatalogMetrics {
   topProducts: { name: string; qty: number; revenue: number }[];
   bestHours: [number, number][];
 }
-
-// Formatação BR só na apresentação (não altera os dados salvos).
-const fmtInt = (n: number) => n.toLocaleString('pt-BR');
-const fmtBRL = (n: number) => 'R$ ' + n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 function StatCard({ label, value, trend, trendLabel = 'vs mês passado', subtitle, green }: { label: string; value: string; trend?: number | null; trendLabel?: string; subtitle?: string; green?: boolean }) {
   const up = (trend ?? 0) >= 0;
@@ -52,9 +60,13 @@ export function Dashboard() {
   const [modulos, setModulos] = useState<string[]>([]);
   const [metrics, setMetrics] = useState<Metrics>({ messages: 0, vendasMes: 0, ticketMes: 0, pendingValue: 0, orders_pending: 0, today: 0, salesTrend: null, ticketTrend: null, todayTrend: null });
   const [catalog, setCatalog] = useState<CatalogMetrics | null>(null);
+  const [salesViz, setSalesViz] = useState<SalesViz | null>(null);
+  const [sub, setSub] = useState<any>(null);
   const [stores, setStores] = useState<any[]>([]);
   const [checklist, setChecklist] = useState<Checklist | null>(null);
   const [shared, setShared] = useState(false);
+
+  useEffect(() => { subscriptionApi.mine().then(setSub).catch(() => {}); }, []);
 
   useEffect(() => {
     if (!companyId) return;
@@ -130,6 +142,35 @@ export function Dashboard() {
       m.ticketTrend = pct(m.ticketMes, paidLast ? salesLast / paidLast : 0);
       m.todayTrend = pct(ordersToday, ordersYesterday);
       setMetrics(m);
+
+      // ── Visualizações de vendas ──
+      if (needsOrders) {
+        // Barras: últimos 6 meses (recebidos = criados; pagos = finalizados).
+        const months = Array.from({ length: 6 }, (_, k) => {
+          const dt = new Date(nowD.getFullYear(), nowD.getMonth() - (5 - k), 1);
+          return { y: dt.getFullYear(), m: dt.getMonth(), label: MESES_PT[dt.getMonth()], recebidos: 0, pagos: 0 };
+        });
+        ordersArr.forEach((o: any) => {
+          const d = orderDate(o);
+          const mi = months.findIndex((x) => x.y === d.getFullYear() && x.m === d.getMonth());
+          if (mi >= 0) { months[mi].recebidos++; if ((o.status || '').toLowerCase() === 'finalizado') months[mi].pagos++; }
+        });
+
+        // Donut: pedidos por bairro (top 4 + Outros).
+        const bmap = new Map<string, number>();
+        ordersArr.forEach((o: any) => { const b = (o.bairro || '').trim() || 'Sem bairro'; bmap.set(b, (bmap.get(b) || 0) + 1); });
+        const ordenados = [...bmap.entries()].sort((a, b) => b[1] - a[1]);
+        const bairros = ordenados.slice(0, 4).map(([name, count]) => ({ name, count }));
+        const outros = ordenados.slice(4).reduce((s, [, c]) => s + c, 0);
+        if (outros > 0) bairros.push({ name: 'Outros', count: outros });
+
+        // Lista: últimos pedidos.
+        const recent = [...ordersArr].filter((o: any) => !o.arquivado)
+          .sort((a: any, b: any) => orderDate(b).getTime() - orderDate(a).getTime()).slice(0, 6)
+          .map((o: any) => ({ nome: o.nome || o.leadName || o.clientName || 'Cliente', value: o.value || o.total || 0, data: orderDate(o), status: (o.status || 'em_montagem').toLowerCase() }));
+
+        setSalesViz({ monthly: months.map(({ label, recebidos, pagos }) => ({ label, recebidos, pagos })), bairros, totalPedidos: ordersArr.length, recent });
+      }
 
       if (needsCatalog) {
         const prods = products as any[];
@@ -236,85 +277,17 @@ export function Dashboard() {
         </>}
       </div>
 
-      {catalog && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem', marginTop: '1.5rem' }}>
-          {/* Estoque baixo */}
-          <div className="card" style={{ border: '1px solid rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.03)' }}>
-            <h4 style={{ margin: '0 0 1rem', display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.95rem' }}>
-              <i className="fa-solid fa-triangle-exclamation" style={{ color: '#ef4444' }} /> Estoque Baixo
-            </h4>
-            {catalog.lowStockProducts.length === 0 ? (
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Todos os produtos com estoque adequado.</p>
-            ) : catalog.lowStockProducts.map((p: any) => (
-              <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: '1px solid rgba(23, 37, 28, 0.05)' }}>
-                <span style={{ fontSize: '0.85rem', fontWeight: 500 }}>{p.name}</span>
-                <span className={`badge ${p.stock === 0 ? 'danger' : 'warning'}`}>{p.stock === 0 ? 'Esgotado' : `${p.stock} un.`}</span>
-              </div>
-            ))}
-          </div>
-
-          {/* Top 5 */}
-          <div className="card">
-            <h4 style={{ margin: '0 0 1rem', display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.95rem' }}>
-              <i className="fa-solid fa-trophy" style={{ color: '#f59e0b' }} /> Top 5 Produtos
-            </h4>
-            {catalog.topProducts.length === 0 ? (
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Nenhum pedido com itens ainda.</p>
-            ) : catalog.topProducts.map((p, i) => (
-              <div key={p.name} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 0', borderBottom: '1px solid rgba(23, 37, 28, 0.05)' }}>
-                <span style={{ fontSize: '1rem', fontWeight: 900, minWidth: 20, color: i === 0 ? '#f59e0b' : i === 1 ? '#94a3b8' : i === 2 ? '#b45309' : 'var(--text-dim)' }}>{i + 1}</span>
-                <span style={{ flex: 1, fontSize: '0.85rem', fontWeight: 500 }}>{p.name}</span>
-                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{p.qty} un.</span>
-                <span style={{ fontSize: '0.8rem', color: 'var(--success)' }}>R$ {p.revenue.toFixed(2)}</span>
-              </div>
-            ))}
-          </div>
-
-          {/* Melhores horários */}
-          <div className="card">
-            <h4 style={{ margin: '0 0 1rem', display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.95rem' }}>
-              <i className="fa-solid fa-chart-bar" style={{ color: 'var(--primary)' }} /> Melhores Horários
-            </h4>
-            {catalog.bestHours.length === 0 ? (
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Nenhum pedido registrado ainda.</p>
-            ) : catalog.bestHours.map(([h, cnt], i) => {
-              const max = catalog.bestHours[0][1];
-              const pct = Math.round((cnt / max) * 100);
-              return (
-                <div key={h} style={{ marginBottom: 10 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                    <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{String(h).padStart(2, '0')}h – {String(h + 1).padStart(2, '0')}h</span>
-                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{cnt} pedido{cnt !== 1 ? 's' : ''}</span>
-                  </div>
-                  <div style={{ height: 6, background: 'rgba(23, 37, 28, 0.08)', borderRadius: 3, overflow: 'hidden' }}>
-                    <div style={{ width: `${pct}%`, height: '100%', background: i === 0 ? 'var(--primary)' : 'rgba(132, 204, 22,0.4)', borderRadius: 3 }} />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+      {hasVenda && salesViz && <>
+        <div className="dash-row-2">
+          <MonthlyBars data={salesViz.monthly} />
+          <BairroDonut items={salesViz.bairros} total={salesViz.totalPedidos} />
         </div>
-      )}
-
-      {/* Links das lojas */}
-      {hasVenda && stores.length > 0 && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.25rem', marginTop: '1.5rem' }}>
-          {stores.map((store) => (
-            <div key={store.id} className="card">
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-                <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(132, 204, 22,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)' }}><i className="fa-solid fa-store" /></div>
-                <div style={{ fontWeight: 700 }}>{store.name}</div>
-              </div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <input readOnly value={`${window.location.origin}/catalog/${store.id}`}
-                  style={{ flex: 1, background: 'var(--bg-color)', border: '1px solid var(--border-color)', color: 'var(--text-muted)', borderRadius: 8, padding: '8px 10px', fontSize: '0.8rem', textOverflow: 'ellipsis' }} />
-                <button className="btn-primary" style={{ padding: '8px 12px' }} onClick={() => copyLink(store.id)}><i className="fa-solid fa-copy" /></button>
-                <a className="btn-secondary" href={`${window.location.origin}/catalog/${store.id}`} target="_blank" rel="noreferrer" style={{ padding: '8px 12px', display: 'inline-flex', alignItems: 'center' }}><i className="fa-solid fa-external-link" /></a>
-              </div>
-            </div>
-          ))}
+        <div className="dash-row-3">
+          <RecentOrders items={salesViz.recent} />
+          <BestHours data={catalog?.bestHours || []} />
+          <SubscriptionCard sub={sub} />
         </div>
-      )}
+      </>}
     </div>
   );
 }
