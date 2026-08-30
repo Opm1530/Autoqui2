@@ -674,15 +674,14 @@ ul {
 /* Topbar */
 .topbar {
   height: var(--header-height);
+  min-height: var(--header-height);
+  flex-shrink: 0;
   padding: 0 2rem;
   display: flex;
   align-items: center;
   gap: 1.5rem;
   background: var(--surface-color);
   border-bottom: 1px solid var(--border-color);
-  position: sticky;
-  top: 0;
-  z-index: 10;
 }
 
 .topbar-left { flex-shrink: 0; }
