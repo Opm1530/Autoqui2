@@ -282,18 +282,22 @@ export function Dashboard() {
 
       {hasVenda && salesViz && (
         <div className="dash-viz">
-          <div style={{ gridArea: 'recent' }}><RecentOrders items={salesViz.recent} /></div>
-          <div style={{ gridArea: 'mes' }}><MonthlyBars data={salesViz.monthly} /></div>
-          <div style={{ gridArea: 'horas' }}><BestHours data={catalog?.bestHours || []} /></div>
-          <div style={{ gridArea: 'fat' }}>
+          <div className="dash-col">
+            <RecentOrders items={salesViz.recent} />
+          </div>
+          <div className="dash-col">
+            <MonthlyBars data={salesViz.monthly} />
+            <BestHours data={catalog?.bestHours || []} />
             <div className="card viz-card fat-card">
               <div className="viz-head"><h4>Faturamento total</h4></div>
               <div className="fat-value">{fmtBRL(salesViz.faturamentoPago)}</div>
               <div className="fat-cap">em pedidos pagos</div>
             </div>
           </div>
-          <div style={{ gridArea: 'bairro' }}><BairroDonut items={salesViz.bairros} total={salesViz.totalPedidos} /></div>
-          <div style={{ gridArea: 'assinatura' }}><SubscriptionCard sub={sub} /></div>
+          <div className="dash-col">
+            <BairroDonut items={salesViz.bairros} total={salesViz.totalPedidos} />
+            <SubscriptionCard sub={sub} />
+          </div>
         </div>
       )}
     </div>

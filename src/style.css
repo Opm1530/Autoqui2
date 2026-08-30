@@ -275,21 +275,14 @@ ul {
 .dash-viz {
   display: grid;
   grid-template-columns: 1.1fr 1fr 1fr;
-  grid-template-areas:
-    "recent mes   bairro"
-    "recent horas assinatura"
-    "recent fat   assinatura";
   gap: 1.25rem;
   margin-top: 1.5rem;
   align-items: start;
 }
-.dash-viz > div { display: flex; min-width: 0; }
-.dash-viz > div > .card { width: 100%; }
+.dash-col { display: flex; flex-direction: column; gap: 1.25rem; min-width: 0; }
+.dash-col > .card { width: 100%; }
 @media (max-width: 1000px) {
-  .dash-viz {
-    grid-template-columns: 1fr;
-    grid-template-areas: "recent" "mes" "horas" "fat" "bairro" "assinatura";
-  }
+  .dash-viz { grid-template-columns: 1fr; }
 }
 
 /* Card de faturamento total */
@@ -354,7 +347,6 @@ ul {
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  height: 100%;
   background: linear-gradient(155deg, #e8eddf 0%, #dae3cc 100%);
   border-color: transparent;
 }
