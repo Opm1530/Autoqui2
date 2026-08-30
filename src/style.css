@@ -277,19 +277,16 @@ ul {
   grid-template-columns: 1.1fr 1fr 1fr;
   gap: 1.25rem;
   margin-top: 1.5rem;
-  align-items: stretch;
+  align-items: start;
 }
 .dash-col { display: flex; flex-direction: column; gap: 1.25rem; min-width: 0; }
 .dash-col > .card { width: 100%; }
-/* Últimas colunas esticam pra alinhar os rodapés das 3 colunas. */
-.dash-col > .card:last-child { flex: 1 0 auto; }
 @media (max-width: 1000px) {
   .dash-viz { grid-template-columns: 1fr; }
-  .dash-col > .card:last-child { flex: 0 0 auto; }
 }
 
 /* Card de faturamento total */
-.fat-card { display: flex; flex-direction: column; justify-content: center; }
+.fat-card { display: flex; flex-direction: column; }
 .fat-value { font-family: 'Outfit', sans-serif; font-size: 1.9rem; font-weight: 700; letter-spacing: -0.02em; color: var(--primary-hover); line-height: 1; }
 .fat-cap { font-size: 0.82rem; color: var(--text-muted); margin-top: 6px; }
 
@@ -304,10 +301,12 @@ ul {
 
 /* Barras verticais (agrupadas, com linha de base) */
 .mbars-plot { display: flex; align-items: flex-end; gap: 14px; height: 190px; padding-top: 22px; box-sizing: border-box; border-bottom: 1px solid var(--border-color); }
-.mbars-group { flex: 1; height: 100%; display: flex; align-items: flex-end; justify-content: center; gap: 3px; }
+.mbars-group { flex: 1; height: 100%; display: flex; align-items: flex-end; justify-content: center; gap: 0; }
 .mbars-labels { display: flex; margin-top: 8px; }
 .mbars-labels span { flex: 1; text-align: center; font-size: 0.78rem; color: var(--text-muted); text-transform: capitalize; }
-.mbar { position: relative; width: 22px; border-radius: 6px 6px 0 0; min-height: 3px; transition: height 0.4s ease; }
+.mbar { position: relative; width: 24px; border-radius: 6px 6px 0 0; min-height: 3px; transition: height 0.4s ease; }
+.mbars-group .mbar:first-child { border-radius: 6px 0 0 0; }
+.mbars-group .mbar:last-child { border-radius: 0 6px 0 0; }
 .mbar-num { position: absolute; top: -18px; left: 50%; transform: translateX(-50%); font-size: 0.72rem; font-weight: 700; color: var(--text-muted); }
 .mbars-label { font-size: 0.78rem; color: var(--text-muted); text-transform: capitalize; }
 
