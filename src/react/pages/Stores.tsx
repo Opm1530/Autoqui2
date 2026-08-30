@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { dbService } from '../../services/db';
 import { adminApi } from '../../services/adminApi';
+import { domainsApi } from '../../services/domainsApi';
 import { toast } from '../../services/toast';
 import { confirm } from '../../services/confirm';
 import { useAuth } from '../useAuth';
@@ -113,6 +114,8 @@ export function Stores() {
                   </span>
                 </div>
 
+                {isOwner && <StoreSubdomain store={s} onChange={(sub) => setStores((prev) => prev.map((x) => (x.id === s.id ? { ...x, subdominio: sub } : x)))} />}
+
                 {isOwner && (
                   <div style={{ display: 'flex', gap: 8, borderTop: '1px solid var(--border-color)', paddingTop: 14, flexWrap: 'wrap' }}>
                     <button className="btn-secondary" style={{ flex: '1 1 100%', justifyContent: 'center' }} onClick={() => setModal({ id: s.id, name: s.name || '', address: s.address || '' })}>
@@ -151,6 +154,40 @@ export function Stores() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// Editor de subdomínio do catálogo (loja.autoqui.com.br). Cada loja tem o seu.
+function StoreSubdomain({ store, onChange }: { store: any; onChange: (sub: string | null) => void }) {
+  const [sub, setSub] = useState(store.subdominio ? String(store.subdominio).replace('.autoqui.com.br', '') : '');
+  const [busy, setBusy] = useState(false);
+  const host = store.subdominio || '';
+
+  async function save() {
+    if (!sub.trim()) { toast.warning('Informe o subdomínio.'); return; }
+    setBusy(true);
+    try {
+      const { host } = await domainsApi.setSubdomain(store.id, sub.trim());
+      onChange(host);
+      toast.success('Subdomínio salvo! Pode levar alguns minutos para propagar.');
+    } catch (e: any) {
+      const m = e.message === 'subdominio_em_uso' ? 'Esse endereço já está em uso.'
+        : e.message === 'subdominio_invalido' ? 'Inválido: use 3+ letras/números/hífen, sem espaço.'
+        : 'Erro: ' + (e.message || e);
+      toast.error(m);
+    } finally { setBusy(false); }
+  }
+
+  return (
+    <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: 14 }}>
+      <label className="config-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}><i className="fa-solid fa-globe" style={{ color: 'var(--primary)' }} /> Endereço do catálogo</label>
+      <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+        <input className="config-input" value={sub} onChange={(e) => setSub(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))} placeholder="minhaloja" style={{ flex: 1, minWidth: 120 }} />
+        <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem', whiteSpace: 'nowrap' }}>.autoqui.com.br</span>
+        <button className="btn-secondary" disabled={busy} onClick={save}>{busy ? '...' : 'Salvar'}</button>
+      </div>
+      {host && <a href={`https://${host}`} target="_blank" rel="noreferrer" style={{ fontSize: '0.8rem', color: 'var(--primary)', display: 'inline-block', marginTop: 6 }}>{host} ↗</a>}
     </div>
   );
 }

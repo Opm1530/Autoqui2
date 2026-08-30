@@ -28,6 +28,7 @@ import { ecommerceRouter } from './ecommerce/router.js';
 import { startEcommerceJobs } from './ecommerce/jobs.js';
 import { storefrontPublicRouter, storefrontAuthRouter } from './ecommerce/storefront.js';
 import { handleIncoming, activateCapture, captureStatus } from './farmaqui.js';
+import { setStoreSubdomain, removeStoreSubdomain, storeByHost } from './domains.js';
 
 // Empresa do usuário logado (a partir do doc users/{uid}).
 async function companyOf(uid: string): Promise<string> {
@@ -51,8 +52,9 @@ app.use('/api/ecommerce/storefront', storefrontPublicRouter);
 app.use(
   cors({
     origin(origin, cb) {
-      // Permite requisições sem Origin (curl/health) e as origens autorizadas.
-      if (!origin || ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
+      // Permite: sem Origin (curl/health), origens autorizadas, e qualquer
+      // subdomínio *.autoqui.com.br (catálogos/landings servidos por subdomínio).
+      if (!origin || ALLOWED_ORIGINS.includes(origin) || /^https?:\/\/([a-z0-9-]+\.)+autoqui\.com\.br$/i.test(origin)) return cb(null, true);
       cb(new Error('Origin não permitida'));
     },
   })
@@ -238,6 +240,11 @@ app.post('/api/wa/incoming/:companyId', (req, res) => {
 });
 app.post('/api/farmaqui/activate', requireAuth, wrap((req) => activateCapture(req.uid, String(req.body?.instanceName || ''))));
 app.get('/api/farmaqui/status', requireAuth, wrap((req) => captureStatus(req.uid)));
+
+// ── Domínios / subdomínios ──
+app.get('/api/domains/store-by-host', wrap((req) => storeByHost(String(req.query.host || ''))));
+app.post('/api/domains/subdomain', requireAuth, wrap((req) => setStoreSubdomain(req.uid, String(req.body?.storeId || ''), String(req.body?.subdominio || ''))));
+app.delete('/api/domains/subdomain', requireAuth, wrap((req) => removeStoreSubdomain(req.uid, String(req.body?.storeId || ''))));
 
 // ── Assinaturas (mensalidade dos clientes via MP da plataforma) ──
 app.post('/api/platform-mp/connect', requireAuth, wrap((req) => connectPlatformMp(req.uid, String(req.body?.accessToken || ''))));

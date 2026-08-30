@@ -9,8 +9,9 @@ import './catalog.css';
 
 interface CartEntry { product: any; qty: number }
 
-export function Catalog() {
-  const { storeId = '' } = useParams();
+export function Catalog({ storeId: storeIdProp }: { storeId?: string } = {}) {
+  const params = useParams();
+  const storeId = storeIdProp || params.storeId || '';
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<any | null>(null);
   const [cart, setCart] = useState<Map<string, CartEntry>>(new Map());

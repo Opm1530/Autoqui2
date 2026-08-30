@@ -1,4 +1,6 @@
+import { useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { API_BASE_URL } from '../services/api';
 import { AuthProvider, useAuth } from './useAuth';
 import { Shell } from './Shell';
 import { Login } from './pages/Login';
@@ -45,6 +47,27 @@ function Protected() {
 const homeFor = (user: any) => !user ? '/login' : user.role === 'admin' ? '/admin/dashboard' : '/dashboard';
 
 // Se já estiver logado, sai da tela de login direto pro painel.
+// Hosts do app principal (painel + landing). Qualquer outro host é uma vitrine
+// servida por subdomínio/domínio próprio → resolve o host e mostra o catálogo.
+const MAIN_HOSTS = ['autoqui.com.br', 'www.autoqui.com.br', 'localhost', '127.0.0.1'];
+
+function RootRoute() {
+  const host = window.location.hostname;
+  if (MAIN_HOSTS.includes(host)) return <LandingPage />;
+  return <StorefrontHost host={host} />;
+}
+
+function StorefrontHost({ host }: { host: string }) {
+  const [storeId, setStoreId] = useState<string | null | undefined>(undefined);
+  useEffect(() => {
+    fetch(`${API_BASE_URL}/api/domains/store-by-host?host=${encodeURIComponent(host)}`)
+      .then((r) => r.json()).then((d) => setStoreId(d.storeId || null)).catch(() => setStoreId(null));
+  }, [host]);
+  if (storeId === undefined) return null;      // resolvendo
+  if (!storeId) return <LandingPage />;         // host não cadastrado → cai na landing
+  return <Catalog storeId={storeId} />;
+}
+
 function LoginRoute() {
   const { user, loading } = useAuth();
   if (loading) return null;
@@ -95,7 +118,7 @@ export function App() {
             <Route path="/admin/plans" element={<Plans />} />
             <Route path="/billing" element={<Billing />} />
           </Route>
-          <Route path="/" element={<LandingPage />} />
+          <Route path="/" element={<RootRoute />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
