@@ -13,6 +13,7 @@ interface SalesViz {
   monthly: { label: string; recebidos: number; pagos: number }[];
   bairros: { name: string; count: number }[];
   totalPedidos: number;
+  faturamentoPago: number;
   recent: { nome: string; value: number; data: Date; status: string }[];
 }
 
@@ -169,7 +170,9 @@ export function Dashboard() {
           .sort((a: any, b: any) => orderDate(b).getTime() - orderDate(a).getTime()).slice(0, 8)
           .map((o: any) => ({ nome: o.nome || o.leadName || o.clientName || 'Cliente', value: o.value || o.total || 0, data: orderDate(o), status: (o.status || 'em_montagem').toLowerCase() }));
 
-        setSalesViz({ monthly: months.map(({ label, recebidos, pagos }) => ({ label, recebidos, pagos })), bairros, totalPedidos: ordersArr.length, recent });
+        const faturamentoPago = ordersArr.reduce((s: number, o: any) => s + ((o.status || '').toLowerCase() === 'finalizado' ? (o.value || o.total || 0) : 0), 0);
+
+        setSalesViz({ monthly: months.map(({ label, recebidos, pagos }) => ({ label, recebidos, pagos })), bairros, totalPedidos: ordersArr.length, faturamentoPago, recent });
       }
 
       if (needsCatalog) {
@@ -279,10 +282,17 @@ export function Dashboard() {
 
       {hasVenda && salesViz && (
         <div className="dash-viz">
-          <div style={{ gridArea: 'mes' }}><MonthlyBars data={salesViz.monthly} /></div>
           <div style={{ gridArea: 'recent' }}><RecentOrders items={salesViz.recent} /></div>
-          <div style={{ gridArea: 'bairro' }}><BairroDonut items={salesViz.bairros} total={salesViz.totalPedidos} /></div>
+          <div style={{ gridArea: 'mes' }}><MonthlyBars data={salesViz.monthly} /></div>
           <div style={{ gridArea: 'horas' }}><BestHours data={catalog?.bestHours || []} /></div>
+          <div style={{ gridArea: 'fat' }}>
+            <div className="card viz-card fat-card">
+              <div className="viz-head"><h4>Faturamento total</h4></div>
+              <div className="fat-value">{fmtBRL(salesViz.faturamentoPago)}</div>
+              <div className="fat-cap">em pedidos pagos</div>
+            </div>
+          </div>
+          <div style={{ gridArea: 'bairro' }}><BairroDonut items={salesViz.bairros} total={salesViz.totalPedidos} /></div>
           <div style={{ gridArea: 'assinatura' }}><SubscriptionCard sub={sub} /></div>
         </div>
       )}

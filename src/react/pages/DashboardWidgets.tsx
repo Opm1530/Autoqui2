@@ -147,7 +147,7 @@ export function RecentOrders({ items }: { items: { nome: string; value: number; 
   );
 }
 
-// ── Card de status da assinatura ──
+// ── Card de assinatura (estilo promo, ref. Siohioma) ──
 export function SubscriptionCard({ sub }: { sub: any }) {
   const a = sub?.assinatura;
   const emTrial = !!sub?.emTrial;
@@ -162,14 +162,24 @@ export function SubscriptionCard({ sub }: { sub: any }) {
   const key = bloqueada ? 'cancelled' : emTrial ? 'trial' : (a?.status || 'pending');
   const st = statusMap[key] || { label: key, cls: 'info' };
 
+  const title = bloqueada ? 'Regularize sua assinatura'
+    : emTrial ? 'Você está no período de teste'
+      : key === 'authorized' ? 'Sua assinatura está ativa'
+        : 'Ative sua assinatura';
+  const subtitle = bloqueada ? 'Pagamento pendente — regularize para não perder o acesso ao painel.'
+    : emTrial ? `Teste grátis — ${sub?.diasRestantesTrial ?? 0} dia(s) restantes.`
+      : a?.valor != null ? `${a?.planoNome || 'Seu plano'} · ${fmtBRL(a.valor)}/mês` : 'Gerencie seu plano e forma de pagamento.';
+
   return (
-    <div className="card sub-card">
-      <div className="viz-head"><h4>Assinatura</h4><span className={`badge ${st.cls}`}>{st.label}</span></div>
-      <div className="sub-plan">{a?.planoNome || 'Plano'}</div>
-      {a?.valor != null && <div className="sub-valor">{fmtBRL(a.valor)}<span>/mês</span></div>}
-      {emTrial && <p className="sub-note">Teste grátis — {sub.diasRestantesTrial} dia(s) restantes.</p>}
-      {bloqueada && <p className="sub-note danger">Pagamento pendente. Regularize para não perder o acesso.</p>}
-      <Link to="/billing" className="btn-secondary sub-btn">Gerenciar assinatura</Link>
+    <div className="card sub-promo">
+      <div className="sub-rays" />
+      <div className="sub-promo-head">
+        <div className="sub-logo"><i className="fa-solid fa-crown" /></div>
+        <span className={`badge ${st.cls}`}>{st.label}</span>
+      </div>
+      <h3 className="sub-promo-title">{title}</h3>
+      <p className="sub-promo-sub">{subtitle}</p>
+      <Link to="/billing" className="sub-cta">Gerenciar assinatura</Link>
     </div>
   );
 }
