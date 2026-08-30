@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { dbService } from '../../services/db';
 import { adminApi } from '../../services/adminApi';
 import { toast } from '../../services/toast';
@@ -133,15 +133,14 @@ function EmployeeModal({ stores, editing, onClose, onSaved }: {
   const [name, setName] = useState(editing?.name || '');
   const [email, setEmail] = useState(editing?.email || '');
   const [password, setPassword] = useState('');
-  const [storeIds, setStoreIds] = useState<string[]>(editing?.storeIds || (editing?.storeId ? [editing.storeId] : []));
   const [saving, setSaving] = useState(false);
-
-  const toggleStore = (id: string) => setStoreIds((prev) => (prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]));
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!name.trim()) { toast.warning('Informe o nome.'); return; }
     if (!isEdit && (!email.trim() || !password)) { toast.warning('Informe e-mail e senha.'); return; }
+    // Loja única: o colaborador atende o negócio inteiro.
+    const storeIds = stores.map((s) => s.id);
     setSaving(true);
     try {
       if (isEdit && editing) {
@@ -161,79 +160,40 @@ function EmployeeModal({ stores, editing, onClose, onSaved }: {
 
   return (
     <div className="modal" style={{ display: 'flex' }} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="modal-content glass">
+      <div className="modal-content glass" style={{ maxWidth: 440 }}>
         <span className="close-modal" onClick={onClose}>&times;</span>
-        <h2>{isEdit ? 'Editar Colaborador' : 'Novo Colaborador'}</h2>
-        <form onSubmit={submit}>
+        <div style={{ display: 'flex', gap: 14, alignItems: 'center', marginBottom: 6 }}>
+          <div style={{ width: 46, height: 46, borderRadius: 12, flexShrink: 0, background: 'rgba(132,204,22,0.14)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem' }}>
+            <i className="fa-solid fa-user-plus" />
+          </div>
+          <div>
+            <h2 style={{ margin: 0 }}>{isEdit ? 'Editar Colaborador' : 'Novo Colaborador'}</h2>
+            <p style={{ margin: '2px 0 0', color: 'var(--text-muted)', fontSize: '0.88rem' }}>
+              {isEdit ? 'Atualize os dados de acesso do colaborador.' : 'Ele recebe um acesso próprio ao painel para atender junto com você.'}
+            </p>
+          </div>
+        </div>
+        <form onSubmit={submit} style={{ marginTop: 18 }}>
           <div className="form-group">
             <label>Nome</label>
-            <input type="text" value={name} onChange={(e) => setName(e.target.value)} required />
+            <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Nome do colaborador" required />
           </div>
           <div className="form-group">
             <label>E-mail</label>
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} disabled={isEdit} required />
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email@exemplo.com" disabled={isEdit} required />
+            {isEdit && <p style={{ margin: '6px 0 0', fontSize: '0.78rem', color: 'var(--text-dim)' }}>O e-mail de acesso não pode ser alterado.</p>}
           </div>
           {!isEdit && (
             <div className="form-group">
-              <label>Senha</label>
-              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+              <label>Senha de acesso</label>
+              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Mínimo de 6 caracteres" required />
             </div>
           )}
-          <div className="form-group">
-            <label>Lojas de Atuação</label>
-            <StoreMultiSelect stores={stores} storeIds={storeIds} onToggle={toggleStore} />
-          </div>
-          <button type="submit" className="btn-primary full-width" disabled={saving}>
-            {saving ? <><i className="fa-solid fa-spinner fa-spin" /> Salvando...</> : 'Salvar'}
+          <button type="submit" className="btn-primary full-width" disabled={saving} style={{ marginTop: 6 }}>
+            {saving ? <><i className="fa-solid fa-spinner fa-spin" /> Salvando...</> : isEdit ? 'Salvar alterações' : 'Adicionar colaborador'}
           </button>
         </form>
       </div>
-    </div>
-  );
-}
-
-function StoreMultiSelect({ stores, storeIds, onToggle }: { stores: any[]; storeIds: string[]; onToggle: (id: string) => void }) {
-  const [open, setOpen] = useState(false);
-  const boxRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const onDoc = (e: MouseEvent) => { if (boxRef.current && !boxRef.current.contains(e.target as Node)) setOpen(false); };
-    document.addEventListener('mousedown', onDoc);
-    return () => document.removeEventListener('mousedown', onDoc);
-  }, [open]);
-
-  const selected = stores.filter((s) => storeIds.includes(s.id));
-
-  return (
-    <div ref={boxRef} style={{ position: 'relative' }}>
-      <button type="button" onClick={() => setOpen((o) => !o)}
-        style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, background: 'var(--bg-color)', border: '1px solid var(--border-color)', color: 'white', padding: '10px 14px', borderRadius: 8, fontSize: '0.95rem', cursor: 'pointer', minHeight: 46 }}>
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', flex: 1, minWidth: 0 }}>
-          {selected.length === 0
-            ? <span style={{ color: 'var(--text-dim)' }}>Selecione as lojas...</span>
-            : selected.map((s) => (
-              <span key={s.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(132, 204, 22,0.15)', border: '1px solid rgba(132, 204, 22,0.4)', color: '#d9f0a3', borderRadius: 6, padding: '2px 8px', fontSize: '0.8rem' }}>
-                {s.name}
-                <i className="fa-solid fa-xmark" style={{ cursor: 'pointer' }} onClick={(e) => { e.stopPropagation(); onToggle(s.id); }} />
-              </span>
-            ))}
-        </div>
-        <i className={`fa-solid fa-chevron-${open ? 'up' : 'down'}`} style={{ color: 'var(--text-dim)', flexShrink: 0 }} />
-      </button>
-      {open && (
-        <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 20, background: 'var(--surface-color)', border: '1px solid var(--border-color)', borderRadius: 8, boxShadow: '0 10px 30px rgba(0,0,0,0.4)', maxHeight: 240, overflowY: 'auto', padding: 6 }}>
-          {stores.length === 0 && <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem', padding: '0.75rem 0', margin: 0 }}>Nenhuma loja disponível.</p>}
-          {stores.map((s) => (
-            <label key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 6, cursor: 'pointer' }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(23, 37, 28, 0.05)')}
-              onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
-              <input type="checkbox" checked={storeIds.includes(s.id)} onChange={() => onToggle(s.id)} style={{ width: 16, height: 16, accentColor: 'var(--primary)' }} />
-              <span style={{ fontSize: '0.9rem' }}>{s.name}</span>
-            </label>
-          ))}
-        </div>
-      )}
     </div>
   );
 }
