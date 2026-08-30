@@ -154,12 +154,31 @@ ul {
   border: 1px solid var(--border-color);
 }
 
+/* ── Padrão de botões ─────────────────────────────────────────
+   Geometria compartilhada; variantes só trocam a cor.
+   .btn-primary (preenchido)  ·  .btn-secondary (contornado)  ·  .btn-add (pílula) */
+.btn-primary,
+.btn-secondary,
+.btn-save-msg {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0.62rem 1.25rem;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  font-size: 0.9rem;
+  font-family: inherit;
+  line-height: 1;
+  border: 1px solid transparent;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: var(--transition);
+}
+
 .btn-primary {
   background: var(--primary);
   color: var(--primary-contrast);
-  padding: 0.75rem 1.5rem;
-  border-radius: var(--radius-md);
-  font-weight: 600;
   box-shadow: 0 4px 14px 0 var(--primary-glow);
 }
 
@@ -1142,17 +1161,15 @@ ul {
 }
 
 .btn-secondary {
-  background: transparent;
-  border: 1px solid var(--border-color);
-  color: var(--text-muted);
-  padding: 0.5rem 1rem;
-  border-radius: var(--radius-sm);
-  font-size: 0.85rem;
+  background: var(--surface-color);
+  border-color: var(--border-color);
+  color: var(--text-main);
 }
 
 .btn-secondary:hover {
+  background: var(--surface-hover);
   border-color: var(--text-dim);
-  color: var(--text-main);
+  transform: translateY(-1px);
 }
 
 /* Toast Notifications */
@@ -2622,9 +2639,9 @@ ul {
 .msg-textarea { width: 100%; background: var(--surface-hover); border: 1px solid var(--border-color); border-radius: var(--radius-sm); color: var(--text-main); font-size: 0.9rem; padding: 0.75rem; resize: vertical; box-sizing: border-box; font-family: inherit; }
 .msg-textarea:focus { outline: none; border-color: var(--primary); }
 .msg-save-row { display: flex; align-items: center; justify-content: space-between; margin-top: 0.75rem; }
-.btn-save-msg { padding: 0.45rem 1rem; background: var(--primary); color: white; border: none; border-radius: var(--radius-sm); font-size: 0.85rem; font-weight: 600; cursor: pointer; }
-.btn-save-msg:hover { background: var(--primary-hover); }
-.btn-save-msg.saved { background: var(--success); pointer-events: none; }
+.btn-save-msg { background: var(--primary); color: var(--primary-contrast); box-shadow: 0 4px 14px 0 var(--primary-glow); }
+.btn-save-msg:hover { background: var(--primary-hover); transform: translateY(-1px); }
+.btn-save-msg.saved { background: var(--success); color: #fff; pointer-events: none; }
 .horarios-grid { display: flex; flex-direction: column; gap: 0.75rem; margin-top: 1rem; }
 .horario-row { display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1rem; background: rgba(23, 37, 28, 0.02 ); border: 1px solid var(--border-color); border-radius: var(--radius-md); transition: 0.2s; }
 .horario-row.inactive { opacity: 0.6; background: transparent; }
