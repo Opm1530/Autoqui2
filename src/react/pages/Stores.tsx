@@ -101,7 +101,7 @@ export function Stores() {
         <div className="card" style={{ textAlign: 'center', padding: '3rem 2rem', color: 'var(--text-muted)' }}>
           <i className="fa-solid fa-store" style={{ fontSize: '2.5rem', color: 'var(--text-dim)', display: 'block', margin: '0 auto 12px', width: 'fit-content' }} />
           <p style={{ margin: '0 0 16px' }}>Seu negócio ainda não foi configurado.</p>
-          {isOwner && <button className="btn-primary" onClick={() => setModal({ name: '', address: '' })}><i className="fa-solid fa-plus" style={{ color: 'var(--primary-contrast)' }} /> Configurar negócio</button>}
+          {isOwner && <button className="btn-add" onClick={() => setModal({ name: '', address: '' })}>Configurar negócio<span className="btn-add-icon"><i className="fa-solid fa-plus" /></span></button>}
         </div>
       ) : (() => {
         const s = stores[0];

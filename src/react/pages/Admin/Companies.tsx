@@ -62,7 +62,7 @@ export function Companies() {
     <div>
       <div className="page-header">
         <h2 className="page-title">Gestão de Clientes</h2>
-        <button className="btn-primary" onClick={() => { setEditing(null); setModalOpen(true); }}><i className="fa-solid fa-plus" /> Novo Cliente</button>
+        <button className="btn-add" onClick={() => { setEditing(null); setModalOpen(true); }}>Novo Cliente<span className="btn-add-icon"><i className="fa-solid fa-plus" /></span></button>
       </div>
       <div className="card">
         <div className="table-container">

@@ -117,7 +117,7 @@ export function Schedule() {
           <h2 className="page-title" style={{ marginBottom: 4 }}><i className="fa-solid fa-calendar-alt" style={{ color: 'var(--primary)', marginRight: 10 }} />Agenda</h2>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Gerencie os agendamentos dos seus clientes.</p>
         </div>
-        <button className="btn-primary" onClick={() => { setEditing(null); setModalOpen(true); }}><i className="fa-solid fa-plus" /> Novo Agendamento</button>
+        <button className="btn-add" onClick={() => { setEditing(null); setModalOpen(true); }}>Novo Agendamento<span className="btn-add-icon"><i className="fa-solid fa-plus" /></span></button>
       </div>
 
       <div className="sched-toolbar">
@@ -154,7 +154,7 @@ export function Schedule() {
                   <div className="sched-empty">
                     <i className="fa-solid fa-calendar-xmark" />
                     <p>Nenhum agendamento para este dia.</p>
-                    <button className="btn-primary" style={{ marginTop: '1rem' }} onClick={() => { setEditing(null); setModalOpen(true); }}><i className="fa-solid fa-plus" /> Novo Agendamento</button>
+                    <button className="btn-add" style={{ marginTop: '1rem' }} onClick={() => { setEditing(null); setModalOpen(true); }}>Novo Agendamento<span className="btn-add-icon"><i className="fa-solid fa-plus" /></span></button>
                   </div>
                 ) : dayAppts.map((a) => {
                   const cfg = STATUS_CONFIG[a.status] || STATUS_CONFIG.agendado;

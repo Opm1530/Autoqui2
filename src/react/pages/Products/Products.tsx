@@ -186,7 +186,7 @@ export function Products() {
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
           <button className="btn-secondary" onClick={() => setShowCategoryModal(true)}><i className="fa-solid fa-tags" /> Categorias</button>
           {!isAgendamento && <button className="btn-secondary" style={{ color: '#f59e0b', borderColor: 'rgba(245,158,11,0.4)' }} onClick={() => setShowCombosModal(true)}><i className="fa-solid fa-layer-group" /> Combos</button>}
-          <button className="btn-primary" onClick={() => { setEditProduct(null); setShowProductModal(true); }}><i className="fa-solid fa-plus" style={{ color: '#fff' }} /> Novo {labelSingular}</button>
+          <button className="btn-add" onClick={() => { setEditProduct(null); setShowProductModal(true); }}>Novo {labelSingular}<span className="btn-add-icon"><i className="fa-solid fa-plus" /></span></button>
         </div>
       </div>
 
@@ -256,7 +256,7 @@ export function Products() {
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
                       <i className="fa-solid fa-box-open" style={{ fontSize: '2.2rem', color: 'var(--text-dim)' }} />
                       <div>Você ainda não tem nenhum {labelSingular.toLowerCase()}. Adicione o primeiro para montar seu catálogo.</div>
-                      <button className="btn-primary" onClick={() => { setEditProduct(null); setShowProductModal(true); }}><i className="fa-solid fa-plus" style={{ color: '#fff' }} /> Adicionar {labelSingular.toLowerCase()}</button>
+                      <button className="btn-add" onClick={() => { setEditProduct(null); setShowProductModal(true); }}>Adicionar {labelSingular.toLowerCase()}<span className="btn-add-icon"><i className="fa-solid fa-plus" /></span></button>
                     </div>
                   )}
                 </td></tr>

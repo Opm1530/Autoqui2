@@ -78,7 +78,7 @@ export function ScheduleClients() {
           <h2 className="page-title" style={{ marginBottom: 4 }}><i className="fa-solid fa-users" style={{ color: 'var(--primary)', marginRight: 10 }} />Clientes</h2>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Gerencie os clientes cadastrados para agendamento.</p>
         </div>
-        <button className="btn-primary" onClick={() => { setEditing(null); setModalOpen(true); }}><i className="fa-solid fa-user-plus" /> Novo Cliente</button>
+        <button className="btn-add" onClick={() => { setEditing(null); setModalOpen(true); }}>Novo Cliente<span className="btn-add-icon"><i className="fa-solid fa-plus" /></span></button>
       </div>
 
       <div className="card" style={{ padding: '1.5rem' }}>

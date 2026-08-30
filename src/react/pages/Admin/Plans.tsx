@@ -67,7 +67,7 @@ export function Plans() {
     <div>
       <div className="page-header" style={{ justifyContent: 'space-between' }}>
         <h2 className="page-title">Planos & Cobrança</h2>
-        {connected && <button className="btn-primary" onClick={() => setModal({ nome: '', valor: '', toleranciaDias: '5', maxLojas: '1', tipo: 'catalogo' })}><i className="fa-solid fa-plus" /> Novo Plano</button>}
+        {connected && <button className="btn-add" onClick={() => setModal({ nome: '', valor: '', toleranciaDias: '5', maxLojas: '1', tipo: 'catalogo' })}>Novo Plano<span className="btn-add-icon"><i className="fa-solid fa-plus" /></span></button>}
       </div>
 
       {/* Conta MP da plataforma */}
