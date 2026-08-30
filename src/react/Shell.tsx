@@ -159,7 +159,7 @@ export function Shell() {
     <div className="app-container">
       <aside className="sidebar">
         <div className="sidebar-logo">
-          <div className="logo-icon"><img style={{ width: '100%' }} src="/logo.png" alt="Logo" /></div>
+          <img className="logo-img" src="/logo.png" alt="AutoQui" />
           <span className="logo-text">AutoQui</span>
         </div>
         <nav className="sidebar-nav">
@@ -181,8 +181,9 @@ export function Shell() {
         </nav>
         <div className="sidebar-footer">
           <div className="user-profile">
+            <div className="user-avatar">{(user?.email || 'U')[0].toUpperCase()}</div>
             <div className="user-info">
-              <span className="name">{user?.role === 'admin' ? 'Administrador' : isEmployee ? 'Colaborador' : 'Dono da Empresa'}</span><br />
+              <span className="name">{user?.role === 'admin' ? 'Administrador' : isEmployee ? 'Colaborador' : 'Dono da Empresa'}</span>
               <span className="role">{user?.email}</span>
             </div>
           </div>
@@ -190,11 +191,17 @@ export function Shell() {
       </aside>
 
       <main className="main-content">
-        <div className="topbar glass">
+        <div className="topbar">
           <div className="topbar-left"><h2 className="page-title">{title}</h2></div>
+          <div className="topbar-search">
+            <i className="fa-solid fa-magnifying-glass" />
+            <input placeholder="Buscar no AutoQui..." />
+          </div>
           <div className="topbar-right">
-            <button className="logout-btn" title="Sair" onClick={() => authService.logout()}>
-              <span className="icon"><i style={{ color: '#FFF', fontSize: '1rem' }} className="fa-solid fa-arrow-right-from-bracket" /></span>
+            <button className="topbar-icon-btn" title="Notificações"><i className="fa-solid fa-bell" /></button>
+            <a className="topbar-icon-btn" href={HELP_WA} target="_blank" rel="noreferrer" title="Ajuda"><i className="fa-brands fa-whatsapp" /></a>
+            <button className="topbar-icon-btn danger" title="Sair" onClick={() => authService.logout()}>
+              <i className="fa-solid fa-arrow-right-from-bracket" />
             </button>
           </div>
         </div>

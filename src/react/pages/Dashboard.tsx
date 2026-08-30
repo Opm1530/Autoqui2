@@ -22,7 +22,7 @@ interface CatalogMetrics {
 function StatCard({ icon, iconCls, label, value, color }: { icon: string; iconCls: string; label: string; value: string; color?: string }) {
   return (
     <div className="stats-card card">
-      <div className={`stats-icon ${iconCls}`}><i style={{ color: '#ffffff8f' }} className={`fa-solid ${icon}`} /></div>
+      <div className={`stats-icon ${iconCls}`}><i className={`fa-solid ${icon}`} /></div>
       <div className="stats-info">
         <span className="label">{label}</span><br />
         <span className="value" style={color ? { color } : undefined}>{value}</span>
