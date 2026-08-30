@@ -22,11 +22,11 @@ interface CatalogMetrics {
 function StatCard({ icon, iconCls, label, value, color }: { icon: string; iconCls: string; label: string; value: string; color?: string }) {
   return (
     <div className="stats-card card">
-      <div className={`stats-icon ${iconCls}`}><i className={`fa-solid ${icon}`} /></div>
-      <div className="stats-info">
-        <span className="label">{label}</span><br />
-        <span className="value" style={color ? { color } : undefined}>{value}</span>
+      <div className="stats-card-top">
+        <span className="stats-card-label">{label}</span>
+        <div className={`stats-icon ${iconCls}`}><i className={`fa-solid ${icon}`} /></div>
       </div>
+      <div className="stats-card-value" style={color ? { color } : undefined}>{value}</div>
     </div>
   );
 }
@@ -158,6 +158,11 @@ export function Dashboard() {
 
   return (
     <div>
+      <div className="page-heading">
+        <h1>Dashboard</h1>
+        <p>Gerencie suas vendas com controle e precisão.</p>
+      </div>
+
       {showChecklist && (
         <div className="card" style={{ marginBottom: '1.5rem', border: '1px solid rgba(132, 204, 22,0.3)', background: 'rgba(132, 204, 22,0.04)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>

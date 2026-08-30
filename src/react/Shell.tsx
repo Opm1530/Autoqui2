@@ -10,7 +10,7 @@ import { Billing } from './pages/Billing';
 import { useAuth } from './useAuth';
 
 interface NavItem { to: string; label: string; icon: string; }
-type NavEntry = NavItem | { divider: true };
+type NavEntry = NavItem | { divider: true } | { section: string };
 
 const HELP_WA = 'https://wa.me/5564999983832'; // atendimento da plataforma (item "Ajuda")
 
@@ -54,7 +54,7 @@ function buildNav(role: string | undefined, modulos: string[]): NavEntry[] {
 
   // Empilhável: canais (exclusivos) definem o núcleo; camadas (IA/Campanhas) somam.
   // add() evita item duplicado quando duas ferramentas apontam pra mesma rota.
-  const nav: NavEntry[] = [];
+  const nav: NavEntry[] = [{ section: 'Menu' }];
   const seen = new Set<string>();
   const add = (item: NavItem) => { if (!seen.has(item.to)) { seen.add(item.to); nav.push(item); } };
 
@@ -85,7 +85,7 @@ function buildNav(role: string | undefined, modulos: string[]): NavEntry[] {
   if (isEmployee) return nav;
 
   // ── Gestão (dono) ──
-  nav.push({ divider: true });
+  nav.push({ section: 'Geral' });
   if (temLojaPropria) add({ to: '/stores', label: 'Lojas', icon: 'fa-store' });
   add({ to: '/users', label: 'Equipe', icon: 'fa-user' });
   if (usaInstancia) add({ to: '/instances', label: 'Instâncias', icon: 'fa-brands fa-whatsapp' });
@@ -97,7 +97,7 @@ function buildNav(role: string | undefined, modulos: string[]): NavEntry[] {
 
 // Itens principais para a barra inferior no mobile (máx 5).
 function mobileNav(nav: NavEntry[]): NavItem[] {
-  const items = nav.filter((n): n is NavItem => !('divider' in n));
+  const items = nav.filter((n): n is NavItem => !('divider' in n) && !('section' in n));
   const priority = ['/dashboard', '/tools', '/products', '/orders', '/leads', '/schedule', '/campaigns'];
   const picked = priority.map((p) => items.find((i) => i.to === p)).filter(Boolean) as NavItem[];
   if (picked.length >= 3) return picked.slice(0, 5);
@@ -136,6 +136,7 @@ export function Shell() {
   }, [user]);
 
   const title = TITLES[location.pathname] || 'Painel';
+  useEffect(() => { document.title = `AutoQui · ${title}`; }, [title]);
   const nav = buildNav(user?.role, modulos || []);
   const mobile = mobileNav(nav);
   const isEmployee = user?.role === 'employee';
@@ -165,13 +166,15 @@ export function Shell() {
         <nav className="sidebar-nav">
           {nav.map((item, i) => 'divider' in item
             ? <div key={`d${i}`} className="nav-divider" />
-            : (
-              <NavLink key={item.to + item.label} to={item.to} end
-                className={({ isActive }) => 'nav-item' + (isActive ? ' active' : '')}>
-                <span className="icon">{iconEl(item.icon)}</span>
-                <span>{item.label}</span>
-              </NavLink>
-            ))}
+            : 'section' in item
+              ? <div key={`s${i}`} className="nav-section-label">{item.section}</div>
+              : (
+                <NavLink key={item.to + item.label} to={item.to} end
+                  className={({ isActive }) => 'nav-item' + (isActive ? ' active' : '')}>
+                  <span className="icon">{iconEl(item.icon)}</span>
+                  <span>{item.label}</span>
+                </NavLink>
+              ))}
           {user?.role !== 'admin' && (
             <a className="nav-item" href={HELP_WA} target="_blank" rel="noreferrer">
               <span className="icon">{iconEl('fa-brands fa-whatsapp')}</span>
@@ -192,7 +195,6 @@ export function Shell() {
 
       <main className="main-content">
         <div className="topbar">
-          <div className="topbar-left"><h2 className="page-title">{title}</h2></div>
           <div className="topbar-search">
             <i className="fa-solid fa-magnifying-glass" />
             <input placeholder="Buscar no AutoQui..." />
