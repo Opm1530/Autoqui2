@@ -190,9 +190,9 @@ export function Instances() {
           <span className="badge secondary" style={{ fontSize: '0.85rem', padding: '0.4rem 0.8rem' }}><i className="fa-solid fa-layer-group" style={{ marginRight: 6 }} /> Limite: <strong style={{ marginLeft: 4 }}>{limit}</strong></span>
           <span className="badge info" style={{ fontSize: '0.85rem', padding: '0.4rem 0.8rem' }}><i className="fa-solid fa-circle-nodes" style={{ marginRight: 6 }} /> Utilizadas: <strong style={{ marginLeft: 4 }}>{instances.length}</strong></span>
         </div>
-        <button className="btn-primary" disabled={atLimit} style={atLimit ? { opacity: 0.5, cursor: 'not-allowed' } : undefined}
+        <button className="btn-add" disabled={atLimit} style={atLimit ? { opacity: 0.5, cursor: 'not-allowed' } : undefined}
           onClick={() => setShowNew(true)}>
-          <i className="fa-solid fa-plus" /> Nova Instância
+          Nova Instância<span className="btn-add-icon"><i className="fa-solid fa-plus" /></span>
         </button>
       </div>
 
