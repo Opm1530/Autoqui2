@@ -17,4 +17,7 @@ export const farmaquiApi = {
   config: (): Promise<{ capturaAtiva: boolean; capturaInstancia: string; recompra: { enabled: boolean; mensagem: string; cicloDiasPadrao: number } }> => req('/api/farmaqui/config', 'GET'),
   saveRecompra: (r: { enabled: boolean; mensagem: string; cicloDiasPadrao: number }) => req('/api/farmaqui/recompra', 'POST', r),
   setUltimaCompra: (leadId: string, data: string, cicloDias: number) => req('/api/farmaqui/ultima-compra', 'POST', { leadId, data, cicloDias }),
+  getLanding: (): Promise<any> => req('/api/farmaqui/landing', 'GET'),
+  saveLanding: (l: any) => req('/api/farmaqui/landing', 'POST', l),
+  setLandingHost: (subdominio: string): Promise<{ host: string }> => req('/api/farmaqui/landing/host', 'POST', { subdominio }),
 };

@@ -51,12 +51,35 @@ export async function removeStoreSubdomain(uid: string, storeId: string) {
   return { ok: true };
 }
 
-// Público: resolve o host (subdomínio ou domínio próprio) → loja.
+// Público: resolve o host (subdomínio ou domínio próprio) → loja ou landing.
 export async function storeByHost(host: string) {
   const h = String(host || '').trim().toLowerCase().replace(/:\d+$/, '');
   if (!h) return {};
   const doc = await db.collection('dominios').doc(h).get();
   if (!doc.exists) return {};
   const d = doc.data() as any;
-  return { storeId: d.storeId, companyId: d.companyId };
+  return { storeId: d.storeId || null, companyId: d.companyId, tipo: d.tipo || 'subdominio' };
+}
+
+// Valida um subdomínio e devolve o host completo (sem gravar).
+export function normalizeSubdomain(subRaw: string): string {
+  const sub = String(subRaw || '').trim().toLowerCase();
+  if (!SUB_RE.test(sub) || RESERVADOS.has(sub)) throw new Error('subdominio_invalido');
+  return `${sub}.${BASE_DOMAIN}`;
+}
+
+// Liga um subdomínio a uma landing da empresa (tipo: 'landing').
+export async function setLandingSubdomain(uid: string, host: string) {
+  const companyId = await companyOf(uid);
+  const existing = await db.collection('dominios').doc(host).get();
+  if (existing.exists && (existing.data() as any).companyId !== companyId) throw new Error('subdominio_em_uso');
+  await db.collection('dominios').doc(host).set({ companyId, tipo: 'landing', host, storeId: null });
+  return { ok: true, host };
+}
+
+export async function removeLandingSubdomain(uid: string, host: string) {
+  const companyId = await companyOf(uid);
+  const doc = await db.collection('dominios').doc(host).get();
+  if (doc.exists && (doc.data() as any).companyId === companyId) await db.collection('dominios').doc(host).delete();
+  return { ok: true };
 }

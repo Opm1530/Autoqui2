@@ -7,6 +7,7 @@ import { loadUser } from './currentUser.js';
 import { PUBLIC_BASE_URL } from './config.js';
 import { setWebhook, sendText } from './evolution.js';
 import { assertInstanceOwner } from './waInstances.js';
+import { normalizeSubdomain, setLandingSubdomain, removeLandingSubdomain } from './domains.js';
 
 const incomingUrl = (companyId: string) => `${PUBLIC_BASE_URL}/api/wa/incoming/${companyId}`;
 
@@ -120,6 +121,71 @@ export async function setUltimaCompra(uid: string, leadId: string, dataISO: stri
     });
   }
   return { ok: true, agendado: !!(f.recompra?.enabled && phone) };
+}
+
+// ── Landing page (Google Ads / campanhas) ──
+const DEFAULT_LANDING = {
+  publicado: false,
+  host: '',
+  titulo: 'Sua farmácia de confiança',
+  subtitulo: 'Atendimento rápido pelo WhatsApp, entrega no mesmo dia e os melhores preços da região.',
+  corPrimaria: '#14b8a6',
+  logoUrl: '',
+  destaques: [
+    { icone: '🚚', texto: 'Entrega no mesmo dia' },
+    { icone: '💊', texto: 'Grande variedade de medicamentos' },
+    { icone: '💬', texto: 'Atendimento humano no WhatsApp' },
+  ],
+  whatsapp: '',
+  ctaTexto: 'Chamar no WhatsApp',
+  mensagemWhatsapp: 'Olá! Vim pela página e gostaria de mais informações.',
+  endereco: '',
+};
+
+export async function getLanding(uid: string) {
+  const companyId = await companyOf(uid);
+  const doc = await db.collection('companies').doc(companyId).get();
+  const l = (doc.data() as any)?.farmaqui?.landing || {};
+  return { ...DEFAULT_LANDING, ...l };
+}
+
+export async function saveLanding(uid: string, body: any) {
+  const companyId = await companyOf(uid);
+  const cur = await getLanding(uid);
+  const landing = {
+    ...cur,
+    publicado: body?.publicado !== false,
+    titulo: String(body?.titulo ?? cur.titulo),
+    subtitulo: String(body?.subtitulo ?? cur.subtitulo),
+    corPrimaria: String(body?.corPrimaria ?? cur.corPrimaria),
+    logoUrl: String(body?.logoUrl ?? cur.logoUrl ?? ''),
+    destaques: Array.isArray(body?.destaques) ? body.destaques.slice(0, 6).map((d: any) => ({ icone: String(d?.icone || '✅').slice(0, 4), texto: String(d?.texto || '').slice(0, 80) })) : cur.destaques,
+    whatsapp: String(body?.whatsapp ?? cur.whatsapp ?? '').replace(/\D/g, ''),
+    ctaTexto: String(body?.ctaTexto ?? cur.ctaTexto),
+    mensagemWhatsapp: String(body?.mensagemWhatsapp ?? cur.mensagemWhatsapp ?? ''),
+    endereco: String(body?.endereco ?? cur.endereco ?? ''),
+  };
+  await db.collection('companies').doc(companyId).set({ farmaqui: { landing } }, { merge: true });
+  return { ok: true, landing };
+}
+
+// Vincula/troca o subdomínio da landing.
+export async function setLandingHost(uid: string, subRaw: string) {
+  const companyId = await companyOf(uid);
+  const host = normalizeSubdomain(subRaw);
+  const cur = await getLanding(uid);
+  if (cur.host && cur.host !== host) await removeLandingSubdomain(uid, cur.host);
+  await setLandingSubdomain(uid, host);
+  await db.collection('companies').doc(companyId).set({ farmaqui: { landing: { host } } }, { merge: true });
+  return { ok: true, host };
+}
+
+// Público: config da landing por companyId (pra renderização do host).
+export async function publicLanding(companyId: string) {
+  const doc = await db.collection('companies').doc(String(companyId)).get();
+  const l = (doc.data() as any)?.farmaqui?.landing;
+  if (!l || !l.publicado) return {};
+  return { ...DEFAULT_LANDING, ...l };
 }
 
 // Cron: envia os lembretes de recompra vencidos.

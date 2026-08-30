@@ -18,6 +18,7 @@ import { Campaigns } from './pages/Campaigns/Campaigns';
 import { Schedule } from './pages/Schedule/Schedule';
 import { ScheduleClients } from './pages/Schedule/ScheduleClients';
 import { Catalog } from './pages/Catalog/Catalog';
+import { FarmaLanding } from './pages/FarmaLanding';
 import { QRPage } from './pages/QRPage';
 import { AdminDashboard } from './pages/Admin/AdminDashboard';
 import { Companies } from './pages/Admin/Companies';
@@ -58,14 +59,16 @@ function RootRoute() {
 }
 
 function StorefrontHost({ host }: { host: string }) {
-  const [storeId, setStoreId] = useState<string | null | undefined>(undefined);
+  const [res, setRes] = useState<{ storeId?: string | null; companyId?: string; tipo?: string } | null | undefined>(undefined);
   useEffect(() => {
     fetch(`${API_BASE_URL}/api/domains/store-by-host?host=${encodeURIComponent(host)}`)
-      .then((r) => r.json()).then((d) => setStoreId(d.storeId || null)).catch(() => setStoreId(null));
+      .then((r) => r.json()).then((d) => setRes(d.companyId ? d : null)).catch(() => setRes(null));
   }, [host]);
-  if (storeId === undefined) return null;      // resolvendo
-  if (!storeId) return <LandingPage />;         // host não cadastrado → cai na landing
-  return <Catalog storeId={storeId} />;
+  if (res === undefined) return null;            // resolvendo
+  if (!res) return <LandingPage />;              // host não cadastrado → cai na landing
+  if (res.tipo === 'landing') return <FarmaLanding companyId={res.companyId} />;
+  if (res.storeId) return <Catalog storeId={res.storeId} />;
+  return <LandingPage />;
 }
 
 function LoginRoute() {
