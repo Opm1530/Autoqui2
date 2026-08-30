@@ -203,7 +203,7 @@ export function Instances() {
           <button className="btn-add" onClick={() => setShowNew(true)}>Conectar meu WhatsApp<span className="btn-add-icon"><i className="fa-solid fa-plus" /></span></button>
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.25rem', marginTop: '1.25rem' }}>
+        <div className="instances-grid">
           {instances.map((inst) => {
             const connected = inst.status === 'conectado';
             return (

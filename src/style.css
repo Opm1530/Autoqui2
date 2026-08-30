@@ -268,6 +268,17 @@ ul {
 .negocio-stat-value { font-family: 'Outfit', sans-serif; font-size: 1.4rem; font-weight: 700; line-height: 1; }
 .negocio-stat-label { font-size: 0.82rem; color: var(--text-muted); margin-top: 3px; }
 
+/* Instâncias: no máximo 2 por linha (cards maiores) */
+.instances-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.25rem;
+  margin-top: 1.25rem;
+}
+@media (max-width: 760px) {
+  .instances-grid { grid-template-columns: 1fr; }
+}
+
 /* Sub-navegação em abas (hub de Lojas) */
 .manage-tabs {
   display: flex;
