@@ -3,6 +3,9 @@ import {
     signOut as firebaseSignOut,
     onAuthStateChanged,
     createUserWithEmailAndPassword,
+    reauthenticateWithCredential,
+    updatePassword,
+    EmailAuthProvider,
     getAuth
 } from 'firebase/auth';
 import { initializeApp } from 'firebase/app';
@@ -86,6 +89,19 @@ class AuthService {
 
     async login(email: string, password: string): Promise<void> {
         await signInWithEmailAndPassword(auth, email, password);
+    }
+
+    // Troca de senha do usuário logado (reautentica com a senha atual).
+    async changePassword(currentPassword: string, newPassword: string): Promise<void> {
+        const u = auth.currentUser;
+        if (!u || !u.email) throw new Error('Sessão inválida. Faça login novamente.');
+        const cred = EmailAuthProvider.credential(u.email, currentPassword);
+        try {
+            await reauthenticateWithCredential(u, cred);
+        } catch {
+            throw new Error('Senha atual incorreta.');
+        }
+        await updatePassword(u, newPassword);
     }
 
     async logout(): Promise<void> {

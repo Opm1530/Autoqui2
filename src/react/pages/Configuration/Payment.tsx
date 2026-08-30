@@ -176,7 +176,7 @@ export function Payment({ config, hasMercadoPago, vitrine = false, onSave }: Pro
         <div>
           <p style={{ margin: 0, fontWeight: 600, fontSize: '0.9rem' }}>Mercado Pago</p>
           <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-            {hasMercadoPago ? 'Integração ativa — PIX via Mercado Pago disponível no catálogo.' : <>Não configurado. <a href="/mercado-pago" style={{ color: 'var(--primary)' }}>Configurar agora →</a></>}
+            {hasMercadoPago ? 'Integração ativa — PIX via Mercado Pago disponível no catálogo.' : 'Não configurado. Conecte sua conta na seção "Conta Mercado Pago" abaixo.'}
           </p>
         </div>
       </div>

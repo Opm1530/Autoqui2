@@ -10,6 +10,7 @@ import { Appearance } from './Appearance';
 import { Schedules } from './Schedules';
 import { Messages } from './Messages';
 import { Payment } from './Payment';
+import { MercadoPago } from '../MercadoPago';
 
 export function CatalogSettings() {
   const { user } = useAuth();
@@ -166,7 +167,15 @@ export function CatalogSettings() {
 
       {section === 'design' && <Appearance key={`ap-${activeStoreId}`} companyId={companyId} storeId={activeStoreId} design={design} vitrine={isVitrine} onSave={save} />}
       {section === 'mensagens' && !isVitrine && <Messages key={`msg-${activeStoreId}`} initial={config?.mensagens_automaticas || {}} onSave={save} />}
-      {section === 'pagamento' && <Payment key={`pay-${activeStoreId}`} config={config} hasMercadoPago={hasMercadoPago} vitrine={isVitrine} onSave={save} />}
+      {section === 'pagamento' && <>
+        <Payment key={`pay-${activeStoreId}`} config={config} hasMercadoPago={hasMercadoPago} vitrine={isVitrine} onSave={save} />
+        {!isVitrine && (
+          <div style={{ marginTop: '1.5rem' }}>
+            <div className="config-section-title"><i className="fa-solid fa-credit-card" style={{ color: '#009ee3' }} /> Conta Mercado Pago (PIX automático)</div>
+            <MercadoPago embedded />
+          </div>
+        )}
+      </>}
     </div>
   );
 }

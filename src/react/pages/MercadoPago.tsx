@@ -14,7 +14,7 @@ async function authHeaders(): Promise<Record<string, string>> {
   return h;
 }
 
-export function MercadoPago() {
+export function MercadoPago({ embedded = false }: { embedded?: boolean } = {}) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [connected, setConnected] = useState(false);
@@ -77,12 +77,14 @@ export function MercadoPago() {
 
   return (
     <div>
-      <div className="page-header" style={{ flexDirection: 'column' }}>
-        <div><h2 className="page-title">Configuração Mercado Pago</h2></div>
-        <div><p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Configure sua integração para recebimento de pagamentos.</p></div>
-      </div>
+      {!embedded && (
+        <div className="page-header" style={{ flexDirection: 'column' }}>
+          <div><h2 className="page-title">Configuração Mercado Pago</h2></div>
+          <div><p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Configure sua integração para recebimento de pagamentos.</p></div>
+        </div>
+      )}
 
-      <div className="card glass" style={{ maxWidth: 600, marginTop: 20 }}>
+      <div className="card glass" style={{ maxWidth: 600, marginTop: embedded ? 0 : 20 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginBottom: 30 }}>
           <div style={{ width: 56, height: 56, background: 'linear-gradient(135deg, #009ee3 0%, #007bbd 100%)', borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '1.8rem', boxShadow: '0 8px 16px rgba(0, 158, 227, 0.2)' }}>
             <i className="fa-solid fa-receipt" />

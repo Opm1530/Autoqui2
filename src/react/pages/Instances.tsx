@@ -6,6 +6,7 @@ import { toast } from '../../services/toast';
 import { confirm } from '../../services/confirm';
 import { useAuth } from '../useAuth';
 import { SkeletonCards } from '../components/Skeleton';
+import { ManageTabs } from '../components/ManageTabs';
 
 interface Instance {
   id: string;
@@ -182,6 +183,8 @@ export function Instances() {
 
   return (
     <div>
+      <div className="page-heading"><h1>Instâncias</h1><p>Conecte e gerencie seus números de WhatsApp.</p></div>
+      <ManageTabs />
       <div className="page-header" style={{ alignItems: 'center' }}>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
           <span className="badge secondary" style={{ fontSize: '0.85rem', padding: '0.4rem 0.8rem' }}><i className="fa-solid fa-layer-group" style={{ marginRight: 6 }} /> Limite: <strong style={{ marginLeft: 4 }}>{limit}</strong></span>

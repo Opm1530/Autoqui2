@@ -1,6 +1,6 @@
 // Shell do painel: sidebar + topbar + área de conteúdo (Outlet).
 // O menu é montado conforme o papel (owner/employee) e os módulos ativos da empresa.
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { authService } from '../services/auth';
 import { dbService } from '../services/db';
@@ -22,7 +22,7 @@ const TITLES: Record<string, string> = {
   '/schedule': 'Agenda', '/schedule-clients': 'Clientes',
   '/admin/dashboard': 'Dashboard', '/admin/companies': 'Clientes',
   '/admin/users': 'Usuários', '/admin/webhooks': 'Webhooks', '/admin/migration': 'Migração',
-  '/admin/plans': 'Planos', '/billing': 'Assinatura',
+  '/admin/plans': 'Planos', '/billing': 'Assinatura', '/change-password': 'Alterar Senha',
 };
 
 const ADMIN_NAV: NavEntry[] = [
@@ -47,7 +47,6 @@ function buildNav(role: string | undefined, modulos: string[]): NavEntry[] {
   const farmaqui = has('farmaqui');
   const isEmployee = role === 'employee';
   const usaInstancia = atendimento || disparo || vendaCatalogo || venda || agendamento || ecommerce || farmaqui;
-  const usaPagamento = vendaCatalogo || venda || agendamento;
   // Loja própria no AutoQui (tem Lojas + Configuração de catálogo). Atendimento,
   // Campanhas e E-commerce (NuvemShop) não são vitrine própria aqui.
   const temLojaPropria = vendaCatalogo || venda || vitrine || agendamento;
@@ -59,7 +58,6 @@ function buildNav(role: string | undefined, modulos: string[]): NavEntry[] {
   const add = (item: NavItem) => { if (!seen.has(item.to)) { seen.add(item.to); nav.push(item); } };
 
   add({ to: '/dashboard', label: 'Dashboard', icon: 'fa-chart-line' });
-  if (role === 'owner') add({ to: '/tools', label: 'Ferramentas', icon: 'fa-shapes' });
 
   // ── Canal (só um ativo por vez) ──
   if (vitrine) {
@@ -84,14 +82,20 @@ function buildNav(role: string | undefined, modulos: string[]): NavEntry[] {
 
   if (isEmployee) return nav;
 
-  // ── Gestão (dono) ──
+  // ── Geral (dono) ──
+  // Loja própria: Lojas (hub com Equipe + Instâncias) + Configuração (MP embutido).
+  // Sem loja própria (só atendimento/FarmaQui/e-commerce): acesso direto a Equipe/Instâncias.
   nav.push({ section: 'Geral' });
-  if (temLojaPropria) add({ to: '/stores', label: 'Lojas', icon: 'fa-store' });
-  add({ to: '/users', label: 'Equipe', icon: 'fa-user' });
-  if (usaInstancia) add({ to: '/instances', label: 'Instâncias', icon: 'fa-brands fa-whatsapp' });
-  if (temLojaPropria) add({ to: '/catalog-settings', label: 'Configuração', icon: 'fa-sliders' });
-  if (usaPagamento) add({ to: '/mercado-pago', label: 'Mercado Pago', icon: 'fa-credit-card' });
-  add({ to: '/billing', label: 'Assinatura', icon: 'fa-receipt' });
+  if (temLojaPropria) {
+    add({ to: '/stores', label: 'Lojas', icon: 'fa-store' });
+    add({ to: '/catalog-settings', label: 'Configuração', icon: 'fa-sliders' });
+  } else {
+    add({ to: '/users', label: 'Equipe', icon: 'fa-user' });
+    if (usaInstancia) add({ to: '/instances', label: 'Instâncias', icon: 'fa-brands fa-whatsapp' });
+  }
+  if (role === 'owner') add({ to: '/tools', label: 'Ferramentas', icon: 'fa-shapes' });
+  // Assinatura e Alterar senha → menu do usuário (rodapé).
+  // Mercado Pago → Configuração › Pagamento.
   return nav;
 }
 
@@ -110,6 +114,17 @@ export function Shell() {
   const { user } = useAuth();
   const location = useLocation();
   const [modulos, setModulos] = useState<string[] | null>(null);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement>(null);
+
+  // Fecha o menu do usuário ao clicar fora ou trocar de rota.
+  useEffect(() => {
+    if (!userMenuOpen) return;
+    const onDoc = (e: MouseEvent) => { if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) setUserMenuOpen(false); };
+    document.addEventListener('mousedown', onDoc);
+    return () => document.removeEventListener('mousedown', onDoc);
+  }, [userMenuOpen]);
+  useEffect(() => { setUserMenuOpen(false); }, [location.pathname]);
 
   useEffect(() => {
     if (!user?.companyId) { setModulos([]); return; }
@@ -175,21 +190,31 @@ export function Shell() {
                   <span>{item.label}</span>
                 </NavLink>
               ))}
-          {user?.role !== 'admin' && (
-            <a className="nav-item" href={HELP_WA} target="_blank" rel="noreferrer">
-              <span className="icon">{iconEl('fa-brands fa-whatsapp')}</span>
-              <span>Ajuda</span>
-            </a>
-          )}
         </nav>
-        <div className="sidebar-footer">
-          <div className="user-profile">
+        <div className="sidebar-footer" ref={userMenuRef}>
+          {userMenuOpen && (
+            <div className="user-menu">
+              {user?.role !== 'admin' && (
+                <NavLink to="/billing" className="user-menu-item" onClick={() => setUserMenuOpen(false)}>
+                  <i className="fa-solid fa-receipt" /> Assinatura
+                </NavLink>
+              )}
+              <NavLink to="/change-password" className="user-menu-item" onClick={() => setUserMenuOpen(false)}>
+                <i className="fa-solid fa-key" /> Alterar senha
+              </NavLink>
+              <button className="user-menu-item danger" onClick={() => authService.logout()}>
+                <i className="fa-solid fa-arrow-right-from-bracket" /> Sair
+              </button>
+            </div>
+          )}
+          <button className={'user-profile' + (userMenuOpen ? ' open' : '')} onClick={() => setUserMenuOpen((o) => !o)}>
             <div className="user-avatar">{(user?.email || 'U')[0].toUpperCase()}</div>
             <div className="user-info">
               <span className="name">{user?.role === 'admin' ? 'Administrador' : isEmployee ? 'Colaborador' : 'Dono da Empresa'}</span>
               <span className="role">{user?.email}</span>
             </div>
-          </div>
+            <i className="fa-solid fa-chevron-up user-profile-caret" />
+          </button>
         </div>
       </aside>
 

@@ -5,6 +5,7 @@ import { toast } from '../../services/toast';
 import { confirm } from '../../services/confirm';
 import { useAuth } from '../useAuth';
 import { SkeletonTable } from '../components/Skeleton';
+import { ManageTabs } from '../components/ManageTabs';
 
 interface Employee {
   id: string;
@@ -76,6 +77,8 @@ export function Users() {
 
   return (
     <div>
+      <div className="page-heading"><h1>Equipe</h1><p>Convide colaboradores e gerencie os acessos.</p></div>
+      <ManageTabs />
       <div className="page-header" style={{ justifyContent: 'flex-end' }}>
         <button className="btn-primary" onClick={() => { setEditing(null); setModalOpen(true); }}>
           <i style={{ color: '#fff' }} className="fa-solid fa-user-plus" /> Novo Colaborador

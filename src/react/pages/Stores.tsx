@@ -6,6 +6,7 @@ import { toast } from '../../services/toast';
 import { confirm } from '../../services/confirm';
 import { useAuth } from '../useAuth';
 import { SkeletonCards } from '../components/Skeleton';
+import { ManageTabs } from '../components/ManageTabs';
 
 export function Stores() {
   const { user } = useAuth();
@@ -68,6 +69,8 @@ export function Stores() {
 
   return (
     <div>
+      <div className="page-heading"><h1>Lojas</h1><p>Gerencie suas lojas, equipe e conexões de WhatsApp.</p></div>
+      <ManageTabs />
       {isOwner && (
         <div className="page-header" style={{ justifyContent: 'flex-end', marginBottom: '1rem' }}>
           <button className="btn-primary" disabled={atingiuLimite} title={atingiuLimite ? `Seu plano permite até ${maxLojas} loja(s)` : ''} onClick={() => setModal({ name: '', address: '' })}>

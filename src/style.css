@@ -187,6 +187,33 @@ ul {
   gap: 1.5rem;
 }
 
+/* Sub-navegação em abas (hub de Lojas) */
+.manage-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid var(--border-color);
+  flex-wrap: wrap;
+}
+.manage-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0.7rem 1.1rem;
+  color: var(--text-muted);
+  font-weight: 500;
+  font-size: 0.92rem;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: var(--transition);
+}
+.manage-tab:hover { color: var(--text-main); }
+.manage-tab.active {
+  color: var(--primary-hover);
+  border-bottom-color: var(--primary);
+  font-weight: 600;
+}
+
 /* Cabeçalho de página (título + subtítulo no conteúdo, estilo referência) */
 .page-heading { margin-bottom: 1.75rem; }
 .page-heading h1 {
@@ -556,7 +583,44 @@ ul {
   border-top: 1px solid var(--sidebar-border);
 }
 
-.sidebar-footer .user-profile { display: flex; align-items: center; gap: 11px; }
+.sidebar-footer { position: relative; }
+.sidebar-footer .user-profile {
+  display: flex; align-items: center; gap: 11px;
+  width: 100%; text-align: left;
+  background: transparent; border: none; cursor: pointer;
+  padding: 8px; margin: -8px; border-radius: 12px;
+  transition: var(--transition);
+}
+.sidebar-footer .user-profile:hover,
+.sidebar-footer .user-profile.open { background: var(--sidebar-hover); }
+.sidebar-footer .user-profile-caret {
+  margin-left: auto; color: var(--sidebar-text); font-size: 0.7rem;
+  transition: transform 0.2s;
+}
+.sidebar-footer .user-profile.open .user-profile-caret { transform: rotate(180deg); }
+
+.user-menu {
+  position: absolute;
+  left: 1rem; right: 1rem; bottom: calc(100% - 0.5rem);
+  background: #16351f;
+  border: 1px solid var(--sidebar-border);
+  border-radius: 14px;
+  padding: 6px;
+  box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.35);
+  z-index: 40;
+}
+.user-menu-item {
+  display: flex; align-items: center; gap: 10px;
+  width: 100%; text-align: left;
+  padding: 0.65rem 0.75rem;
+  border-radius: 9px;
+  background: transparent; border: none; cursor: pointer;
+  color: var(--sidebar-text);
+  font-size: 0.9rem; font-family: inherit; font-weight: 500;
+}
+.user-menu-item i { width: 18px; text-align: center; opacity: 0.85; }
+.user-menu-item:hover { background: var(--sidebar-hover); color: #eef4ef; }
+.user-menu-item.danger:hover { background: rgba(239, 68, 68, 0.15); color: #fca5a5; }
 .sidebar-footer .user-avatar {
   width: 40px; height: 40px; flex-shrink: 0;
   border-radius: 50%;
