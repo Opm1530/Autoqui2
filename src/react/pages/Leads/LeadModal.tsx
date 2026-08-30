@@ -4,15 +4,17 @@ import { toast } from '../../../services/toast';
 import { confirm } from '../../../services/confirm';
 import { notifications } from '../../../services/notifications';
 import { LeadStatusBadge, AtendimentoBadge, formatDate, normAtend } from './helpers';
+import { farmaquiApi } from '../../../services/farmaquiApi';
 
 interface Props {
   lead: any;
   isOnlyCatalog: boolean;
+  farmaqui?: boolean;
   onClose: () => void;
   onUpdated: (lead: any) => void;
 }
 
-export function LeadModal({ lead, isOnlyCatalog, onClose, onUpdated }: Props) {
+export function LeadModal({ lead, isOnlyCatalog, farmaqui, onClose, onUpdated }: Props) {
   const [mode, setMode] = useState<'view' | 'edit'>('view');
   const [busy, setBusy] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -124,6 +126,8 @@ export function LeadModal({ lead, isOnlyCatalog, onClose, onUpdated }: Props) {
           {isBloqueado && (
             <div className="lead-alert danger"><i className="fa-solid fa-lock" /> Este lead está bloqueado. Desbloqueie antes de iniciar atendimento.</div>
           )}
+
+          {farmaqui && <RecompraLead lead={lead} onUpdated={onUpdated} />}
         </div>
 
         {primary && (
@@ -206,3 +210,33 @@ function EditForm({ lead, onCancel, onUpdated, onClose }: { lead: any; onCancel:
 
 const editLabel: React.CSSProperties = { display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-dim)', textTransform: 'uppercase', marginBottom: 6, letterSpacing: '0.05em' };
 const editInput: React.CSSProperties = { width: '100%', padding: '0.75rem 1rem', background: 'var(--surface-hover)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', color: 'var(--text-main)', fontSize: '0.9rem' };
+
+// Recompra (FarmaQui): registra a última compra e agenda o lembrete.
+function RecompraLead({ lead, onUpdated }: { lead: any; onUpdated: (l: any) => void }) {
+  const hoje = new Date().toISOString().slice(0, 10);
+  const [data, setData] = useState(lead.ultimaCompra ? String(lead.ultimaCompra).slice(0, 10) : hoje);
+  const [ciclo, setCiclo] = useState(Number(lead.cicloRecompraDias) || 30);
+  const [busy, setBusy] = useState(false);
+
+  async function salvar() {
+    setBusy(true);
+    try {
+      const r = await farmaquiApi.setUltimaCompra(lead.id, new Date(data + 'T12:00:00').toISOString(), ciclo);
+      onUpdated({ ...lead, ultimaCompra: data, cicloRecompraDias: ciclo });
+      toast.success(r.agendado ? `Registrado! Lembrete agendado para ${ciclo} dias.` : 'Última compra registrada.');
+    } catch (e: any) { toast.error('Erro: ' + (e.message || e)); }
+    finally { setBusy(false); }
+  }
+
+  return (
+    <div className="lead-section" style={{ borderTop: '1px solid var(--border-color)', paddingTop: 14, marginTop: 6 }}>
+      <h4 className="lead-section-title">💊 Recompra</h4>
+      {lead.ultimaCompra && <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', margin: '0 0 8px' }}>Última compra registrada: <strong>{String(lead.ultimaCompra).slice(0, 10).split('-').reverse().join('/')}</strong> · ciclo {lead.cicloRecompraDias || 30} dias</p>}
+      <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end', flexWrap: 'wrap' }}>
+        <div><label className="config-label" style={{ fontSize: '0.75rem' }}>Data da compra</label><input type="date" className="config-input" value={data} onChange={(e) => setData(e.target.value)} /></div>
+        <div><label className="config-label" style={{ fontSize: '0.75rem' }}>Ciclo</label><select className="config-select" value={ciclo} onChange={(e) => setCiclo(Number(e.target.value))}><option value={30}>30 dias</option><option value={60}>60 dias</option><option value={90}>90 dias</option></select></div>
+        <button className="btn-primary" disabled={busy} onClick={salvar} style={{ background: '#14b8a6' }}>{busy ? '...' : 'Registrar'}</button>
+      </div>
+    </div>
+  );
+}

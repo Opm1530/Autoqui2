@@ -77,9 +77,53 @@ export function FarmaQui() {
         </p>
       </div>
 
+      <RecompraConfig />
+
       <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.82rem', marginTop: '1.25rem' }}>
-        Em breve: última compra + lembrete de recompra (ciclo configurável) e ofertas programadas no grupo.
+        Em breve: ofertas programadas no grupo do WhatsApp.
       </p>
+    </div>
+  );
+}
+
+function RecompraConfig() {
+  const [r, setR] = useState({ enabled: false, mensagem: '', cicloDiasPadrao: 30 });
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => { farmaquiApi.config().then((c) => { setR(c.recompra); setLoading(false); }).catch(() => setLoading(false)); }, []);
+  async function save() {
+    if (r.enabled && !r.mensagem.trim()) { toast.warning('Escreva a mensagem de recompra.'); return; }
+    setBusy(true);
+    try { await farmaquiApi.saveRecompra(r); toast.success('Recompra salva!'); }
+    catch (e: any) { toast.error('Erro: ' + (e.message || e)); }
+    finally { setBusy(false); }
+  }
+  if (loading) return null;
+  return (
+    <div className="card" style={{ marginTop: '1.25rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+        <div>
+          <div style={{ fontWeight: 700 }}>💊 Lembrete de recompra</div>
+          <p style={{ margin: '2px 0 0', color: 'var(--text-muted)', fontSize: '0.85rem' }}>Ao marcar a "última compra" de um cliente, o sistema manda uma mensagem depois de X dias perguntando se precisa repor.</p>
+        </div>
+        <label className="cfg-switch"><input type="checkbox" checked={r.enabled} onChange={(e) => setR({ ...r, enabled: e.target.checked })} /><span className="cfg-slider" /></label>
+      </div>
+      {r.enabled && (
+        <div style={{ marginTop: 14, display: 'grid', gap: 12 }}>
+          <div style={{ maxWidth: 220 }}>
+            <label className="config-label">Ciclo padrão (dias)</label>
+            <select className="config-select" value={r.cicloDiasPadrao} onChange={(e) => setR({ ...r, cicloDiasPadrao: Number(e.target.value) })}>
+              <option value={30}>30 dias</option><option value={60}>60 dias</option><option value={90}>90 dias</option>
+            </select>
+          </div>
+          <div>
+            <label className="config-label">Mensagem</label>
+            <textarea className="config-input" style={{ minHeight: 90, resize: 'vertical', fontFamily: 'inherit' }} value={r.mensagem} onChange={(e) => setR({ ...r, mensagem: e.target.value })} />
+            <small style={{ color: 'var(--text-dim)' }}>Use {'{{nome}}'} para o nome do cliente.</small>
+          </div>
+        </div>
+      )}
+      <div style={{ textAlign: 'right', marginTop: 14 }}><button className="btn-primary" disabled={busy} onClick={save} style={{ background: '#14b8a6' }}>{busy ? 'Salvando...' : 'Salvar'}</button></div>
     </div>
   );
 }

@@ -14,4 +14,7 @@ async function req(path: string, method: 'GET' | 'POST', body?: any) {
 export const farmaquiApi = {
   status: (): Promise<{ ativa: boolean; instancia: string }> => req('/api/farmaqui/status', 'GET'),
   activate: (instanceName: string) => req('/api/farmaqui/activate', 'POST', { instanceName }),
+  config: (): Promise<{ capturaAtiva: boolean; capturaInstancia: string; recompra: { enabled: boolean; mensagem: string; cicloDiasPadrao: number } }> => req('/api/farmaqui/config', 'GET'),
+  saveRecompra: (r: { enabled: boolean; mensagem: string; cicloDiasPadrao: number }) => req('/api/farmaqui/recompra', 'POST', r),
+  setUltimaCompra: (leadId: string, data: string, cicloDias: number) => req('/api/farmaqui/ultima-compra', 'POST', { leadId, data, cicloDias }),
 };

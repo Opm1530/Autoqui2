@@ -16,6 +16,7 @@ export function Leads() {
 
   const [leads, setLeads] = useState<any[]>([]);
   const [isOnlyCatalog, setIsOnlyCatalog] = useState(false);
+  const [hasFarmaqui, setHasFarmaqui] = useState(false);
   const [activeFilter, setActiveFilter] = useState('todos');
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<any | null>(null);
@@ -27,6 +28,7 @@ export function Leads() {
       const company = (await dbService.get('companies', companyId)) as any;
       const modulos = company?.modulos_ativos || [];
       setIsOnlyCatalog(modulos.includes('venda_catalogo') && !modulos.includes('atendimento'));
+      setHasFarmaqui(modulos.includes('farmaqui'));
     })();
   }, [companyId]);
 
@@ -141,7 +143,7 @@ export function Leads() {
       )}
 
       {selected && (
-        <LeadModal lead={selected} isOnlyCatalog={isOnlyCatalog}
+        <LeadModal lead={selected} isOnlyCatalog={isOnlyCatalog} farmaqui={hasFarmaqui}
           onClose={() => setSelected(null)} onUpdated={(l) => setSelected(l)} />
       )}
     </div>

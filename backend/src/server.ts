@@ -27,7 +27,7 @@ import { rateLimit, verifyMpSignature } from './security.js';
 import { ecommerceRouter } from './ecommerce/router.js';
 import { startEcommerceJobs } from './ecommerce/jobs.js';
 import { storefrontPublicRouter, storefrontAuthRouter } from './ecommerce/storefront.js';
-import { handleIncoming, activateCapture, captureStatus } from './farmaqui.js';
+import { handleIncoming, activateCapture, captureStatus, getConfig, saveRecompra, setUltimaCompra, startFarmaquiJobs } from './farmaqui.js';
 import { setStoreSubdomain, removeStoreSubdomain, storeByHost } from './domains.js';
 
 // Empresa do usuário logado (a partir do doc users/{uid}).
@@ -240,6 +240,9 @@ app.post('/api/wa/incoming/:companyId', (req, res) => {
 });
 app.post('/api/farmaqui/activate', requireAuth, wrap((req) => activateCapture(req.uid, String(req.body?.instanceName || ''))));
 app.get('/api/farmaqui/status', requireAuth, wrap((req) => captureStatus(req.uid)));
+app.get('/api/farmaqui/config', requireAuth, wrap((req) => getConfig(req.uid)));
+app.post('/api/farmaqui/recompra', requireAuth, wrap((req) => saveRecompra(req.uid, req.body || {})));
+app.post('/api/farmaqui/ultima-compra', requireAuth, wrap((req) => setUltimaCompra(req.uid, String(req.body?.leadId || ''), String(req.body?.data || ''), Number(req.body?.cicloDias) || 30)));
 
 // ── Domínios / subdomínios ──
 app.get('/api/domains/store-by-host', wrap((req) => storeByHost(String(req.query.host || ''))));
@@ -402,4 +405,5 @@ app.get('/api/wa/instance-exists/:name', requireAuth, wrap(async (req) => {
 app.listen(PORT, () => {
   console.log(`[autoqui-backend] ouvindo na porta ${PORT}`);
   startEcommerceJobs();
+  startFarmaquiJobs();
 });
