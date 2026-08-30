@@ -270,10 +270,27 @@ ul {
 
 /* ── Dashboard: visualizações de vendas ── */
 .dash-row-2 { display: grid; grid-template-columns: 2fr 1fr; gap: 1.25rem; margin-top: 1.5rem; }
-/* Últimos pedidos (alto, à esquerda) + coluna lateral empilhada (horários/assinatura) */
-.dash-row-3 { display: grid; grid-template-columns: 1.15fr 1fr; gap: 1.25rem; margin-top: 1.25rem; align-items: start; }
-.dash-side-col { display: flex; flex-direction: column; gap: 1.25rem; }
-@media (max-width: 900px) { .dash-row-2, .dash-row-3 { grid-template-columns: 1fr; } }
+/* Grid da área de vendas: mês (estreito) + últimos pedidos (alto, ao lado) + donut;
+   embaixo horários + assinatura. */
+.dash-viz {
+  display: grid;
+  grid-template-columns: 1fr 1.1fr 1fr;
+  grid-template-areas:
+    "mes    recent bairro"
+    "horas  recent assinatura";
+  gap: 1.25rem;
+  margin-top: 1.5rem;
+  align-items: start;
+}
+.dash-viz > div { display: flex; min-width: 0; }
+.dash-viz > div > .card { width: 100%; }
+@media (max-width: 1000px) {
+  .dash-viz {
+    grid-template-columns: 1fr;
+    grid-template-areas: "mes" "recent" "bairro" "horas" "assinatura";
+  }
+}
+@media (max-width: 900px) { .dash-row-2 { grid-template-columns: 1fr; } }
 
 .viz-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 1.25rem; }
 .viz-head h4 { margin: 0; font-size: 1rem; font-weight: 700; }

@@ -277,19 +277,15 @@ export function Dashboard() {
         </>}
       </div>
 
-      {hasVenda && salesViz && <>
-        <div className="dash-row-2">
-          <MonthlyBars data={salesViz.monthly} />
-          <BairroDonut items={salesViz.bairros} total={salesViz.totalPedidos} />
+      {hasVenda && salesViz && (
+        <div className="dash-viz">
+          <div style={{ gridArea: 'mes' }}><MonthlyBars data={salesViz.monthly} /></div>
+          <div style={{ gridArea: 'recent' }}><RecentOrders items={salesViz.recent} /></div>
+          <div style={{ gridArea: 'bairro' }}><BairroDonut items={salesViz.bairros} total={salesViz.totalPedidos} /></div>
+          <div style={{ gridArea: 'horas' }}><BestHours data={catalog?.bestHours || []} /></div>
+          <div style={{ gridArea: 'assinatura' }}><SubscriptionCard sub={sub} /></div>
         </div>
-        <div className="dash-row-3">
-          <RecentOrders items={salesViz.recent} />
-          <div className="dash-side-col">
-            <BestHours data={catalog?.bestHours || []} />
-            <SubscriptionCard sub={sub} />
-          </div>
-        </div>
-      </>}
+      )}
     </div>
   );
 }
