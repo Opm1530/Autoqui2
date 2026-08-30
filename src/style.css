@@ -279,17 +279,20 @@ ul {
   margin-top: 1.5rem;
   align-items: stretch;
 }
-/* space-between empurra o último card de cada coluna pro rodapé (alinhados),
-   deixando o espaço como um respiro ENTRE cards — nunca vazio dentro do card. */
-.dash-col { display: flex; flex-direction: column; justify-content: space-between; gap: 1.25rem; min-width: 0; }
+/* Gap fixo e igual entre os cards; o último card de cada coluna estica pra
+   preencher, deixando tops, gaps e rodapés todos alinhados entre as colunas. */
+.dash-col { display: flex; flex-direction: column; gap: 1.25rem; min-width: 0; }
 .dash-col > .card { width: 100%; flex: 0 0 auto; }
+.dash-col > .card:last-child { flex: 1 1 auto; display: flex; flex-direction: column; }
+/* conteúdo dos cards esticados fica centralizado verticalmente */
+.dash-col > .card:last-child .sreport { flex: 1; justify-content: center; }
 @media (max-width: 1000px) {
-  .dash-viz { grid-template-columns: 1fr; }
-  .dash-col { justify-content: flex-start; }
+  .dash-viz { grid-template-columns: 1fr; align-items: start; }
+  .dash-col > .card:last-child { flex: 0 0 auto; }
 }
 
-/* Card de faturamento total */
-.fat-card { display: flex; flex-direction: column; }
+/* Card de faturamento total (centraliza ao esticar) */
+.fat-card { display: flex; flex-direction: column; justify-content: center; }
 .fat-value { font-family: 'Outfit', sans-serif; font-size: 1.9rem; font-weight: 700; letter-spacing: -0.02em; color: var(--primary-hover); line-height: 1; }
 .fat-cap { font-size: 0.82rem; color: var(--text-muted); margin-top: 6px; }
 
