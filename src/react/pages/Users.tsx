@@ -80,8 +80,9 @@ export function Users() {
       <div className="page-heading"><h1>Equipe</h1><p>Convide colaboradores e gerencie os acessos.</p></div>
       <ManageTabs />
       <div className="page-header" style={{ justifyContent: 'flex-end' }}>
-        <button className="btn-primary" onClick={() => { setEditing(null); setModalOpen(true); }}>
-          <i style={{ color: '#fff' }} className="fa-solid fa-user-plus" /> Novo Colaborador
+        <button className="btn-add" onClick={() => { setEditing(null); setModalOpen(true); }}>
+          Novo Colaborador
+          <span className="btn-add-icon"><i className="fa-solid fa-plus" /></span>
         </button>
       </div>
 
@@ -89,7 +90,7 @@ export function Users() {
         <div className="table-container">
           <table className="data-table">
             <thead>
-              <tr><th>Nome</th><th>E-mail</th><th>Cargo</th><th>Lojas</th><th>Status</th><th>Ações</th></tr>
+              <tr><th>Nome</th><th>E-mail</th><th>Cargo</th><th>Negócio</th><th>Status</th><th>Ações</th></tr>
             </thead>
             <tbody>
               {team.length === 0 ? (

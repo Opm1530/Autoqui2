@@ -190,6 +190,33 @@ ul {
   gap: 1.5rem;
 }
 
+/* Botão "adicionar" estilo referência: pílula clara + círculo escuro com ícone */
+.btn-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  font-weight: 600;
+  font-size: 0.92rem;
+  font-family: inherit;
+  padding: 0.4rem 0.45rem 0.4rem 1.15rem;
+  border-radius: 999px;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: var(--transition);
+}
+.btn-add:hover { background: var(--surface-hover); transform: translateY(-1px); }
+.btn-add-icon {
+  width: 32px; height: 32px; flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--text-main);
+  color: var(--surface-color);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.8rem;
+}
+
 /* Página Negócio */
 .negocio-card { width: 100%; }
 .negocio-head { display: flex; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
@@ -467,14 +494,19 @@ ul {
 .action-btn {
   width: 32px;
   height: 32px;
-  border-radius: 6px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 0.9rem;
+  color: var(--text-muted);
+  background: var(--surface-color);
   border: 1px solid var(--border-color);
+  cursor: pointer;
   transition: var(--transition);
 }
+/* Ícones herdam a cor do botão (sobrepõe restos de color:#fff do tema escuro). */
+.action-btn i { color: inherit !important; }
 
 .action-btn:hover {
   transform: translateY(-2px);
