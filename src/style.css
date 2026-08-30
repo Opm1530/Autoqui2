@@ -277,12 +277,15 @@ ul {
   grid-template-columns: 1.1fr 1fr 1fr;
   gap: 1.25rem;
   margin-top: 1.5rem;
-  align-items: start;
+  align-items: stretch;
 }
-.dash-col { display: flex; flex-direction: column; gap: 1.25rem; min-width: 0; }
-.dash-col > .card { width: 100%; }
+/* space-between empurra o último card de cada coluna pro rodapé (alinhados),
+   deixando o espaço como um respiro ENTRE cards — nunca vazio dentro do card. */
+.dash-col { display: flex; flex-direction: column; justify-content: space-between; gap: 1.25rem; min-width: 0; }
+.dash-col > .card { width: 100%; flex: 0 0 auto; }
 @media (max-width: 1000px) {
   .dash-viz { grid-template-columns: 1fr; }
+  .dash-col { justify-content: flex-start; }
 }
 
 /* Card de faturamento total */
@@ -304,9 +307,7 @@ ul {
 .mbars-group { flex: 1; height: 100%; display: flex; align-items: flex-end; justify-content: center; gap: 0; }
 .mbars-labels { display: flex; margin-top: 8px; }
 .mbars-labels span { flex: 1; text-align: center; font-size: 0.78rem; color: var(--text-muted); text-transform: capitalize; }
-.mbar { position: relative; width: 24px; border-radius: 6px 6px 0 0; min-height: 3px; transition: height 0.4s ease; }
-.mbars-group .mbar:first-child { border-radius: 6px 0 0 0; }
-.mbars-group .mbar:last-child { border-radius: 0 6px 0 0; }
+.mbar { position: relative; width: 22px; border-radius: 6px 6px 0 0; min-height: 3px; transition: height 0.4s ease; }
 .mbar-num { position: absolute; top: -18px; left: 50%; transform: translateX(-50%); font-size: 0.72rem; font-weight: 700; color: var(--text-muted); }
 .mbars-label { font-size: 0.78rem; color: var(--text-muted); text-transform: capitalize; }
 

@@ -167,7 +167,7 @@ export function Dashboard() {
 
         // Lista: últimos pedidos.
         const recent = [...ordersArr].filter((o: any) => !o.arquivado)
-          .sort((a: any, b: any) => orderDate(b).getTime() - orderDate(a).getTime()).slice(0, 8)
+          .sort((a: any, b: any) => orderDate(b).getTime() - orderDate(a).getTime()).slice(0, 6)
           .map((o: any) => ({ nome: o.nome || o.leadName || o.clientName || 'Cliente', value: o.value || o.total || 0, data: orderDate(o), status: (o.status || 'em_montagem').toLowerCase() }));
 
         const faturamentoPago = ordersArr.reduce((s: number, o: any) => s + ((o.status || '').toLowerCase() === 'finalizado' ? (o.value || o.total || 0) : 0), 0);
@@ -284,15 +284,15 @@ export function Dashboard() {
         <div className="dash-viz">
           <div className="dash-col">
             <RecentOrders items={salesViz.recent} />
-          </div>
-          <div className="dash-col">
-            <MonthlyBars data={salesViz.monthly} />
-            <BestHours data={catalog?.bestHours || []} />
             <div className="card viz-card fat-card">
               <div className="viz-head"><h4>Faturamento total</h4></div>
               <div className="fat-value">{fmtBRL(salesViz.faturamentoPago)}</div>
               <div className="fat-cap">em pedidos pagos</div>
             </div>
+          </div>
+          <div className="dash-col">
+            <MonthlyBars data={salesViz.monthly} />
+            <BestHours data={catalog?.bestHours || []} />
           </div>
           <div className="dash-col">
             <BairroDonut items={salesViz.bairros} total={salesViz.totalPedidos} />
