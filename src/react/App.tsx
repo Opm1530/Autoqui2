@@ -8,6 +8,8 @@ import { Signup } from './pages/Signup';
 import { Dashboard } from './pages/Dashboard';
 import { Orders } from './pages/Orders/Orders';
 import { Products } from './pages/Products/Products';
+import { Categories } from './pages/Products/Categories';
+import { Combos } from './pages/Products/Combos';
 import { MercadoPago } from './pages/MercadoPago';
 import { Users } from './pages/Users';
 import { Instances } from './pages/Instances';
@@ -104,6 +106,8 @@ export function App() {
             <Route path="/farmaqui" element={<FarmaQui />} />
             <Route path="/orders" element={<Orders />} />
             <Route path="/products" element={<Products />} />
+            <Route path="/categories" element={<Categories />} />
+            <Route path="/combos" element={<Combos />} />
             <Route path="/leads" element={<Leads />} />
             <Route path="/business" element={<Stores />} />
             <Route path="/users" element={<Users />} />

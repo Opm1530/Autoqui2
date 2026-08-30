@@ -9,10 +9,8 @@ import { useAuth } from '../../useAuth';
 import { usePagination, Pagination } from '../../components/Pagination';
 import { SkeletonTable } from '../../components/Skeleton';
 import { getProductImageUrl } from './helpers';
-import type { Product, Category, Combo } from './helpers';
+import type { Product, Category } from './helpers';
 import { ProductModal } from './ProductModal';
-import { CategoryModal } from './CategoryModal';
-import { CombosModal } from './CombosModal';
 
 export function Products() {
   const { user } = useAuth();
@@ -24,7 +22,6 @@ export function Products() {
   const [stores, setStores] = useState<any[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [combos, setCombos] = useState<Combo[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [storeFilter, setStoreFilter] = useState('all');
@@ -35,8 +32,6 @@ export function Products() {
 
   const [showProductModal, setShowProductModal] = useState(false);
   const [editProduct, setEditProduct] = useState<Product | null>(null);
-  const [showCategoryModal, setShowCategoryModal] = useState(false);
-  const [showCombosModal, setShowCombosModal] = useState(false);
 
   const isAgendamento = modulos?.includes('agendamento') || false;
   const isVitrine = modulos?.includes('vitrine') || false;
@@ -57,14 +52,12 @@ export function Products() {
       const enabled = mods.includes('venda') || mods.includes('agendamento') || mods.includes('venda_catalogo') || mods.includes('vitrine');
       if (!enabled) { setLoading(false); return; }
 
-      const [prodsRaw, catsRaw, combosRaw] = await Promise.all([
+      const [prodsRaw, catsRaw] = await Promise.all([
         dbService.getAll('products', { field: 'companyId', operator: '==', value: companyId }),
         dbService.getAll('categories', { field: 'companyId', operator: '==', value: companyId }),
-        dbService.getAll('combos', { field: 'empresaId', operator: '==', value: companyId }),
       ]);
       setProducts(prodsRaw as Product[]);
       setCategories(catsRaw as Category[]);
-      setCombos(combosRaw as Combo[]);
       setLoading(false);
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -184,8 +177,6 @@ export function Products() {
         )}
 
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          <button className="btn-secondary" onClick={() => setShowCategoryModal(true)}><i className="fa-solid fa-tags" /> Categorias</button>
-          {!isAgendamento && <button className="btn-secondary" style={{ color: '#f59e0b', borderColor: 'rgba(245,158,11,0.4)' }} onClick={() => setShowCombosModal(true)}><i className="fa-solid fa-layer-group" /> Combos</button>}
           <button className="btn-add" onClick={() => { setEditProduct(null); setShowProductModal(true); }}>Novo {labelSingular}<span className="btn-add-icon"><i className="fa-solid fa-plus" /></span></button>
         </div>
       </div>
@@ -310,12 +301,6 @@ export function Products() {
           onClose={() => { setShowProductModal(false); setEditProduct(null); }}
           onSaved={onProductsSaved}
         />
-      )}
-      {showCategoryModal && (
-        <CategoryModal companyId={companyId} labelPlural={labelPlural} categories={categories} onChange={setCategories} onClose={() => setShowCategoryModal(false)} />
-      )}
-      {showCombosModal && (
-        <CombosModal companyId={companyId} stores={stores} products={products} combos={combos} onChange={setCombos} onClose={() => setShowCombosModal(false)} />
       )}
     </div>
   );

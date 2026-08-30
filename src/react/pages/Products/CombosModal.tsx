@@ -11,10 +11,11 @@ interface Props {
   products: Product[];
   combos: Combo[];
   onChange: (combos: Combo[]) => void;
-  onClose: () => void;
+  onClose?: () => void;
+  asPage?: boolean;
 }
 
-export function CombosModal({ companyId, stores, products, combos, onChange, onClose }: Props) {
+export function CombosModal({ companyId, stores, products, combos, onChange, onClose, asPage = false }: Props) {
   const [nome, setNome] = useState('');
   const [preco, setPreco] = useState('');
   const [lojaId, setLojaId] = useState('');
@@ -90,17 +91,8 @@ export function CombosModal({ companyId, stores, products, combos, onChange, onC
   const inputStyle: React.CSSProperties = { width: '100%', padding: '0.6rem 0.8rem', background: 'var(--surface-hover)', border: '1px solid var(--border-color)', borderRadius: 8, color: 'var(--text-main)', fontSize: '0.9rem', boxSizing: 'border-box' };
   const lblStyle: React.CSSProperties = { fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: 4 };
 
-  return (
-    <div className="modal" style={{ display: 'flex' }} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="modal-content glass" style={{ maxWidth: 560, maxHeight: '90vh', overflowY: 'auto', padding: 0 }}>
-        <div style={{ padding: '1.5rem 1.5rem 1rem', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700 }}><i className="fa-solid fa-layer-group" style={{ color: '#f59e0b', marginRight: 8 }} />Combos</h3>
-            <p style={{ margin: '4px 0 0', fontSize: '0.82rem', color: 'var(--text-muted)' }}>Crie kits de produtos com preço especial</p>
-          </div>
-          <span className="close-modal" onClick={onClose}>&times;</span>
-        </div>
-
+  const body = (
+    <>
         <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
           <div>
             <label style={lblStyle}>Nome do Combo *</label>
@@ -175,6 +167,29 @@ export function CombosModal({ companyId, stores, products, combos, onChange, onC
             );
           })}
         </div>
+    </>
+  );
+
+  if (asPage) {
+    return (
+      <div>
+        <div className="page-heading"><h1>Combos</h1><p>Crie kits de produtos com preço especial.</p></div>
+        <div className="card" style={{ padding: 0, overflow: 'hidden', maxWidth: 620 }}>{body}</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="modal" style={{ display: 'flex' }} onClick={(e) => { if (e.target === e.currentTarget) onClose?.(); }}>
+      <div className="modal-content glass" style={{ maxWidth: 560, maxHeight: '90vh', overflowY: 'auto', padding: 0 }}>
+        <div style={{ padding: '1.5rem 1.5rem 1rem', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700 }}><i className="fa-solid fa-layer-group" style={{ color: '#f59e0b', marginRight: 8 }} />Combos</h3>
+            <p style={{ margin: '4px 0 0', fontSize: '0.82rem', color: 'var(--text-muted)' }}>Crie kits de produtos com preço especial</p>
+          </div>
+          <span className="close-modal" onClick={onClose}>&times;</span>
+        </div>
+        {body}
       </div>
     </div>
   );

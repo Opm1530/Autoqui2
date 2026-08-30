@@ -10,10 +10,11 @@ interface Props {
   labelPlural: string;
   categories: Category[];
   onChange: (cats: Category[]) => void;
-  onClose: () => void;
+  onClose?: () => void;
+  asPage?: boolean;
 }
 
-export function CategoryModal({ companyId, labelPlural, categories, onChange, onClose }: Props) {
+export function CategoryModal({ companyId, labelPlural, categories, onChange, onClose, asPage = false }: Props) {
   const [name, setName] = useState('');
   const [icon, setIcon] = useState('fa-tag');
   const [editing, setEditing] = useState<{ id: string; name: string } | null>(null);
@@ -71,14 +72,9 @@ export function CategoryModal({ companyId, labelPlural, categories, onChange, on
     } catch { toast.error('Erro ao atualizar nome.'); }
   }
 
-  return (
-    <div className="modal" style={{ display: 'flex' }} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="modal-content glass" style={{ maxWidth: 820, width: '94vw' }}>
-        <span className="close-modal" onClick={onClose}>&times;</span>
-        <h2>Gerenciar Categorias</h2>
-        <p className="text-muted">Crie categorias para organizar seus {labelPlural.toLowerCase()}.</p>
-
-        <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', alignItems: 'flex-start', marginTop: 20 }}>
+  const body = (
+    <>
+        <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', alignItems: 'flex-start', marginTop: asPage ? 0 : 20 }}>
           {/* Coluna esquerda: formulário */}
           <form style={{ flex: '1 1 320px', minWidth: 0 }} onSubmit={create}>
             <div className="form-group">
@@ -122,7 +118,7 @@ export function CategoryModal({ companyId, labelPlural, categories, onChange, on
               {editing?.id === c.id ? (
                 <input autoFocus value={editing.name} onChange={(e) => setEditing({ id: c.id, name: e.target.value })}
                   onKeyDown={(e) => { if (e.key === 'Enter') saveName(); if (e.key === 'Escape') setEditing(null); }}
-                  style={{ flex: 1, background: 'var(--bg-color)', border: '1px solid var(--border-color)', color: 'white', padding: '6px 10px', borderRadius: 6 }} />
+                  style={{ flex: 1, background: 'var(--bg-color)', border: '1px solid var(--border-color)', color: 'var(--text-main)', padding: '6px 10px', borderRadius: 6 }} />
               ) : (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   {getCategoryCover(c)
@@ -150,6 +146,25 @@ export function CategoryModal({ companyId, labelPlural, categories, onChange, on
             </div>
           </div>
         </div>
+    </>
+  );
+
+  if (asPage) {
+    return (
+      <div>
+        <div className="page-heading"><h1>Categorias</h1><p>Crie categorias para organizar seus {labelPlural.toLowerCase()}.</p></div>
+        <div className="card">{body}</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="modal" style={{ display: 'flex' }} onClick={(e) => { if (e.target === e.currentTarget) onClose?.(); }}>
+      <div className="modal-content glass" style={{ maxWidth: 820, width: '94vw' }}>
+        <span className="close-modal" onClick={onClose}>&times;</span>
+        <h2>Gerenciar Categorias</h2>
+        <p className="text-muted">Crie categorias para organizar seus {labelPlural.toLowerCase()}.</p>
+        {body}
       </div>
     </div>
   );

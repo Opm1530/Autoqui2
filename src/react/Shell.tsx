@@ -9,7 +9,7 @@ import { subscriptionApi } from '../services/subscriptionApi';
 import { Billing } from './pages/Billing';
 import { useAuth } from './useAuth';
 
-interface NavItem { to: string; label: string; icon: string; }
+interface NavItem { to?: string; label: string; icon: string; children?: NavItem[]; }
 type NavEntry = NavItem | { divider: true } | { section: string };
 
 const HELP_WA = 'https://wa.me/5564999983832'; // atendimento da plataforma (item "Ajuda")
@@ -17,6 +17,7 @@ const HELP_WA = 'https://wa.me/5564999983832'; // atendimento da plataforma (ite
 const TITLES: Record<string, string> = {
   '/dashboard': 'Dashboard', '/tools': 'Ferramentas', '/ecommerce': 'E-commerce', '/farmaqui': 'FarmaQui', '/orders': 'Pedidos', '/products': 'Produtos',
   '/leads': 'Leads', '/business': 'Negócio', '/users': 'Usuários',
+  '/combos': 'Combos', '/categories': 'Categorias',
   '/instances': 'Instâncias', '/catalog-settings': 'Configuração',
   '/mercado-pago': 'Mercado Pago', '/campaigns': 'Campanhas',
   '/schedule': 'Agenda', '/schedule-clients': 'Clientes',
@@ -54,20 +55,29 @@ function buildNav(role: string | undefined, modulos: string[]): NavEntry[] {
   // add() evita item duplicado quando duas ferramentas apontam pra mesma rota.
   const nav: NavEntry[] = [{ section: 'Menu' }];
   const seen = new Set<string>();
-  const add = (item: NavItem) => { if (!seen.has(item.to)) { seen.add(item.to); nav.push(item); } };
+  const add = (item: NavItem) => { const key = item.to || item.label; if (!seen.has(key)) { seen.add(key); nav.push(item); } };
+
+  // Dropdown de "Produtos": Catálogo + (Combos) + Categorias.
+  const produtosDropdown = (label: string, comCombos: boolean): NavItem => ({
+    label, icon: 'fa-box', children: [
+      { to: '/products', label: 'Catálogo', icon: 'fa-boxes-stacked' },
+      ...(comCombos ? [{ to: '/combos', label: 'Combos', icon: 'fa-layer-group' }] : []),
+      { to: '/categories', label: 'Categorias', icon: 'fa-tags' },
+    ],
+  });
 
   add({ to: '/dashboard', label: 'Dashboard', icon: 'fa-chart-line' });
 
   // ── Canal (só um ativo por vez) ──
   if (vitrine) {
-    add({ to: '/products', label: 'Produtos', icon: 'fa-box' });
+    add(produtosDropdown('Produtos', true));
   } else if (agendamento) {
-    add({ to: '/products', label: 'Serviços', icon: 'fa-list-check' });
+    add(produtosDropdown('Serviços', false));
     add({ to: '/schedule-clients', label: 'Clientes', icon: 'fa-users' });
     add({ to: '/schedule', label: 'Agenda', icon: 'fa-calendar-alt' });
   } else if (vendaCatalogo || venda) {
     add({ to: '/orders', label: 'Pedidos', icon: 'fa-clipboard-list' });
-    add({ to: '/products', label: 'Produtos', icon: 'fa-box' });
+    add(produtosDropdown('Produtos', true));
   } else if (ecommerce) {
     add({ to: '/ecommerce', label: 'E-commerce', icon: 'fa-store' });
   } else if (farmaqui) {
@@ -93,9 +103,20 @@ function buildNav(role: string | undefined, modulos: string[]): NavEntry[] {
   return nav;
 }
 
+// Achata a árvore de nav em itens navegáveis (com rota), expandindo dropdowns.
+function leafItems(nav: NavEntry[]): NavItem[] {
+  const out: NavItem[] = [];
+  for (const n of nav) {
+    if ('divider' in n || 'section' in n) continue;
+    if (n.children) out.push(...n.children);
+    else if (n.to) out.push(n);
+  }
+  return out;
+}
+
 // Itens principais para a barra inferior no mobile (máx 5).
 function mobileNav(nav: NavEntry[]): NavItem[] {
-  const items = nav.filter((n): n is NavItem => !('divider' in n) && !('section' in n));
+  const items = leafItems(nav);
   const priority = ['/dashboard', '/tools', '/products', '/orders', '/leads', '/schedule', '/campaigns'];
   const picked = priority.map((p) => items.find((i) => i.to === p)).filter(Boolean) as NavItem[];
   if (picked.length >= 3) return picked.slice(0, 5);
@@ -177,13 +198,15 @@ export function Shell() {
             ? <div key={`d${i}`} className="nav-divider" />
             : 'section' in item
               ? <div key={`s${i}`} className="nav-section-label">{item.section}</div>
-              : (
-                <NavLink key={item.to + item.label} to={item.to} end
-                  className={({ isActive }) => 'nav-item' + (isActive ? ' active' : '')}>
-                  <span className="icon">{iconEl(item.icon)}</span>
-                  <span>{item.label}</span>
-                </NavLink>
-              ))}
+              : item.children
+                ? <NavGroup key={`g${item.label}`} item={item} />
+                : (
+                  <NavLink key={item.to! + item.label} to={item.to!} end
+                    className={({ isActive }) => 'nav-item' + (isActive ? ' active' : '')}>
+                    <span className="icon">{iconEl(item.icon)}</span>
+                    <span>{item.label}</span>
+                  </NavLink>
+                ))}
         </nav>
         <div className="sidebar-footer" ref={userMenuRef}>
           {userMenuOpen && (
@@ -233,7 +256,7 @@ export function Shell() {
         {/* Bottom nav (mobile) */}
         <nav className="mobile-bottom-nav">
           {mobile.map((item) => (
-            <NavLink key={item.to + item.label} to={item.to} end
+            <NavLink key={item.to! + item.label} to={item.to!} end
               className={({ isActive }) => 'mobile-nav-item' + (isActive ? ' active' : '')}>
               {iconEl(item.icon)}
               <span>{item.label}</span>
@@ -242,5 +265,36 @@ export function Shell() {
         </nav>
       </main>
     </div>
+  );
+}
+
+// Item de menu com submenu (dropdown). Abre automaticamente quando um filho
+// está ativo; o usuário também pode abrir/fechar manualmente.
+function NavGroup({ item }: { item: NavItem }) {
+  const location = useLocation();
+  const children = item.children || [];
+  const hasActive = children.some((c) => c.to && location.pathname === c.to);
+  const [open, setOpen] = useState(hasActive);
+  useEffect(() => { if (hasActive) setOpen(true); }, [hasActive]);
+
+  return (
+    <>
+      <button className={'nav-item nav-parent' + (hasActive ? ' has-active' : '')} onClick={() => setOpen((o) => !o)}>
+        <span className="icon">{iconEl(item.icon)}</span>
+        <span>{item.label}</span>
+        <i className={'nav-caret fa-solid fa-chevron-down' + (open ? ' open' : '')} />
+      </button>
+      {open && (
+        <div className="nav-children">
+          {children.map((c) => (
+            <NavLink key={c.to} to={c.to!} end
+              className={({ isActive }) => 'nav-item nav-child' + (isActive ? ' active' : '')}>
+              <span className="icon">{iconEl(c.icon)}</span>
+              <span>{c.label}</span>
+            </NavLink>
+          ))}
+        </div>
+      )}
+    </>
   );
 }

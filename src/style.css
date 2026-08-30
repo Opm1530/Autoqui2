@@ -640,6 +640,32 @@ ul {
   opacity: 1;
 }
 
+/* Dropdown de menu (Produtos → Catálogo/Combos/Categorias) */
+.nav-parent {
+  width: 100%;
+  background: transparent;
+  border: none;
+  font-family: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+.nav-caret {
+  margin-left: auto;
+  font-size: 0.7rem;
+  opacity: 0.7;
+  transition: transform 0.2s;
+}
+.nav-caret.open { transform: rotate(180deg); }
+.nav-parent.has-active { color: #eef4ef; }
+.nav-children {
+  margin: 2px 0 4px;
+  padding-left: 14px;
+  border-left: 1px solid var(--sidebar-border);
+  margin-left: 1.15rem;
+}
+.nav-child { font-size: 0.9rem; padding: 0.55rem 0.85rem; }
+.nav-child.active::before { left: -14px; height: 20px; }
+
 .nav-section-label {
   padding: 0 1rem;
   margin: 1.5rem 0 0.6rem;
