@@ -7,7 +7,6 @@ import { toast } from '../../../services/toast';
 import { useAuth } from '../../useAuth';
 import { SkeletonCards } from '../../components/Skeleton';
 import { Appearance } from './Appearance';
-import { Schedules } from './Schedules';
 import { Messages } from './Messages';
 import { Payment } from './Payment';
 import { MercadoPago } from '../MercadoPago';
@@ -24,8 +23,8 @@ export function CatalogSettings() {
   const [hasMercadoPago, setHasMercadoPago] = useState(false);
   const [activeStoreId, setActiveStoreId] = useState('');
   const [params] = useSearchParams();
-  const initialSection = (['geral', 'design', 'mensagens', 'pagamento'] as const).find((s) => s === params.get('sec')) || 'geral';
-  const [section, setSection] = useState<'geral' | 'design' | 'mensagens' | 'pagamento'>(initialSection);
+  const initialSection = (['design', 'mensagens', 'pagamento'] as const).find((s) => s === params.get('sec')) || 'design';
+  const [section, setSection] = useState<'design' | 'mensagens' | 'pagamento'>(initialSection);
   const [isVitrine, setIsVitrine] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -65,7 +64,6 @@ export function CatalogSettings() {
     }
   }
 
-  const currentLink = activeStoreId ? `${window.location.origin}/catalog/${activeStoreId}` : '';
   const currentInstanciaId = config?.instancia_id || stores.find((s) => s.id === activeStoreId)?.instancia_id || '';
 
   async function bindInstance(newInstId: string) {
@@ -128,45 +126,20 @@ export function CatalogSettings() {
         )}
       </div>
 
-      {/* GERAL: link + instância + horários */}
-      {section === 'geral' && (
+      {section === 'design' && <Appearance key={`ap-${activeStoreId}`} companyId={companyId} storeId={activeStoreId} design={design} vitrine={isVitrine} onSave={save} />}
+      {section === 'mensagens' && !isVitrine && (
         <>
           <div className="card" style={{ marginBottom: '1.5rem' }}>
-            <div className="config-section-title"><i className="fa-solid fa-link" style={{ color: 'var(--primary)' }} /> Link do Catálogo</div>
-            <div style={{ display: 'flex', gap: 10, alignItems: 'center', background: 'rgba(132, 204, 22,0.06)', border: '1px dashed rgba(132, 204, 22,0.3)', borderRadius: 'var(--radius-md)', padding: '0.75rem 1rem' }}>
-              <i className="fa-solid fa-store" style={{ color: 'var(--primary)' }} />
-              <input type="text" value={currentLink} readOnly style={{ flex: 1, background: 'transparent', border: 'none', color: 'var(--text-main)', fontSize: '0.9rem', outline: 'none' }} />
-              <button className="btn-save-msg" onClick={() => navigator.clipboard.writeText(currentLink).then(() => toast.success('Link copiado!'))}><i className="fa-solid fa-copy" /> Copiar</button>
-              <a href={currentLink} target="_blank" rel="noreferrer" className="btn-secondary" style={{ padding: '0.4rem 0.75rem', fontSize: '0.85rem' }}><i className="fa-solid fa-arrow-up-right-from-square" /></a>
-            </div>
+            <div className="config-section-title"><i className="fa-brands fa-whatsapp" style={{ color: '#25d366' }} /> Vinculação da Instância</div>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '1rem' }}>Selecione a instância de WhatsApp que enviará as mensagens automáticas.</p>
+            <select className="config-select" value={currentInstanciaId} onChange={(e) => bindInstance(e.target.value)}>
+              <option value="">-- Nenhuma instância --</option>
+              {instances.map((inst) => <option key={inst.id} value={inst.id}>{inst.nome} ({inst.status})</option>)}
+            </select>
           </div>
-
-          {!isVitrine && (
-            <div className="card" style={{ marginBottom: '1.5rem' }}>
-              <div className="config-section-title"><i className="fa-brands fa-whatsapp" style={{ color: '#25d366' }} /> Vinculação da Instância</div>
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '1rem' }}>Selecione a instância de WhatsApp que enviará mensagens automáticas para esta loja.</p>
-              <select className="config-select" value={currentInstanciaId} onChange={(e) => bindInstance(e.target.value)}>
-                <option value="">-- Nenhuma instância --</option>
-                {instances.map((inst) => <option key={inst.id} value={inst.id}>{inst.nome} ({inst.status})</option>)}
-              </select>
-            </div>
-          )}
-
-          {!isVitrine && (
-            <>
-              <Schedules key={`func-${activeStoreId}`} title="Horário de Funcionamento" icon="fa-clock"
-                description="Defina os dias e horários em que a loja aceita pedidos." campo="horario_funcionamento"
-                saveLabel="Salvar Horários" openLabel="Aberto" closedLabel="Fechado" initial={config?.horario_funcionamento} onSave={save} />
-              <Schedules key={`entrega-${activeStoreId}`} title="Horário de Entrega" icon="fa-truck"
-                description="Defina especificamente em quais horários a loja realiza entregas." campo="horario_entrega"
-                saveLabel="Salvar Horários de Entrega" openLabel="Disponível" closedLabel="Indisponível" initial={config?.horario_entrega} onSave={save} />
-            </>
-          )}
+          <Messages key={`msg-${activeStoreId}`} initial={config?.mensagens_automaticas || {}} onSave={save} />
         </>
       )}
-
-      {section === 'design' && <Appearance key={`ap-${activeStoreId}`} companyId={companyId} storeId={activeStoreId} design={design} vitrine={isVitrine} onSave={save} />}
-      {section === 'mensagens' && !isVitrine && <Messages key={`msg-${activeStoreId}`} initial={config?.mensagens_automaticas || {}} onSave={save} />}
       {section === 'pagamento' && <>
         <Payment key={`pay-${activeStoreId}`} config={config} hasMercadoPago={hasMercadoPago} vitrine={isVitrine} onSave={save} />
         {!isVitrine && (
@@ -181,7 +154,6 @@ export function CatalogSettings() {
 }
 
 const SECTIONS = [
-  { key: 'geral', label: 'Geral', icon: 'fa-sliders' },
   { key: 'design', label: 'Design', icon: 'fa-palette' },
   { key: 'mensagens', label: 'Mensagens', icon: 'fa-message' },
   { key: 'pagamento', label: 'Pagamento', icon: 'fa-credit-card' },
@@ -190,7 +162,6 @@ const SECTIONS = [
 // Vitrine não vende pelo site: sem Mensagens automáticas nem Pagamento.
 // "Pagamento" vira "Contato" (só o WhatsApp).
 const SECTIONS_VITRINE = [
-  { key: 'geral', label: 'Geral', icon: 'fa-sliders' },
   { key: 'design', label: 'Design', icon: 'fa-palette' },
   { key: 'pagamento', label: 'Contato', icon: 'fa-comment-dots' },
 ];

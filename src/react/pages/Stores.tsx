@@ -1,11 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { dbService } from '../../services/db';
+import { dataApi } from '../../services/dataApi';
 import { adminApi } from '../../services/adminApi';
 import { domainsApi } from '../../services/domainsApi';
 import { toast } from '../../services/toast';
 import { useAuth } from '../useAuth';
 import { SkeletonCards } from '../components/Skeleton';
 import { ManageTabs } from '../components/ManageTabs';
+import { Schedules } from './Configuration/Schedules';
 
 export function Stores() {
   const { user } = useAuth();
@@ -13,6 +15,8 @@ export function Stores() {
   const isOwner = user?.role === 'owner';
 
   const [stores, setStores] = useState<any[]>([]);
+  const [modulos, setModulos] = useState<string[]>([]);
+  const [lojaConfigs, setLojaConfigs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState<{ id?: string; name: string; address: string } | null>(null);
 
@@ -21,9 +25,29 @@ export function Stores() {
     (async () => {
       const companyDoc = (await dbService.get('companies', companyId)) as any;
       setStores(companyDoc?.stores || []);
+      setModulos(companyDoc?.modulos_ativos || []);
+      const cfgs = await dbService.getAll('loja_config', { field: 'empresaId', operator: '==', value: companyId }).catch(() => []);
+      setLojaConfigs(cfgs as any[]);
       setLoading(false);
     })();
   }, [companyId]);
+
+  const storeId = stores[0]?.id || '';
+  const config = useMemo(() => lojaConfigs.find((c) => c.lojaId === storeId) || null, [lojaConfigs, storeId]);
+  // Horários só fazem sentido pra quem vende pelo catálogo (não vitrine/atendimento).
+  const mostraHorarios = modulos.includes('venda_catalogo') || modulos.includes('venda');
+
+  // Upsert em loja_config (mesmo padrão da Configuração).
+  async function saveConfig(payload: any) {
+    const existing = lojaConfigs.find((c) => c.lojaId === storeId);
+    if (existing) {
+      await dataApi.update('loja_config', existing.id, payload);
+      setLojaConfigs((prev) => prev.map((c) => (c.id === existing.id ? { ...c, ...payload } : c)));
+    } else {
+      const { id: newId } = await dataApi.create('loja_config', { lojaId: storeId, ...payload });
+      setLojaConfigs((prev) => [...prev, { id: newId, empresaId: companyId, lojaId: storeId, ...payload }]);
+    }
+  }
 
   async function saveStore() {
     if (!modal) return;
@@ -108,6 +132,17 @@ export function Stores() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {isOwner && mostraHorarios && storeId && (
+        <div style={{ marginTop: '1.5rem' }}>
+          <Schedules key={`func-${storeId}`} title="Horário de Funcionamento" icon="fa-clock"
+            description="Defina os dias e horários em que o negócio aceita pedidos." campo="horario_funcionamento"
+            saveLabel="Salvar Horários" openLabel="Aberto" closedLabel="Fechado" initial={config?.horario_funcionamento} onSave={saveConfig} />
+          <Schedules key={`entrega-${storeId}`} title="Horário de Entrega" icon="fa-truck"
+            description="Defina especificamente em quais horários o negócio realiza entregas." campo="horario_entrega"
+            saveLabel="Salvar Horários de Entrega" openLabel="Disponível" closedLabel="Indisponível" initial={config?.horario_entrega} onSave={saveConfig} />
         </div>
       )}
 
