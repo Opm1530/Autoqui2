@@ -105,7 +105,7 @@ export function App() {
             <Route path="/orders" element={<Orders />} />
             <Route path="/products" element={<Products />} />
             <Route path="/leads" element={<Leads />} />
-            <Route path="/stores" element={<Stores />} />
+            <Route path="/business" element={<Stores />} />
             <Route path="/users" element={<Users />} />
             <Route path="/instances" element={<Instances />} />
             <Route path="/catalog-settings" element={<CatalogSettings />} />

@@ -147,7 +147,7 @@ export function Dashboard() {
     { key: 'wacfg', label: 'Configure seu WhatsApp', hint: 'É pra onde vão os pedidos da vitrine', done: checklist.waCfgOk, icon: 'fa-whatsapp', brand: true, to: '/catalog-settings?sec=pagamento' },
     { key: 'share', label: 'Compartilhe sua vitrine', hint: 'Copie o link e divulgue', done: shared, icon: 'fa-share-nodes', action: shareCatalog },
   ] : [
-    { key: 'loja', label: 'Configure seu negócio', hint: 'Nome e endereço de entrega', done: checklist.lojaOk, icon: 'fa-store', to: '/stores' },
+    { key: 'loja', label: 'Configure seu negócio', hint: 'Nome e endereço de entrega', done: checklist.lojaOk, icon: 'fa-store', to: '/business' },
     { key: 'wa', label: 'Conecte seu WhatsApp', hint: 'Vincule seu número por QR Code', done: checklist.waOk, icon: 'fa-whatsapp', brand: true, to: '/instances' },
     { key: 'prod', label: 'Adicione seu primeiro produto', hint: 'Monte seu catálogo', done: checklist.prodOk, icon: 'fa-box', to: '/products' },
     { key: 'pag', label: 'Configure como receber', hint: 'Chave PIX manual ou Mercado Pago', done: checklist.pagOk, icon: 'fa-money-bill', to: '/catalog-settings?sec=pagamento' },

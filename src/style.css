@@ -190,6 +190,39 @@ ul {
   gap: 1.5rem;
 }
 
+/* Página Negócio */
+.negocio-card { width: 100%; }
+.negocio-head { display: flex; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
+.negocio-icon {
+  width: 52px; height: 52px; flex-shrink: 0; border-radius: 14px;
+  background: rgba(132, 204, 22, 0.14); color: var(--primary);
+  display: flex; align-items: center; justify-content: center; font-size: 1.4rem;
+}
+.negocio-name { font-weight: 700; font-size: 1.15rem; }
+.negocio-addr { font-size: 0.9rem; color: var(--text-muted); margin-top: 2px; }
+.negocio-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-left: auto; }
+.negocio-actions .btn-primary,
+.negocio-actions .btn-secondary { padding: 0.6rem 1.1rem; }
+.negocio-frete-btn { color: #f59e0b; border-color: rgba(245, 158, 11, 0.4); }
+.negocio-frete-btn.off { color: var(--primary-hover); border-color: rgba(132, 204, 22, 0.5); }
+
+.negocio-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 14px;
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border-color);
+}
+.negocio-stat { display: flex; align-items: center; gap: 12px; }
+.negocio-stat-icon {
+  width: 40px; height: 40px; flex-shrink: 0; border-radius: 11px;
+  background: var(--surface-hover); color: var(--text-muted);
+  display: flex; align-items: center; justify-content: center; font-size: 1rem;
+}
+.negocio-stat-value { font-family: 'Outfit', sans-serif; font-size: 1.4rem; font-weight: 700; line-height: 1; }
+.negocio-stat-label { font-size: 0.82rem; color: var(--text-muted); margin-top: 3px; }
+
 /* Sub-navegação em abas (hub de Lojas) */
 .manage-tabs {
   display: flex;
@@ -2566,7 +2599,7 @@ ul {
 .horario-info { display: flex; align-items: center; gap: 1rem; flex: 1; }
 .horario-label { font-weight: 600; min-width: 120px; }
 .horario-inputs { display: flex; align-items: center; gap: 0.5rem; }
-.time-input { background: var(--bg-color); border: 1px solid var(--border-color); color: white; padding: 0.4rem 0.6rem; border-radius: 6px; font-size: 0.85rem; outline: none; }
+.time-input { background: var(--surface-color); border: 1px solid var(--border-color); color: var(--text-main); padding: 0.45rem 0.7rem; border-radius: 8px; font-size: 0.9rem; font-weight: 600; outline: none; }
 .time-input:focus { border-color: var(--primary); }
 .cfg-switch { position: relative; display: inline-block; width: 40px; height: 20px; flex-shrink: 0; }
 .cfg-switch input { opacity: 0; width: 0; height: 0; }

@@ -16,7 +16,7 @@ const HELP_WA = 'https://wa.me/5564999983832'; // atendimento da plataforma (ite
 
 const TITLES: Record<string, string> = {
   '/dashboard': 'Dashboard', '/tools': 'Ferramentas', '/ecommerce': 'E-commerce', '/farmaqui': 'FarmaQui', '/orders': 'Pedidos', '/products': 'Produtos',
-  '/leads': 'Leads', '/stores': 'Negócio', '/users': 'Usuários',
+  '/leads': 'Leads', '/business': 'Negócio', '/users': 'Usuários',
   '/instances': 'Instâncias', '/catalog-settings': 'Configuração',
   '/mercado-pago': 'Mercado Pago', '/campaigns': 'Campanhas',
   '/schedule': 'Agenda', '/schedule-clients': 'Clientes',
@@ -85,7 +85,7 @@ function buildNav(role: string | undefined, modulos: string[]): NavEntry[] {
   // "Negócio" (hub com Equipe + Instâncias) aparece para TODAS as contas.
   // Configuração (catálogo, com MP embutido) só para quem tem loja própria.
   nav.push({ section: 'Geral' });
-  add({ to: '/stores', label: 'Negócio', icon: 'fa-store' });
+  add({ to: '/business', label: 'Negócio', icon: 'fa-store' });
   if (temLojaPropria) add({ to: '/catalog-settings', label: 'Configuração', icon: 'fa-sliders' });
   if (role === 'owner') add({ to: '/tools', label: 'Ferramentas', icon: 'fa-shapes' });
   // Assinatura e Alterar senha → menu do usuário (rodapé).

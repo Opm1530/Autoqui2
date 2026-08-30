@@ -17,6 +17,7 @@ export function Stores() {
   const [stores, setStores] = useState<any[]>([]);
   const [modulos, setModulos] = useState<string[]>([]);
   const [lojaConfigs, setLojaConfigs] = useState<any[]>([]);
+  const [counts, setCounts] = useState({ colaboradores: 0, categorias: 0, produtos: 0 });
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState<{ id?: string; name: string; address: string } | null>(null);
 
@@ -26,16 +27,29 @@ export function Stores() {
       const companyDoc = (await dbService.get('companies', companyId)) as any;
       setStores(companyDoc?.stores || []);
       setModulos(companyDoc?.modulos_ativos || []);
-      const cfgs = await dbService.getAll('loja_config', { field: 'empresaId', operator: '==', value: companyId }).catch(() => []);
+      const [cfgs, users, cats, prods] = await Promise.all([
+        dbService.getAll('loja_config', { field: 'empresaId', operator: '==', value: companyId }).catch(() => []),
+        dbService.getAll('users', { field: 'companyId', operator: '==', value: companyId }).catch(() => []),
+        dbService.getAll('categories', { field: 'companyId', operator: '==', value: companyId }).catch(() => []),
+        dbService.getAll('products', { field: 'companyId', operator: '==', value: companyId }).catch(() => []),
+      ]);
       setLojaConfigs(cfgs as any[]);
+      setCounts({
+        colaboradores: (users as any[]).filter((u) => u.role === 'employee').length,
+        categorias: (cats as any[]).length,
+        produtos: (prods as any[]).length,
+      });
       setLoading(false);
     })();
   }, [companyId]);
 
   const storeId = stores[0]?.id || '';
   const config = useMemo(() => lojaConfigs.find((c) => c.lojaId === storeId) || null, [lojaConfigs, storeId]);
-  // Horários só fazem sentido pra quem vende pelo catálogo (não vitrine/atendimento).
-  const mostraHorarios = modulos.includes('venda_catalogo') || modulos.includes('venda');
+  // Frete/horários: só quem vende e entrega (não vitrine/atendimento).
+  const mostraFrete = modulos.includes('venda_catalogo') || modulos.includes('venda');
+  const mostraHorarios = mostraFrete;
+  // Produtos/categorias existem em qualquer catálogo (inclui vitrine).
+  const temProdutos = mostraFrete || modulos.includes('vitrine');
 
   // Upsert em loja_config (mesmo padrão da Configuração).
   async function saveConfig(payload: any) {
@@ -89,49 +103,74 @@ export function Stores() {
           <p style={{ margin: '0 0 16px' }}>Seu negócio ainda não foi configurado.</p>
           {isOwner && <button className="btn-primary" onClick={() => setModal({ name: '', address: '' })}><i className="fa-solid fa-plus" style={{ color: 'var(--primary-contrast)' }} /> Configurar negócio</button>}
         </div>
-      ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 480px)', gap: '1.25rem' }}>
-          {stores.map((s) => {
-            const operable = s.active && s.instancia_id;
-            const freteAtivo = s.frete_ativo !== false;
-            return (
-              <div key={s.id} className="card" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <div style={{ width: 44, height: 44, borderRadius: 12, flexShrink: 0, background: 'rgba(132, 204, 22,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)', fontSize: '1.2rem' }}>
-                    <i className="fa-solid fa-store" />
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={s.name}>{s.name}</div>
-                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={s.address}>{s.address || 'Sem endereço'}</div>
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+      ) : (() => {
+        const s = stores[0];
+        const operable = s.active && s.instancia_id;
+        const freteAtivo = s.frete_ativo !== false;
+        const stats = [
+          { label: 'Colaboradores', value: counts.colaboradores, icon: 'fa-users' },
+          ...(temProdutos ? [
+            { label: 'Categorias', value: counts.categorias, icon: 'fa-tags' },
+            { label: 'Produtos', value: counts.produtos, icon: 'fa-box' },
+          ] : []),
+        ];
+        return (
+          <div className="card negocio-card">
+            <div className="negocio-head">
+              <div className="negocio-icon"><i className="fa-solid fa-store" /></div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div className="negocio-name" title={s.name}>{s.name}</div>
+                <div className="negocio-addr" title={s.address}>{s.address || 'Endereço não informado'}</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
                   <span className={`badge ${operable ? 'success' : 'danger'}`}>
                     <i className={`fa-solid ${operable ? 'fa-circle-check' : 'fa-circle-xmark'}`} style={{ marginRight: 4 }} />
                     {operable ? 'Operante' : s.active ? 'Sem Instância' : 'Inativa'}
                   </span>
-                  <span className={`badge ${freteAtivo ? 'success' : 'warning'}`}>
-                    <i className={`fa-solid ${freteAtivo ? 'fa-truck' : 'fa-store'}`} style={{ marginRight: 4 }} />
-                    {freteAtivo ? 'Frete Ativo' : 'Retirada Apenas'}
-                  </span>
+                  {mostraFrete && (
+                    <span className={`badge ${freteAtivo ? 'success' : 'warning'}`}>
+                      <i className={`fa-solid ${freteAtivo ? 'fa-truck' : 'fa-store'}`} style={{ marginRight: 4 }} />
+                      {freteAtivo ? 'Frete Ativo' : 'Retirada Apenas'}
+                    </span>
+                  )}
                 </div>
-
-                {isOwner && <StoreSubdomain store={s} onChange={(sub) => setStores((prev) => prev.map((x) => (x.id === s.id ? { ...x, subdominio: sub } : x)))} />}
-
-                {isOwner && (
-                  <div style={{ display: 'flex', gap: 8, borderTop: '1px solid var(--border-color)', paddingTop: 14, flexWrap: 'wrap' }}>
-                    <button className="btn-secondary" style={{ flex: 1, justifyContent: 'center' }} onClick={() => setModal({ id: s.id, name: s.name || '', address: s.address || '' })}>
-                      <i className="fa-solid fa-pen" /> Editar dados
-                    </button>
-                    <button className="btn-secondary" style={{ flex: 1, justifyContent: 'center', color: freteAtivo ? '#fbbf24' : '#a3e635', borderColor: freteAtivo ? 'rgba(245,158,11,0.4)' : 'rgba(132, 204, 22,0.4)' }} onClick={() => toggleFrete(s)}>
-                      <i className={`fa-solid ${freteAtivo ? 'fa-truck-ramp-box' : 'fa-truck'}`} /> {freteAtivo ? 'Frete Off' : 'Frete On'}
-                    </button>
-                  </div>
-                )}
               </div>
-            );
-          })}
+              {isOwner && (
+                <div className="negocio-actions">
+                  <button className="btn-primary" onClick={() => setModal({ id: s.id, name: s.name || '', address: s.address || '' })}>
+                    <i className="fa-solid fa-pen" /> Editar dados
+                  </button>
+                  {mostraFrete && (
+                    <button className={'btn-secondary negocio-frete-btn' + (freteAtivo ? '' : ' off')} onClick={() => toggleFrete(s)}>
+                      <i className={`fa-solid ${freteAtivo ? 'fa-truck' : 'fa-truck-ramp-box'}`} /> {freteAtivo ? 'Desativar frete' : 'Ativar frete'}
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="negocio-stats">
+              {stats.map((st) => (
+                <div key={st.label} className="negocio-stat">
+                  <div className="negocio-stat-icon"><i className={`fa-solid ${st.icon}`} /></div>
+                  <div>
+                    <div className="negocio-stat-value">{st.value}</div>
+                    <div className="negocio-stat-label">{st.label}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
+
+      {isOwner && stores.length > 0 && (
+        <div className="card" style={{ marginTop: '1.25rem' }}>
+          <div className="config-section-title"><i className="fa-solid fa-globe" style={{ color: 'var(--primary)' }} /> Endereço do catálogo</div>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', margin: '0 0 1rem' }}>
+            Crie um endereço exclusivo pro seu catálogo — é o link que você divulga pros clientes.
+            Escolha um nome curto (ex.: <strong>minhaloja</strong>) e ele fica no ar em <strong>minhaloja.autoqui.com.br</strong>.
+          </p>
+          <StoreSubdomain store={stores[0]} onChange={(sub) => setStores((prev) => prev.map((x) => (x.id === stores[0].id ? { ...x, subdominio: sub } : x)))} />
         </div>
       )}
 
