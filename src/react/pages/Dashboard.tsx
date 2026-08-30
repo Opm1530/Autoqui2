@@ -11,6 +11,8 @@ interface Metrics {
   payments: number;
   orders_pending: number;
   today: number;
+  salesTrend: number | null;
+  ticketTrend: number | null;
 }
 interface CatalogMetrics {
   lowStockProducts: any[];
@@ -19,14 +21,22 @@ interface CatalogMetrics {
   avgTicket: number;
 }
 
-function StatCard({ icon, iconCls, label, value, color }: { icon: string; iconCls: string; label: string; value: string; color?: string }) {
+// Formatação BR só na apresentação (não altera os dados salvos).
+const fmtInt = (n: number) => n.toLocaleString('pt-BR');
+const fmtBRL = (n: number) => 'R$ ' + n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+function StatCard({ label, value, trend, green }: { label: string; value: string; trend?: number | null; green?: boolean }) {
+  const up = (trend ?? 0) >= 0;
   return (
-    <div className="stats-card card">
-      <div className="stats-card-top">
-        <span className="stats-card-label">{label}</span>
-        <div className={`stats-icon ${iconCls}`}><i className={`fa-solid ${icon}`} /></div>
-      </div>
-      <div className="stats-card-value" style={color ? { color } : undefined}>{value}</div>
+    <div className={'stats-card card' + (green ? ' stats-card-green' : '')}>
+      <div className="stats-card-label">{label}</div>
+      <div className="stats-card-value">{value}</div>
+      {trend != null && (
+        <div className={'stats-trend ' + (up ? 'up' : 'down')}>
+          <i className={`fa-solid ${up ? 'fa-arrow-trend-up' : 'fa-arrow-trend-down'}`} />
+          {up ? '+' : ''}{Math.round(trend)}% <span>vs mês passado</span>
+        </div>
+      )}
     </div>
   );
 }
@@ -36,7 +46,7 @@ export function Dashboard() {
   const companyId = user?.companyId || '';
 
   const [modulos, setModulos] = useState<string[]>([]);
-  const [metrics, setMetrics] = useState<Metrics>({ messages: 0, payments: 0, orders_pending: 0, today: 0 });
+  const [metrics, setMetrics] = useState<Metrics>({ messages: 0, payments: 0, orders_pending: 0, today: 0, salesTrend: null, ticketTrend: null });
   const [catalog, setCatalog] = useState<CatalogMetrics | null>(null);
   const [stores, setStores] = useState<any[]>([]);
   const [checklist, setChecklist] = useState<Checklist | null>(null);
@@ -80,7 +90,7 @@ export function Dashboard() {
         setShared(localStorage.getItem('onb_shared_' + companyId) === '1');
       }
 
-      const m: Metrics = { messages: 0, payments: 0, orders_pending: 0, today: 0 };
+      const m: Metrics = { messages: 0, payments: 0, orders_pending: 0, today: 0, salesTrend: null, ticketTrend: null };
       m.messages = (messages as any[]).filter((x: any) => x.role === 'assistente').length;
 
       const ordersArr = orders as any[];
@@ -90,14 +100,29 @@ export function Dashboard() {
         return st !== 'finalizado' && st !== 'cancelado';
       }).length;
 
+      // Faixas de mês (para a comparação "vs mês passado").
+      const nowD = new Date();
+      const thisMonthStart = new Date(nowD.getFullYear(), nowD.getMonth(), 1);
+      const lastMonthStart = new Date(nowD.getFullYear(), nowD.getMonth() - 1, 1);
       let totalSales = 0, ordersToday = 0, ordersPaid = 0;
+      let salesThis = 0, salesLast = 0, paidThis = 0, paidLast = 0;
       const today = new Date(); today.setHours(0, 0, 0, 0);
       ordersArr.forEach((o: any) => {
-        if (o.status === 'finalizado') { totalSales += (o.value || o.total || 0); ordersPaid++; }
         const d = o.criadoEm?.toDate ? o.criadoEm.toDate() : new Date(o.criadoEm || 0);
+        if (o.status === 'finalizado') {
+          const v = o.value || o.total || 0;
+          totalSales += v; ordersPaid++;
+          if (d >= thisMonthStart) { salesThis += v; paidThis++; }
+          else if (d >= lastMonthStart && d < thisMonthStart) { salesLast += v; paidLast++; }
+        }
         if (d >= today) ordersToday++;
       });
       m.payments = totalSales; m.today = ordersToday;
+      const pct = (cur: number, prev: number) => (prev > 0 ? ((cur - prev) / prev) * 100 : (cur > 0 ? 100 : null));
+      m.salesTrend = pct(salesThis, salesLast);
+      const ticketThis = paidThis ? salesThis / paidThis : 0;
+      const ticketLast = paidLast ? salesLast / paidLast : 0;
+      m.ticketTrend = pct(ticketThis, ticketLast);
       setMetrics(m);
 
       if (needsCatalog) {
@@ -196,12 +221,12 @@ export function Dashboard() {
       )}
 
       <div className="dashboard-grid">
-        {modulos.includes('atendimento') && <StatCard icon="fa-message" iconCls="primary" label="Mensagens pela IA" value={String(metrics.messages)} />}
+        {modulos.includes('atendimento') && <StatCard label="Mensagens pela IA" value={fmtInt(metrics.messages)} />}
         {hasVenda && <>
-          <StatCard icon="fa-money-bill" iconCls="success" label="Total em Vendas" value={`R$ ${metrics.payments.toFixed(2)}`} />
-          <StatCard icon="fa-hourglass-half" iconCls="warning" label="Pedidos Pendentes" value={String(metrics.orders_pending)} />
-          <StatCard icon="fa-box" iconCls="info" label="Pedidos Hoje" value={String(metrics.today)} />
-          {catalog && <StatCard icon="fa-receipt" iconCls="primary" label="Ticket Médio" value={`R$ ${catalog.avgTicket.toFixed(2)}`} />}
+          <StatCard green label="Total em Vendas" value={fmtBRL(metrics.payments)} trend={metrics.salesTrend} />
+          <StatCard label="Pedidos Pendentes" value={fmtInt(metrics.orders_pending)} />
+          <StatCard label="Pedidos Hoje" value={fmtInt(metrics.today)} />
+          {catalog && <StatCard label="Ticket Médio" value={fmtBRL(catalog.avgTicket)} trend={metrics.ticketTrend} />}
         </>}
       </div>
 

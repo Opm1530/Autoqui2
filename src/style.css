@@ -325,17 +325,10 @@ ul {
 .stats-card {
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  gap: 1.75rem;
+  gap: 1rem;
   padding: 1.5rem 1.6rem;
   border-radius: var(--radius-lg);
-}
-
-.stats-card-top {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
+  min-height: 148px;
 }
 
 .stats-card-label {
@@ -346,12 +339,36 @@ ul {
 
 .stats-card-value {
   font-family: 'Outfit', sans-serif;
-  font-size: 2rem;
+  font-size: 2.1rem;
   font-weight: 700;
   letter-spacing: -0.02em;
   color: var(--text-main);
   line-height: 1;
+  margin-top: auto;
 }
+
+.stats-trend {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+.stats-trend.up { color: var(--success); }
+.stats-trend.down { color: var(--danger); }
+.stats-trend span { color: var(--text-muted); font-weight: 500; }
+
+/* Card de faturamento (verde escuro, estilo referência) */
+.stats-card-green {
+  background: linear-gradient(150deg, #1c3d27 0%, #12250f 100%);
+  border-color: transparent;
+  color: #fff;
+}
+.stats-card-green .stats-card-label { color: rgba(255, 255, 255, 0.72); }
+.stats-card-green .stats-card-value { color: #fff; }
+.stats-card-green .stats-trend.up { color: #a3e635; }
+.stats-card-green .stats-trend.down { color: #fca5a5; }
+.stats-card-green .stats-trend span { color: rgba(255, 255, 255, 0.6); }
 
 .stats-icon {
   width: 44px;
