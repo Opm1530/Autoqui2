@@ -3,18 +3,29 @@ import { Link } from 'react-router-dom';
 // Formatação BR (apresentação apenas).
 export const fmtInt = (n: number) => n.toLocaleString('pt-BR');
 export const fmtBRL = (n: number) => 'R$ ' + n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const fmtDate = (d: Date) => (isNaN(d.getTime()) ? '—' : `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`);
 const pad = (n: number) => String(n).padStart(2, '0');
 
-// Status de pedido → rótulo + cor.
-const STATUS: Record<string, { label: string; cls: string }> = {
-  em_montagem: { label: 'Em montagem', cls: 'warning' },
-  aguardando_pagamento: { label: 'Aguard. pagamento', cls: 'warning' },
-  em_preparo: { label: 'Em preparo', cls: 'info' },
-  pedido_pronto: { label: 'Pronto', cls: 'info' },
-  saiu_para_entrega: { label: 'Saiu p/ entrega', cls: 'info' },
-  finalizado: { label: 'Finalizado', cls: 'success' },
-  cancelado: { label: 'Cancelado', cls: 'danger' },
+// Data relativa: Hoje / Ontem / há N dias / dd/mm.
+const fmtDate = (d: Date) => {
+  if (isNaN(d.getTime())) return '—';
+  const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+  const dd = new Date(d); dd.setHours(0, 0, 0, 0);
+  const diff = Math.round((hoje.getTime() - dd.getTime()) / 86400000);
+  if (diff <= 0) return 'Hoje';
+  if (diff === 1) return 'Ontem';
+  if (diff < 7) return `há ${diff} dias`;
+  return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}`;
+};
+
+// Rótulo do status; cor só verde (finalizado) ou neutra (preto), estilo referência.
+const STATUS_LABEL: Record<string, string> = {
+  em_montagem: 'Em montagem',
+  aguardando_pagamento: 'Aguard. pagamento',
+  em_preparo: 'Em preparo',
+  pedido_pronto: 'Pronto',
+  saiu_para_entrega: 'Saiu p/ entrega',
+  finalizado: 'Finalizado',
+  cancelado: 'Cancelado',
 };
 
 const DONUT_COLORS = ['#84cc16', '#14532d', '#f59e0b', '#65a30d', '#9ca3af'];
@@ -32,9 +43,9 @@ export function MonthlyBars({ data }: { data: { label: string; recebidos: number
         </div>
       </div>
       <div className="mbars">
-        {data.map((d, i) => (
-          <div key={i} className="mbars-col">
-            <div className="mbars-bars">
+        <div className="mbars-plot">
+          {data.map((d, i) => (
+            <div key={i} className="mbars-group">
               <div className="mbar" style={{ height: `${(d.recebidos / max) * 100}%`, background: '#14532d' }} title={`Recebidos: ${d.recebidos}`}>
                 <span className="mbar-num">{d.recebidos}</span>
               </div>
@@ -42,9 +53,11 @@ export function MonthlyBars({ data }: { data: { label: string; recebidos: number
                 <span className="mbar-num">{d.pagos}</span>
               </div>
             </div>
-            <span className="mbars-label">{d.label}</span>
-          </div>
-        ))}
+          ))}
+        </div>
+        <div className="mbars-labels">
+          {data.map((d, i) => <span key={i}>{d.label}</span>)}
+        </div>
       </div>
     </div>
   );
@@ -98,16 +111,15 @@ export function BestHours({ data }: { data: [number, number][] }) {
   const max = data[0]?.[1] || 1;
   return (
     <div className="card viz-card">
-      <div className="viz-head"><h4>Melhores horários</h4></div>
+      <div className="viz-head"><h4>Melhores horários</h4><i className="viz-more fa-solid fa-ellipsis" /></div>
       {data.length === 0 ? (
         <p className="viz-empty">Nenhum pedido registrado ainda.</p>
       ) : (
-        <div className="hbars">
+        <div className="sreport">
           {data.map(([h, c]) => (
-            <div key={h} className="hbar-row">
-              <span className="hbar-label">{pad(h)}h–{pad(h + 1)}h</span>
-              <div className="hbar-track"><div className="hbar-fill" style={{ width: `${(c / max) * 100}%` }} /></div>
-              <span className="hbar-val">{c}</span>
+            <div key={h} className="sreport-row">
+              <div className="sreport-label">{pad(h)}h–{pad(h + 1)}h <b>({c})</b></div>
+              <div className="sreport-bar" style={{ width: `${Math.max(8, (c / max) * 100)}%` }} />
             </div>
           ))}
         </div>
@@ -120,13 +132,14 @@ export function BestHours({ data }: { data: [number, number][] }) {
 export function RecentOrders({ items }: { items: { nome: string; value: number; data: Date; status: string }[] }) {
   return (
     <div className="card viz-card">
-      <div className="viz-head"><h4>Últimos pedidos</h4></div>
+      <div className="viz-head"><h4>Últimos pedidos</h4><i className="viz-more fa-solid fa-ellipsis" /></div>
       {items.length === 0 ? (
         <p className="viz-empty">Nenhum pedido ainda.</p>
       ) : (
         <div className="recent-list">
           {items.map((o, i) => {
-            const st = STATUS[o.status] || { label: o.status, cls: 'info' };
+            const label = STATUS_LABEL[o.status] || o.status;
+            const ok = o.status === 'finalizado';
             return (
               <div key={i} className="recent-row">
                 <div className="recent-av">{(o.nome || 'C')[0].toUpperCase()}</div>
@@ -135,7 +148,7 @@ export function RecentOrders({ items }: { items: { nome: string; value: number; 
                   <div className="recent-date">{fmtDate(o.data)}</div>
                 </div>
                 <div className="recent-right">
-                  <div className={`recent-status ${st.cls}`}>{st.label}</div>
+                  <div className={'recent-status' + (ok ? ' ok' : '')}>{label}</div>
                   <div className="recent-value">{fmtBRL(o.value)}</div>
                 </div>
               </div>
