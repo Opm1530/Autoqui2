@@ -187,7 +187,7 @@ function NovaCampanha({ company, instances, allLeads, loaded }: { company: any; 
         <div className="leads-selection-table-wrap">
           <div className="leads-table-filters">
             <input value={search} onChange={(e) => setSearch(e.target.value)} className="form-control" placeholder="Buscar por nome ou telefone..." />
-            <select value={storeFilter} onChange={(e) => setStoreFilter(e.target.value)} className="form-control"><option value="">Todas as Lojas</option>{company?.stores?.map((s: any) => <option key={s.id} value={s.id}>{s.name}</option>)}</select>
+            {(company?.stores?.length || 0) > 1 && <select value={storeFilter} onChange={(e) => setStoreFilter(e.target.value)} className="form-control"><option value="">Todas as Lojas</option>{company?.stores?.map((s: any) => <option key={s.id} value={s.id}>{s.name}</option>)}</select>}
             <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="form-control"><option value="">Todos os Status</option><option value="novo">Novo</option><option value="cliente_ativo">Cliente Ativo</option><option value="lead_frio">Lead Frio</option></select>
             <select value={activityFilter} onChange={(e) => setActivityFilter(e.target.value)} className="form-control"><option value="">Qualquer atividade</option><option value="7">Últimos 7 dias</option><option value="15">Últimos 15 dias</option><option value="30">Últimos 30 dias</option><option value="90">Últimos 90 dias</option></select>
           </div>

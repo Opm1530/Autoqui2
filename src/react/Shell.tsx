@@ -16,7 +16,7 @@ const HELP_WA = 'https://wa.me/5564999983832'; // atendimento da plataforma (ite
 
 const TITLES: Record<string, string> = {
   '/dashboard': 'Dashboard', '/tools': 'Ferramentas', '/ecommerce': 'E-commerce', '/farmaqui': 'FarmaQui', '/orders': 'Pedidos', '/products': 'Produtos',
-  '/leads': 'Leads', '/stores': 'Lojas', '/users': 'Usuários',
+  '/leads': 'Leads', '/stores': 'Negócio', '/users': 'Usuários',
   '/instances': 'Instâncias', '/catalog-settings': 'Configuração',
   '/mercado-pago': 'Mercado Pago', '/campaigns': 'Campanhas',
   '/schedule': 'Agenda', '/schedule-clients': 'Clientes',
@@ -46,7 +46,6 @@ function buildNav(role: string | undefined, modulos: string[]): NavEntry[] {
   const ecommerce = has('ecommerce');
   const farmaqui = has('farmaqui');
   const isEmployee = role === 'employee';
-  const usaInstancia = atendimento || disparo || vendaCatalogo || venda || agendamento || ecommerce || farmaqui;
   // Loja própria no AutoQui (tem Lojas + Configuração de catálogo). Atendimento,
   // Campanhas e E-commerce (NuvemShop) não são vitrine própria aqui.
   const temLojaPropria = vendaCatalogo || venda || vitrine || agendamento;
@@ -83,16 +82,11 @@ function buildNav(role: string | undefined, modulos: string[]): NavEntry[] {
   if (isEmployee) return nav;
 
   // ── Geral (dono) ──
-  // Loja própria: Lojas (hub com Equipe + Instâncias) + Configuração (MP embutido).
-  // Sem loja própria (só atendimento/FarmaQui/e-commerce): acesso direto a Equipe/Instâncias.
+  // "Negócio" (hub com Equipe + Instâncias) aparece para TODAS as contas.
+  // Configuração (catálogo, com MP embutido) só para quem tem loja própria.
   nav.push({ section: 'Geral' });
-  if (temLojaPropria) {
-    add({ to: '/stores', label: 'Lojas', icon: 'fa-store' });
-    add({ to: '/catalog-settings', label: 'Configuração', icon: 'fa-sliders' });
-  } else {
-    add({ to: '/users', label: 'Equipe', icon: 'fa-user' });
-    if (usaInstancia) add({ to: '/instances', label: 'Instâncias', icon: 'fa-brands fa-whatsapp' });
-  }
+  add({ to: '/stores', label: 'Negócio', icon: 'fa-store' });
+  if (temLojaPropria) add({ to: '/catalog-settings', label: 'Configuração', icon: 'fa-sliders' });
   if (role === 'owner') add({ to: '/tools', label: 'Ferramentas', icon: 'fa-shapes' });
   // Assinatura e Alterar senha → menu do usuário (rodapé).
   // Mercado Pago → Configuração › Pagamento.

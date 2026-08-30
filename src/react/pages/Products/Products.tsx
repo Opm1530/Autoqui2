@@ -192,7 +192,7 @@ export function Products() {
 
       {/* Filtros */}
       <div style={{ margin: '1.5rem 0 2rem', display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap' }}>
-        {isOwner && (
+        {isOwner && stores.length > 1 && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <span style={{ fontSize: '0.85rem', color: 'var(--text-dim)', fontWeight: 700, textTransform: 'uppercase' }}>Filtrar por Loja:</span>
             <div className="store-filter-container">
