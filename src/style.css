@@ -108,7 +108,8 @@ ul {
 /* Layout Utilities */
 .app-container {
   display: flex;
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;               /* sidebar fixa; só o conteúdo rola */
 }
 
 .main-content {
@@ -117,6 +118,8 @@ ul {
   flex-direction: column;
   background-color: var(--surface-color);
   min-width: 0;
+  height: 100vh;
+  overflow-y: auto;               /* área de rolagem própria */
 }
 
 .page-container {
@@ -464,6 +467,7 @@ ul {
 .sidebar {
   width: var(--sidebar-width);
   height: 100vh;
+  flex-shrink: 0;
   background-color: var(--sidebar-bg);
   border-right: 1px solid var(--sidebar-border);
   display: flex;
@@ -498,6 +502,8 @@ ul {
 .sidebar-nav {
   flex: 1;
   padding: 0 1rem;
+  overflow-y: auto;               /* menu longo rola aqui; rodapé fica fixo */
+  min-height: 0;
 }
 
 .nav-item {
