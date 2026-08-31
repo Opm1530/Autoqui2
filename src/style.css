@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
 
 :root {
   /* ── Tema claro (Siohioma-like): conteúdo claro, sidebar verde, acento lime ── */
@@ -48,7 +48,7 @@
 }
 
 body {
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
   background-color: var(--bg-color);
   color: var(--text-main);
   line-height: 1.5;
@@ -63,7 +63,7 @@ h3,
 h4,
 h5,
 h6 {
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 600;
   letter-spacing: -0.02em;
 }
@@ -265,7 +265,7 @@ ul {
   background: var(--surface-hover); color: var(--text-muted);
   display: flex; align-items: center; justify-content: center; font-size: 1rem;
 }
-.negocio-stat-value { font-family: 'Outfit', sans-serif; font-size: 1.4rem; font-weight: 700; line-height: 1; }
+.negocio-stat-value { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 1.4rem; font-weight: 700; line-height: 1; }
 .negocio-stat-label { font-size: 0.82rem; color: var(--text-muted); margin-top: 3px; }
 
 /* ── Dashboard: visualizações de vendas ── */
@@ -293,7 +293,7 @@ ul {
 
 /* Card de faturamento total (centraliza ao esticar) */
 .fat-card { display: flex; flex-direction: column; justify-content: center; }
-.fat-value { font-family: 'Outfit', sans-serif; font-size: 1.9rem; font-weight: 700; letter-spacing: -0.02em; color: var(--primary-hover); line-height: 1; }
+.fat-value { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 1.9rem; font-weight: 700; letter-spacing: -0.02em; color: var(--primary-hover); line-height: 1; }
 .fat-cap { font-size: 0.82rem; color: var(--text-muted); margin-top: 6px; }
 
 .viz-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 1.25rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border-color); }
@@ -319,7 +319,7 @@ ul {
 .donut-graph { position: relative; width: 160px; height: 160px; flex-shrink: 0; margin: 0 auto; }
 .donut-svg { width: 160px; height: 160px; }
 .donut-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-.donut-total { font-family: 'Outfit', sans-serif; font-size: 1.6rem; font-weight: 700; line-height: 1; }
+.donut-total { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 1.6rem; font-weight: 700; line-height: 1; }
 .donut-cap { font-size: 0.75rem; color: var(--text-muted); }
 .donut-legend { flex: 1; min-width: 130px; display: flex; flex-direction: column; gap: 9px; }
 .donut-leg-row { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; }
@@ -343,7 +343,7 @@ ul {
 .recent-list { display: flex; flex-direction: column; }
 .recent-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border-color); }
 .recent-row:last-child { border-bottom: none; }
-.recent-av { width: 38px; height: 38px; border-radius: 50%; background: var(--surface-hover); color: var(--text-muted); display: flex; align-items: center; justify-content: center; font-weight: 700; flex-shrink: 0; }
+.recent-av { width: 40px; height: 40px; border-radius: 50%; background: rgba(20, 83, 45, 0.1); color: #14532d; display: flex; align-items: center; justify-content: center; font-size: 0.95rem; flex-shrink: 0; }
 .recent-info { flex: 1; min-width: 0; }
 .recent-name { font-weight: 600; font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .recent-date { font-size: 0.78rem; color: var(--text-muted); }
@@ -378,7 +378,7 @@ ul {
   display: flex; align-items: center; justify-content: center; font-size: 1.05rem;
 }
 .sub-promo-title {
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 1.45rem; font-weight: 800; line-height: 1.15;
   color: #17251c; margin: 0; max-width: 88%;
   position: relative; z-index: 1;
@@ -436,7 +436,7 @@ ul {
 /* Cabeçalho de página (título + subtítulo no conteúdo, estilo referência) */
 .page-heading { margin-bottom: 1.75rem; }
 .page-heading h1 {
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 1.9rem;
   font-weight: 700;
   letter-spacing: -0.02em;
@@ -465,7 +465,7 @@ ul {
 }
 
 .stats-card-value {
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 2.1rem;
   font-weight: 700;
   letter-spacing: -0.02em;
@@ -539,7 +539,7 @@ ul {
   font-size: 1.5rem;
   font-weight: 700;
   color: var(--text-main);
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
 }
 
 /* Tables */
@@ -737,7 +737,7 @@ ul {
 }
 
 .logo-text {
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 700;
   font-size: 1.25rem;
   letter-spacing: -0.02em;
@@ -2412,7 +2412,7 @@ ul {
 }
 
 .phone-example-number {
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 1.4rem;
   font-weight: 700;
   color: var(--primary);
@@ -2988,7 +2988,7 @@ ul {
 .sc-search-input:focus { outline: none; border-color: var(--primary); }
 
 /* ===== QR Page (React) ===== */
-.qr-page-body { background:#0f172a; color:#fff; font-family:'Outfit',sans-serif; min-height:100vh; display:flex; align-items:center; justify-content:center; margin:0; background-image: radial-gradient(circle at 0% 0%, rgba(132, 204, 22,0.3) 0%, transparent 40%), radial-gradient(circle at 100% 100%, rgba(132, 204, 22,0.3) 0%, transparent 40%); }
+.qr-page-body { background:#0f172a; color:#fff; font-family:'Plus Jakarta Sans',sans-serif; min-height:100vh; display:flex; align-items:center; justify-content:center; margin:0; background-image: radial-gradient(circle at 0% 0%, rgba(132, 204, 22,0.3) 0%, transparent 40%), radial-gradient(circle at 100% 100%, rgba(132, 204, 22,0.3) 0%, transparent 40%); }
 .qr-page-card { background:rgba(255,255,255,0.05); backdrop-filter:blur(20px); border:1px solid rgba(255,255,255,0.1); border-radius:32px; padding:3rem; width:100%; max-width:480px; text-align:center; box-shadow:0 40px 100px rgba(0,0,0,0.5); animation:qr-scaleUp 0.6s cubic-bezier(0.2,0.8,0.2,1); }
 @keyframes qr-scaleUp { from { opacity:0; transform:scale(0.9); } to { opacity:1; transform:scale(1); } }
 .qr-page-icon { font-size:3rem; margin-bottom:1.5rem; color:#84cc16; display:inline-block; animation:qr-float 3s ease-in-out infinite; }

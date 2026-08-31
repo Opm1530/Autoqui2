@@ -29,6 +29,8 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 const DONUT_COLORS = ['#84cc16', '#14532d', '#f59e0b', '#65a30d', '#9ca3af'];
+// Ícones de vendas (variados) pros avatares da lista de pedidos.
+const ORDER_ICONS = ['fa-bag-shopping', 'fa-box', 'fa-cart-shopping', 'fa-receipt', 'fa-tag', 'fa-basket-shopping'];
 
 // ── Barras verticais: pedidos recebidos vs pagos por mês ──
 export function MonthlyBars({ data }: { data: { label: string; recebidos: number; pagos: number }[] }) {
@@ -142,7 +144,7 @@ export function RecentOrders({ items }: { items: { nome: string; value: number; 
             const ok = o.status === 'finalizado';
             return (
               <div key={i} className="recent-row">
-                <div className="recent-av">{(o.nome || 'C')[0].toUpperCase()}</div>
+                <div className="recent-av"><i className={`fa-solid ${ORDER_ICONS[i % ORDER_ICONS.length]}`} /></div>
                 <div className="recent-info">
                   <div className="recent-name">{o.nome}</div>
                   <div className="recent-date">{fmtDate(o.data)}</div>

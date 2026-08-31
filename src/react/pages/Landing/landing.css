@@ -1,5 +1,5 @@
 /* Landing page pública (React) — portado do LandingPage.ts */
-.lp-container { --lp-bg: #030712; --lp-primary: #84cc16; --lp-secondary: #4d7c0f; --lp-text: #f9fafb; --lp-text-dim: #9ca3af; --lp-glass: rgba(255,255,255,0.03); --lp-border: rgba(255,255,255,0.08); background-color: var(--lp-bg); color: var(--lp-text); font-family: 'Inter', sans-serif; min-height: 100vh; overflow-x: hidden; position: relative; line-height: 1.6; scroll-behavior: smooth; }
+.lp-container { --lp-bg: #030712; --lp-primary: #84cc16; --lp-secondary: #4d7c0f; --lp-text: #f9fafb; --lp-text-dim: #9ca3af; --lp-glass: rgba(255,255,255,0.03); --lp-border: rgba(255,255,255,0.08); background-color: var(--lp-bg); color: var(--lp-text); font-family: 'Plus Jakarta Sans', sans-serif; min-height: 100vh; overflow-x: hidden; position: relative; line-height: 1.6; scroll-behavior: smooth; }
 .lp-glow { position: fixed; width: 800px; height: 800px; background: radial-gradient(circle, rgba(132, 204, 22,0.12) 0%, transparent 70%); filter: blur(100px); z-index: 0; pointer-events: none; }
 .lp-glow-1 { top: -300px; right: -300px; }
 .lp-glow-2 { bottom: -300px; left: -300px; }
