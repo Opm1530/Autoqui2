@@ -84,9 +84,9 @@ export function MercadoPago({ embedded = false }: { embedded?: boolean } = {}) {
         </div>
       )}
 
-      <div className="card glass" style={{ maxWidth: 600, marginTop: embedded ? 0 : 20 }}>
+      <div className="card glass" style={{ marginTop: embedded ? 0 : 20 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginBottom: 30 }}>
-          <div style={{ width: 56, height: 56, background: 'linear-gradient(135deg, #009ee3 0%, #007bbd 100%)', borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '1.8rem', boxShadow: '0 8px 16px rgba(0, 158, 227, 0.2)' }}>
+          <div style={{ width: 56, height: 56, background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%)', borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary-contrast)', fontSize: '1.8rem', boxShadow: '0 8px 16px rgba(132, 204, 22, 0.2)' }}>
             <i className="fa-solid fa-receipt" />
           </div>
           <div>
@@ -94,6 +94,18 @@ export function MercadoPago({ embedded = false }: { embedded?: boolean } = {}) {
             <p style={{ margin: 0, color: 'var(--text-dim)', fontSize: '0.85rem' }}>Conecte sua conta para aceitar Pix.</p>
           </div>
         </div>
+
+        {!loading && (
+          <div style={{ padding: 14, borderRadius: 'var(--radius-md)', background: connected ? 'rgba(16,185,129,0.08)' : 'rgba(239,68,68,0.08)', border: `1px solid ${connected ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)'}`, display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+            <i className={`fa-solid ${connected ? 'fa-circle-check' : 'fa-circle-xmark'}`} style={{ color: connected ? '#10b981' : '#ef4444', fontSize: '1.2rem' }} />
+            <div>
+              <p style={{ margin: 0, fontWeight: 600, fontSize: '0.9rem' }}>Mercado Pago</p>
+              <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                {connected ? 'Integração ativa — PIX via Mercado Pago disponível no catálogo.' : 'Para receber pagamentos por PIX automático, conecte sua conta do Mercado Pago abaixo.'}
+              </p>
+            </div>
+          </div>
+        )}
 
         {loading ? (
           <div style={{ display: 'flex', justifyContent: 'center', padding: '1.5rem' }}><i className="fa-solid fa-spinner fa-spin fa-lg" style={{ color: 'var(--primary)' }} /></div>
@@ -115,13 +127,13 @@ export function MercadoPago({ embedded = false }: { embedded?: boolean } = {}) {
             <label style={{ display: 'block', marginBottom: 10, fontWeight: 600, color: 'var(--text-main)' }}>Access Token (Produção)</label>
             <div style={{ position: 'relative' }}>
               <input type={showToken ? 'text' : 'password'} value={token} onChange={(e) => setToken(e.target.value)}
-                placeholder="APP_USR-0000..." style={{ width: '100%', padding: '14px 45px 14px 16px', background: 'var(--bg-color)', border: '1px solid var(--border-color)', color: 'white', borderRadius: 10, fontFamily: 'monospace' }} />
+                placeholder="APP_USR-0000..." style={{ width: '100%', padding: '14px 45px 14px 16px', background: 'var(--bg-color)', border: '1px solid var(--border-color)', color: 'var(--text-main)', borderRadius: 10, fontFamily: 'monospace' }} />
               <button type="button" onClick={() => setShowToken((s) => !s)}
                 style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)', border: 'none', background: 'none', cursor: 'pointer', padding: 5 }}>
                 <i className={`fa-solid ${showToken ? 'fa-eye-slash' : 'fa-eye'}`} />
               </button>
             </div>
-            <button onClick={connect} disabled={connecting} style={{ marginTop: 14, display: 'flex', alignItems: 'center', gap: 8, padding: '0 25px', height: 48, borderRadius: 10, fontWeight: 600, background: '#009ee3', color: 'white', border: 'none', cursor: 'pointer' }}>
+            <button onClick={connect} disabled={connecting} style={{ marginTop: 14, display: 'flex', alignItems: 'center', gap: 8, padding: '0 25px', height: 48, borderRadius: 10, fontWeight: 600, background: 'var(--primary)', color: 'var(--primary-contrast)', border: 'none', cursor: 'pointer' }}>
               {connecting ? <><i className="fa-solid fa-spinner fa-spin" /> <span>Conectando...</span></> : <><i className="fa-solid fa-plug" /> <span>Conectar</span></>}
             </button>
           </div>

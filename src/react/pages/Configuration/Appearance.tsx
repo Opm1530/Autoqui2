@@ -18,8 +18,8 @@ function ColorField({ label, value, onChange }: { label: string; value: string; 
     <div>
       <label className="config-label">{label}</label>
       <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-        <input type="color" value={value} onChange={(e) => onChange(e.target.value)} style={{ width: 44, height: 44, border: 'none', background: 'none', cursor: 'pointer', borderRadius: 8, padding: 0 }} />
-        <input type="text" value={value} onChange={(e) => onChange(e.target.value)} className="config-input" style={{ flex: 1 }} />
+        <input type="color" value={value} onChange={(e) => onChange(e.target.value)} className="color-swatch" />
+        <input type="text" value={value} onChange={(e) => onChange(e.target.value)} className="config-input" style={{ flex: 1, borderRadius: 999 }} />
       </div>
     </div>
   );
@@ -59,6 +59,13 @@ export function Appearance({ companyId, storeId, design, vitrine = false, onSave
     const reader = new FileReader();
     reader.onload = (e) => setPreview((e.target?.result as string) || '');
     reader.readAsDataURL(f);
+  }
+
+  function openPreview(tid: string) {
+    const c = (v: string) => v.replace(/^#/, '');
+    const url = `${window.location.origin}/catalog/${storeId}?preview=1&pt=${tid}`
+      + `&c1=${c(primary)}&c2=${c(secondary)}&c3=${c(textColor)}&c4=${c(priceColor)}&c5=${c(productBg)}`;
+    window.open(url, '_blank', 'noopener');
   }
 
   async function save() {
@@ -161,6 +168,9 @@ export function Appearance({ companyId, storeId, design, vitrine = false, onSave
                 </div>
                 <div className="theme-card-name"><i className={`fa-solid ${t.icon}`} style={{ marginRight: 5 }} />{t.name}</div>
                 <div className="theme-card-desc">{t.desc}</div>
+                <button type="button" className="theme-preview-btn" onClick={(e) => { e.stopPropagation(); openPreview(t.id); }}>
+                  <i className="fa-solid fa-eye" /> Preview
+                </button>
               </div>
             ))}
           </div>

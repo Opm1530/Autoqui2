@@ -50,7 +50,17 @@ export function Catalog({ storeId: storeIdProp }: { storeId?: string } = {}) {
         ])) as [any[], any[], any[]];
 
         const config = lojaConfigs[0] || {};
-        const design = config.design || {};
+        // Preview: overrides passados pela tela de Configuração (?preview=1&pt=...&c1=...)
+        const qs = new URLSearchParams(window.location.search);
+        const previewDesign: any = {};
+        if (qs.get('preview')) {
+          const map: Record<string, string> = { pt: 'themeId', c1: 'primaryColor', c2: 'secondaryColor', c3: 'textColor', c4: 'priceColor', c5: 'productBgColor' };
+          for (const [k, prop] of Object.entries(map)) {
+            const v = qs.get(k);
+            if (v) previewDesign[prop] = prop === 'themeId' ? v : '#' + v.replace(/^#/, '');
+          }
+        }
+        const design = { ...(config.design || {}), ...previewDesign };
         const combos = combosRaw.filter((c) => c.ativo !== false && c.lojaId === storeId);
         const products = productsRaw.filter((p) => p.active !== false && (p.storeIds?.includes(storeId) || p.storeId === storeId))
           .sort((a, b) => (a.name || '').localeCompare(b.name || ''));

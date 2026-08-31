@@ -2920,6 +2920,14 @@ ul {
 .theme-card-preview { height: 72px; border-radius: 8px; margin-bottom: 8px; overflow: hidden; background: var(--surface-hover); display: flex; flex-direction: column; gap: 4px; padding: 6px; }
 .theme-card-name { font-size: 0.85rem; font-weight: 700; text-align: center; }
 .theme-card-desc { font-size: 0.75rem; color: var(--text-dim); text-align: center; margin-top: 2px; }
+.theme-preview-btn { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; margin-top: 10px; padding: 7px 0; border: 1px solid var(--border-color); border-radius: 999px; background: var(--surface); color: var(--text-main); font-size: 0.78rem; font-weight: 600; font-family: inherit; cursor: pointer; transition: all .15s; }
+.theme-preview-btn:hover { border-color: var(--primary); background: rgba(132, 204, 22,.08); color: var(--primary); }
+
+/* Campo de cor (arredondado) */
+.color-swatch { width: 44px; height: 44px; border: 1px solid var(--border-color); background: none; cursor: pointer; border-radius: 999px; padding: 0; overflow: hidden; flex-shrink: 0; }
+.color-swatch::-webkit-color-swatch-wrapper { padding: 0; }
+.color-swatch::-webkit-color-swatch { border: none; border-radius: 999px; }
+.color-swatch::-moz-color-swatch { border: none; border-radius: 999px; }
 .vars-grid { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1.5rem; padding: 1rem; background: rgba(132, 204, 22,0.04); border: 1px dashed rgba(132, 204, 22,0.25); border-radius: var(--radius-md); }
 .var-chip { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.35rem 0.75rem; background: rgba(132, 204, 22,0.12); border: 1px solid rgba(132, 204, 22,0.3); border-radius: 6px; font-size: 0.82rem; color: var(--primary); cursor: grab; user-select: none; }
 .var-chip code { font-size: 0.72rem; color: rgba(167,139,250,0.8); font-family: monospace; }

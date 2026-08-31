@@ -5,12 +5,11 @@ import { SaveButton } from './SaveButton';
 
 interface Props {
   config: any;
-  hasMercadoPago: boolean;
   vitrine?: boolean;
   onSave: (payload: any) => Promise<void>;
 }
 
-export function Payment({ config, hasMercadoPago, vitrine = false, onSave }: Props) {
+export function Payment({ config, vitrine = false, onSave }: Props) {
   const design = config?.design || {};
   const [whatsapp, setWhatsapp] = useState(design.whatsapp || '');
   const [pixKey, setPixKey] = useState(design.pixKey || '');
@@ -73,7 +72,9 @@ export function Payment({ config, hasMercadoPago, vitrine = false, onSave }: Pro
       <div className="cat-field">
         <label className="config-label">WhatsApp {vitrine ? 'de Contato' : 'de Atendimento'} (DDD + 9 dígitos)</label>
         <input type="text" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} className="config-input" placeholder="Ex: 11999999999" maxLength={11} />
-        <p className="cat-field-hint">{vitrine ? 'É para onde vão os pedidos da vitrine ("Pedir no WhatsApp").' : 'Informe apenas o DDD e os 9 dígitos do número (não inclua o 55).'}</p>
+        <p className="cat-field-hint">{vitrine
+          ? 'É para onde vão os pedidos da vitrine ("Pedir no WhatsApp").'
+          : 'Número que recebe os pedidos e o "Falar conosco" do catálogo. Informe só o DDD + 9 dígitos (sem o 55). Se deixar vazio, usamos o número da instância vinculada à loja.'}</p>
       </div>
       {!vitrine && <>
       <div className="cat-field">
@@ -113,16 +114,6 @@ export function Payment({ config, hasMercadoPago, vitrine = false, onSave }: Pro
         </div>
       </div>
 
-      {/* Status MP */}
-      <div style={{ padding: 14, borderRadius: 'var(--radius-md)', background: hasMercadoPago ? 'rgba(16,185,129,0.08)' : 'rgba(239,68,68,0.08)', border: `1px solid ${hasMercadoPago ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)'}`, display: 'flex', alignItems: 'center', gap: 12, marginBottom: '1.5rem' }}>
-        <i className={`fa-solid ${hasMercadoPago ? 'fa-circle-check' : 'fa-circle-xmark'}`} style={{ color: hasMercadoPago ? '#10b981' : '#ef4444', fontSize: '1.2rem' }} />
-        <div>
-          <p style={{ margin: 0, fontWeight: 600, fontSize: '0.9rem' }}>Mercado Pago</p>
-          <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-            {hasMercadoPago ? 'Integração ativa — PIX via Mercado Pago disponível no catálogo.' : 'Não configurado. Conecte sua conta na seção "Conta Mercado Pago" abaixo.'}
-          </p>
-        </div>
-      </div>
       </>}
 
       <div style={{ textAlign: 'right' }}><SaveButton label={vitrine ? 'Salvar Contato' : 'Salvar Pagamento'} onSave={savePagamento} /></div>

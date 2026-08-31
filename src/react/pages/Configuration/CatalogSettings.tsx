@@ -21,7 +21,6 @@ export function CatalogSettings() {
   const [stores, setStores] = useState<any[]>([]);
   const [instances, setInstances] = useState<any[]>([]);
   const [lojaConfigs, setLojaConfigs] = useState<any[]>([]);
-  const [hasMercadoPago, setHasMercadoPago] = useState(false);
   const [activeStoreId, setActiveStoreId] = useState('');
   const [params] = useSearchParams();
   const initialSection = (['design', 'mensagens', 'entrega', 'pagamento'] as const).find((s) => s === params.get('sec')) || 'design';
@@ -36,7 +35,6 @@ export function CatalogSettings() {
       let sts = companyDoc?.stores || [];
       if (!isOwner) sts = sts.filter((s: any) => userStoreIds.includes(s.id));
       setStores(sts);
-      setHasMercadoPago(!!companyDoc?.mercadoPagoToken);
       setIsVitrine((companyDoc?.modulos_ativos || []).includes('vitrine'));
       if (sts.length) setActiveStoreId(sts[0].id);
 
@@ -142,10 +140,10 @@ export function CatalogSettings() {
         </>
       )}
       {section === 'pagamento' && <>
-        <Payment key={`pay-${activeStoreId}`} config={config} hasMercadoPago={hasMercadoPago} vitrine={isVitrine} onSave={save} />
+        <Payment key={`pay-${activeStoreId}`} config={config} vitrine={isVitrine} onSave={save} />
         {!isVitrine && (
           <div style={{ marginTop: '1.5rem' }}>
-            <div className="config-section-title"><i className="fa-solid fa-credit-card" style={{ color: '#009ee3' }} /> Conta Mercado Pago (PIX automático)</div>
+            <div className="config-section-title"><i className="fa-solid fa-credit-card" style={{ color: 'var(--primary)' }} /> Conta Mercado Pago (PIX automático)</div>
             <MercadoPago embedded />
           </div>
         )}
