@@ -73,6 +73,7 @@ export function Dashboard() {
   const [lp, setLp] = useState<any | null>(null);
   const [lpDays, setLpDays] = useState(30);
   const [fkpi, setFkpi] = useState<any | null>(null);
+  const [farmaLeads, setFarmaLeads] = useState<any[] | null>(null);
   const [shared, setShared] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -226,7 +227,8 @@ export function Dashboard() {
   useEffect(() => {
     if (!isFarma) return;
     farmaquiApi.metrics().then(setFkpi).catch(() => {});
-  }, [isFarma]);
+    dbService.getAll('leads', { field: 'empresaId', operator: '==', value: companyId }).then((l) => setFarmaLeads(l as any[])).catch(() => setFarmaLeads([]));
+  }, [isFarma, companyId]);
 
   const hasVenda = modulos.includes('venda') || modulos.includes('venda_catalogo');
   const copyLink = (storeId: string) => {
@@ -311,20 +313,33 @@ export function Dashboard() {
       {isVitrine && <VitrineBlock m={vm} days={vmDays} setDays={setVmDays} />}
 
       {isFarma && (
-        <div style={{ marginTop: '0.5rem', marginBottom: '1.5rem' }}>
-          <h3 style={{ margin: '0 0 1rem', display: 'flex', alignItems: 'center', gap: 10 }}><i className="fa-solid fa-prescription-bottle-medical" style={{ color: 'var(--primary)' }} /> Seu CRM</h3>
-          {!fkpi ? <SkeletonBox height={110} /> : (
-            <div className="dashboard-grid">
-              <StatCard label="Leads capturados" value={fmtInt(fkpi.leadsTotal)} />
-              <StatCard green label="Viraram clientes" value={fmtInt(fkpi.clientes)} subtitle={`${fkpi.conversao}% de conversão`} />
-              <StatCard label="Recompras agendadas" value={fmtInt(fkpi.recompraAgendadas)} />
-              <StatCard label="Recompras enviadas" value={fmtInt(fkpi.recompraEnviadas)} />
+        <>
+          <div style={{ marginTop: '0.5rem', marginBottom: '1rem' }}>
+            <h3 style={{ margin: '0 0 1rem', display: 'flex', alignItems: 'center', gap: 10 }}><i className="fa-solid fa-prescription-bottle-medical" style={{ color: 'var(--primary)' }} /> Seu CRM</h3>
+            {!fkpi ? <SkeletonBox height={110} /> : (
+              <div className="dashboard-grid">
+                <StatCard label="Leads capturados" value={fmtInt(fkpi.leadsTotal)} />
+                <StatCard green label="Viraram clientes" value={fmtInt(fkpi.clientes)} subtitle={`${fkpi.conversao}% de conversão`} />
+                <StatCard label="Recompras agendadas" value={fmtInt(fkpi.recompraAgendadas)} />
+                <StatCard label="Recompras enviadas" value={fmtInt(fkpi.recompraEnviadas)} />
+              </div>
+            )}
+          </div>
+          <div className="dash-viz">
+            <div className="dash-col">
+              <RecentLeads leads={farmaLeads} />
+              <SubscriptionCard sub={sub} />
             </div>
-          )}
-        </div>
+            <div className="dash-col">
+              <LeadsMonthBars leads={farmaLeads} />
+            </div>
+            <div className="dash-col">
+              <OrigemDonut leads={farmaLeads} />
+            </div>
+          </div>
+          <LandingBlock m={lp} days={lpDays} setDays={setLpDays} />
+        </>
       )}
-
-      {isFarma && <LandingBlock m={lp} days={lpDays} setDays={setLpDays} />}
 
       {hasVenda && salesViz && (
         <div className="dash-viz">
@@ -348,6 +363,74 @@ export function Dashboard() {
       )}
     </div>
   );
+}
+
+// Últimos leads capturados (lista).
+const STATUS_LEAD: Record<string, { label: string; color: string }> = {
+  cliente_ativo: { label: 'Cliente', color: '#16a34a' },
+  bloqueado: { label: 'Bloqueado', color: '#ef4444' },
+  lead: { label: 'Lead', color: '#6fae12' },
+  novo: { label: 'Novo', color: '#6fae12' },
+};
+function RecentLeads({ leads }: { leads: any[] | null }) {
+  if (!leads) return <div className="card viz-card"><SkeletonBox width={160} height={18} /><div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>{[0, 1, 2, 3].map((r) => <SkeletonBox key={r} height={16} />)}</div></div>;
+  const recent = [...leads].sort((a, b) => new Date(b.criadoEm || b.ultimoContato || 0).getTime() - new Date(a.criadoEm || a.ultimoContato || 0).getTime()).slice(0, 7);
+  return (
+    <div className="card viz-card">
+      <div className="viz-head"><h4>Últimos leads</h4></div>
+      {recent.length === 0 ? <p style={{ color: 'var(--text-dim)', fontSize: '0.85rem', marginTop: 12 }}>Nenhum lead ainda.</p> : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 12 }}>
+          {recent.map((l) => {
+            const st = STATUS_LEAD[(l.statusLead || 'lead').toLowerCase()] || STATUS_LEAD.lead;
+            const phone = (l.telefone || l.whatsapp || '').split('@')[0];
+            return (
+              <div key={l.id} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div className="lead-avatar" style={{ flexShrink: 0 }}>{(l.nome || phone || 'C')[0].toUpperCase()}</div>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div style={{ fontWeight: 600, fontSize: '0.88rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{l.nome || phone || 'Sem nome'}</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{phone}</div>
+                </div>
+                <span style={{ fontSize: '0.7rem', fontWeight: 700, color: st.color, background: st.color + '1f', border: `1px solid ${st.color}44`, borderRadius: 999, padding: '2px 9px', flexShrink: 0 }}>{st.label}</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Leads capturados por mês (barras).
+function LeadsMonthBars({ leads }: { leads: any[] | null }) {
+  if (!leads) return <div className="card viz-card"><SkeletonBox width={160} height={18} /><SkeletonBox height={140} style={{ marginTop: 16 }} /></div>;
+  const now = new Date();
+  const months = Array.from({ length: 6 }, (_, i) => { const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1); return { key: `${d.getFullYear()}-${d.getMonth()}`, label: MESES_PT[d.getMonth()], count: 0 }; });
+  leads.forEach((l) => { const dt = new Date(l.criadoEm || l.ultimoContato || 0); const m = months.find((x) => x.key === `${dt.getFullYear()}-${dt.getMonth()}`); if (m) m.count++; });
+  const max = Math.max(1, ...months.map((m) => m.count));
+  return (
+    <div className="card viz-card">
+      <div className="viz-head"><h4>Leads por mês</h4></div>
+      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, height: 150, marginTop: 16 }}>
+        {months.map((m, i) => (
+          <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, height: '100%', justifyContent: 'flex-end' }}>
+            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)' }}>{m.count || ''}</span>
+            <div title={`${m.count} leads`} style={{ width: '70%', height: `${(m.count / max) * 100}%`, minHeight: m.count ? 4 : 0, background: 'linear-gradient(180deg,var(--primary),var(--primary-hover))', borderRadius: '5px 5px 0 0' }} />
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)', textTransform: 'capitalize' }}>{m.label}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// Leads por origem (donut).
+const ORIGEM_LABEL: Record<string, string> = { whatsapp: 'WhatsApp', vitrine: 'Vitrine', grupo: 'Grupo', agenda: 'Agenda', manual: 'Manual', landing: 'Landing' };
+function OrigemDonut({ leads }: { leads: any[] | null }) {
+  if (!leads) return <div className="card viz-card"><SkeletonBox width={160} height={18} /><SkeletonBox height={160} style={{ marginTop: 16 }} /></div>;
+  const counts = new Map<string, number>();
+  leads.forEach((l) => { const o = String(l.origem || 'whatsapp').toLowerCase(); counts.set(o, (counts.get(o) || 0) + 1); });
+  const items = [...counts.entries()].map(([name, count]) => ({ name: ORIGEM_LABEL[name] || name, count })).sort((a, b) => b.count - a.count);
+  return <BairroDonut items={items} total={leads.length} title="Leads por origem" emptyText="Sem leads ainda." />;
 }
 
 // Bloco de métricas da Vitrine: funil (visitas → cliques → WhatsApp → leads),

@@ -66,15 +66,15 @@ export function MonthlyBars({ data }: { data: { label: string; recebidos: number
 }
 
 // ── Donut: pedidos por bairro (top N + Outros) ──
-export function BairroDonut({ items, total }: { items: { name: string; count: number }[]; total: number }) {
+export function BairroDonut({ items, total, title = 'Pedidos por bairro', emptyText = 'Sem pedidos com bairro ainda.' }: { items: { name: string; count: number }[]; total: number; title?: string; emptyText?: string }) {
   const sum = items.reduce((s, i) => s + i.count, 0) || 1;
   const R = 60, C = 2 * Math.PI * R;
   let acc = 0;
   return (
     <div className="card viz-card">
-      <div className="viz-head"><h4>Pedidos por bairro</h4></div>
+      <div className="viz-head"><h4>{title}</h4></div>
       {items.length === 0 ? (
-        <p className="viz-empty">Sem pedidos com bairro ainda.</p>
+        <p className="viz-empty">{emptyText}</p>
       ) : (
         <div className="donut-wrap">
           <div className="donut-graph">
