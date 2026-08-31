@@ -35,11 +35,11 @@ export function Appearance({ companyId, storeId, design, vitrine = false, onSave
   const [vtInk, setVtInk] = useState(design.vtInk || '#2b2620');
   const [vtAccent, setVtAccent] = useState(design.vtAccent || '#8a6d4b');
   const [vtCard, setVtCard] = useState(design.vtCard || '#ffffff');
-  const [primary, setPrimary] = useState(design.primaryColor || '#84cc16');
-  const [secondary, setSecondary] = useState(design.secondaryColor || '#0f172a');
-  const [textColor, setTextColor] = useState(design.textColor || '#ffffff');
-  const [priceColor, setPriceColor] = useState(design.priceColor || '#ffffff');
-  const [productBg, setProductBg] = useState(design.productBgColor || '#1e293b');
+  const [primary, setPrimary] = useState(design.primaryColor || '#5aa513');
+  const [secondary, setSecondary] = useState(design.secondaryColor || '#f6f9f2');
+  const [textColor, setTextColor] = useState(design.textColor || '#16251c');
+  const [priceColor, setPriceColor] = useState(design.priceColor || '#5aa513');
+  const [productBg, setProductBg] = useState(design.productBgColor || '#ffffff');
   const [themeId, setThemeId] = useState(design.themeId || 'classico');
 
   const [logoPreview, setLogoPreview] = useState<string | null>(design.logoUrl || null);

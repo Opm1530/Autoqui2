@@ -10,6 +10,15 @@ import './catalog.css';
 
 interface CartEntry { product: any; qty: number }
 
+// Decide se um fundo (hex) é escuro, pra adaptar bordas/texto do catálogo.
+function isColorDark(hex: string): boolean {
+  const m = /^#?([0-9a-f]{6})$/i.exec(String(hex || '').trim());
+  if (!m) return true; // valores antigos/não-hex assumem tema escuro
+  const n = parseInt(m[1], 16);
+  const lum = 0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255);
+  return lum < 140;
+}
+
 export function Catalog({ storeId: storeIdProp }: { storeId?: string } = {}) {
   const params = useParams();
   const storeId = storeIdProp || params.storeId || '';
@@ -165,9 +174,9 @@ export function Catalog({ storeId: storeIdProp }: { storeId?: string } = {}) {
     setCartOpen(false); setCheckoutOpen(true);
   }
 
-  if (loading) return <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0f172a', color: 'white' }}><i className="fa-solid fa-spinner fa-spin fa-2x" /></div>;
+  if (loading) return <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f6f9f2', color: '#16251c' }}><i className="fa-solid fa-spinner fa-spin fa-2x" /></div>;
   if (!data || data.notFound) return (
-    <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0f172a', color: 'white', fontFamily: 'sans-serif' }}>
+    <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f6f9f2', color: '#16251c', fontFamily: 'sans-serif' }}>
       <div style={{ textAlign: 'center', padding: '2.5rem', background: 'rgba(255,255,255,0.03)', borderRadius: 24, border: '1px solid rgba(255,255,255,0.1)', maxWidth: 400 }}>
         <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>🔎</div>
         <h2 style={{ marginBottom: '0.5rem', fontWeight: 700 }}>Catálogo não encontrado</h2>
@@ -175,21 +184,27 @@ export function Catalog({ storeId: storeIdProp }: { storeId?: string } = {}) {
       </div>
     </div>
   );
-  if (data.error) return <p style={{ padding: '2rem', color: 'white', background: '#0f172a', minHeight: '100vh' }}>Erro ao carregar catálogo.</p>;
+  if (data.error) return <p style={{ padding: '2rem', color: '#16251c', background: '#f6f9f2', minHeight: '100vh' }}>Erro ao carregar catálogo.</p>;
 
   const { store, design, themeId, logoUrl, bannerUrl, bannerMobileUrl, whatsappNumber, hasVendaCatalogo, isVitrine, config } = data;
   const status = storeStatusLabel(config, store);
   const permitirEntrega = isFreteAbertoAgora(config, store);
 
+  // Tema claro por padrão, na identidade do sistema (lime). Loja pode personalizar.
+  const primaryCat = design.primaryColor || '#5aa513';
+  const bg = design.secondaryColor || '#f6f9f2';
+  const isDarkBg = isColorDark(bg);
   const cssVars: React.CSSProperties = {
-    ['--primary-cat' as any]: design.primaryColor || '#84cc16',
-    ['--primary-glow' as any]: (design.primaryColor || '#84cc16') + '4D',
-    ['--bg' as any]: design.secondaryColor || '#0f172a',
-    ['--glass' as any]: 'rgba(255,255,255,0.05)',
-    ['--text' as any]: design.textColor || '#ffffff',
-    ['--text-muted' as any]: '#94a3b8',
-    ['--price-cat' as any]: design.priceColor || '#ffffff',
-    ['--product-bg' as any]: design.productBgColor || 'rgba(255,255,255,0.05)',
+    ['--primary-cat' as any]: primaryCat,
+    ['--primary-glow' as any]: primaryCat + '33',
+    ['--bg' as any]: bg,
+    // Bordas e "vidro" adaptam ao fundo (claro x escuro) pra não sumirem.
+    ['--glass' as any]: isDarkBg ? 'rgba(255,255,255,0.05)' : 'rgba(16,42,28,0.04)',
+    ['--border' as any]: isDarkBg ? 'rgba(255,255,255,0.10)' : 'rgba(16,42,28,0.10)',
+    ['--text' as any]: design.textColor || (isDarkBg ? '#ffffff' : '#16251c'),
+    ['--text-muted' as any]: isDarkBg ? '#94a3b8' : '#5c6b5e',
+    ['--price-cat' as any]: design.priceColor || primaryCat,
+    ['--product-bg' as any]: design.productBgColor || (isDarkBg ? 'rgba(255,255,255,0.05)' : '#ffffff'),
   };
 
   const StatusInline = () => (
@@ -251,15 +266,15 @@ export function Catalog({ storeId: storeIdProp }: { storeId?: string } = {}) {
     return (
       <div className="product-card" onClick={() => addCombo(c)} style={{ cursor: 'pointer', position: 'relative', border: '1.5px solid rgba(245,158,11,0.3)' }}>
         <div className="card-image" style={hasImg ? undefined : { background: 'linear-gradient(135deg,rgba(245,158,11,0.15),rgba(251,191,36,0.05))', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 120 }}>
-          {hasImg ? <img src={getImageUrl(c)} alt={c.nome} loading="lazy" /> : <i className="fa-solid fa-layer-group" style={{ fontSize: '2.5rem', color: '#f59e0b', opacity: 0.8 }} />}
-          <div className="promo-tag" style={{ background: '#f59e0b' }}>COMBO</div>
+          {hasImg ? <img src={getImageUrl(c)} alt={c.nome} loading="lazy" /> : <i className="fa-solid fa-layer-group" style={{ fontSize: '2.5rem', color: 'var(--primary-cat)', opacity: 0.8 }} />}
+          <div className="promo-tag" style={{ background: 'var(--primary-cat)' }}>COMBO</div>
         </div>
         <div className="card-info">
           <h3 style={{ fontWeight: 800 }}>{c.nome}</h3>
           <p style={{ fontSize: '0.75rem', color: '#94a3b8', margin: '4px 0 8px', lineHeight: 1.4 }}>{(c.produtos || []).map((p: any) => p.name).join(' + ')}</p>
-          <div className="price-container"><span className="price" style={{ color: '#f59e0b' }}>R$ {parseFloat(c.preco || 0).toFixed(2)}</span>{precoOriginal > 0 && economia > 0 && <span className="original-price">R$ {precoOriginal.toFixed(2)}</span>}</div>
+          <div className="price-container"><span className="price" style={{ color: 'var(--primary-cat)' }}>R$ {parseFloat(c.preco || 0).toFixed(2)}</span>{precoOriginal > 0 && economia > 0 && <span className="original-price">R$ {precoOriginal.toFixed(2)}</span>}</div>
           {economia > 0 && <p style={{ fontSize: '0.75rem', color: '#10b981', margin: '4px 0 0', fontWeight: 700 }}>✓ Economize R$ {economia.toFixed(2)}</p>}
-          <button style={{ marginTop: 12, width: '100%', padding: 10, borderRadius: 10, background: '#f59e0b', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: '0.9rem' }}>+ Adicionar Combo</button>
+          <button style={{ marginTop: 12, width: '100%', padding: 10, borderRadius: 10, background: 'var(--primary-cat)', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: '0.9rem' }}>+ Adicionar Combo</button>
         </div>
       </div>
     );
@@ -271,7 +286,7 @@ export function Catalog({ storeId: storeIdProp }: { storeId?: string } = {}) {
 
   const CombosSection = () => data.combos.length === 0 ? null : (
     <>
-      <div className="section-title" style={{ marginTop: 40 }}><i className="fa-solid fa-layer-group" style={{ color: '#f59e0b' }} /><span>Combos Especiais</span><div className="line" style={{ background: 'linear-gradient(to right,#f59e0b,transparent)' }} /></div>
+      <div className="section-title" style={{ marginTop: 40 }}><i className="fa-solid fa-layer-group" style={{ color: 'var(--primary-cat)' }} /><span>Combos Especiais</span><div className="line" style={{ background: 'linear-gradient(to right,var(--primary-cat),transparent)' }} /></div>
       <div className="product-grid">{data.combos.map((c: any) => <ComboCard key={c.id} c={c} />)}</div>
     </>
   );
