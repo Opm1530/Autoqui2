@@ -27,7 +27,7 @@ import { rateLimit, verifyMpSignature } from './security.js';
 import { ecommerceRouter } from './ecommerce/router.js';
 import { startEcommerceJobs } from './ecommerce/jobs.js';
 import { storefrontPublicRouter, storefrontAuthRouter } from './ecommerce/storefront.js';
-import { handleIncoming, activateCapture, deactivateCapture, captureStatus, getConfig, saveRecompra, saveAutomacoes, saveFidelidade, sendFidelidade, sendLeadMessage, setUltimaCompra, startFarmaquiJobs, getLanding, saveLanding, setLandingHost, publicLanding, farmaMetrics, listRecompra, cancelRecompra, sendRecompraNow, groupsList, listGroupOffers, createGroupOffer, deleteGroupOffer, extractGroupLeads, extractAgendaLeads, createManualLead } from './farmaqui.js';
+import { handleIncoming, activateCapture, deactivateCapture, captureStatus, getConfig, saveRecompra, saveAutomacoes, saveFidelidade, sendFidelidade, sendLeadMessage, setUltimaCompra, startFarmaquiJobs, getLanding, saveLanding, setLandingHost, publicLanding, farmaMetrics, listRecompra, cancelRecompra, sendRecompraNow, groupsList, listGroupOffers, createGroupOffer, deleteGroupOffer, extractGroupLeads, extractAgendaLeads, createManualLead, numberHealth } from "./farmaqui.js";
 import { trackEvent, getVitrineMetrics, getLandingMetrics } from './vitrineMetrics.js';
 import { setStoreSubdomain, removeStoreSubdomain, storeByHost } from './domains.js';
 
@@ -256,6 +256,7 @@ app.get('/api/farmaqui/status', requireAuth, wrap((req) => captureStatus(req.uid
 app.post('/api/farmaqui/deactivate', requireAuth, wrap((req) => deactivateCapture(req.uid)));
 app.get('/api/farmaqui/config', requireAuth, wrap((req) => getConfig(req.uid)));
 app.get('/api/farmaqui/metrics', requireAuth, wrap((req) => farmaMetrics(req.uid)));
+app.get('/api/farmaqui/health', requireAuth, wrap((req) => numberHealth(req.uid)));
 app.get('/api/farmaqui/recompra/list', requireAuth, wrap((req) => listRecompra(req.uid)));
 app.post('/api/farmaqui/recompra/cancel', requireAuth, wrap((req) => cancelRecompra(req.uid, String(req.body?.leadId || ''))));
 app.post('/api/farmaqui/recompra/send-now', requireAuth, wrap((req) => sendRecompraNow(req.uid, String(req.body?.leadId || ''))));

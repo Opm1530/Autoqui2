@@ -5,7 +5,7 @@ import { Timestamp } from 'firebase-admin/firestore';
 import { db, getAll } from './firebase.js';
 import { loadUser } from './currentUser.js';
 import { PUBLIC_BASE_URL } from './config.js';
-import { setWebhook, sendText, sendToGroup, fetchGroups, fetchGroupParticipants, fetchAllContacts, fetchContactName, phoneFromJid } from './evolution.js';
+import { setWebhook, sendText, sendToGroup, fetchGroups, fetchGroupParticipants, fetchAllContacts, fetchContactName, phoneFromJid, getInstanceStatus } from './evolution.js';
 import { assertInstanceOwner } from './waInstances.js';
 import { normalizeSubdomain, setLandingSubdomain, removeLandingSubdomain } from './domains.js';
 
@@ -196,6 +196,16 @@ export async function captureStatus(uid: string) {
   const companyId = await companyOf(uid);
   const cap = await readCapture(companyId);
   return { ativa: cap.ativa, instancia: cap.instancia, origem: cap.origem };
+}
+
+// Saúde do número: status da conexão da instância coletora + nº de leads.
+export async function numberHealth(uid: string) {
+  const companyId = await companyOf(uid);
+  const cap = await readCapture(companyId);
+  if (!cap.instancia) return { instancia: '', connected: false, state: 'none', totalLeads: 0 };
+  const st = await getInstanceStatus(cap.instancia).catch(() => ({ state: 'close', connected: false }));
+  const leads = await getAll('leads', [{ field: 'empresaId', operator: '==', value: companyId }]).catch(() => []);
+  return { instancia: cap.instancia, connected: st.connected, state: st.state, totalLeads: leads.length };
 }
 
 const DEFAULT_RECOMPRA = { enabled: false, mensagem: 'Olá {{nome}}! 💊 Já faz um tempinho da sua última compra. Precisa repor algum remédio? É só me chamar por aqui!', cicloDiasPadrao: 30 };

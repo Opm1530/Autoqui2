@@ -106,7 +106,36 @@ export function FarmaQui() {
       </div>
       )}
 
+      {tab === 'captacao' && <NumberHealth />}
       {tab === 'importar' && <ImportLeads />}
+    </div>
+  );
+}
+
+// Saúde do número: conexão da instância + boas práticas anti-ban.
+function NumberHealth() {
+  const [h, setH] = useState<{ instancia: string; connected: boolean; state: string; totalLeads: number } | null>(null);
+  useEffect(() => { farmaquiApi.health().then(setH).catch(() => {}); }, []);
+  if (!h || !h.instancia) return null;
+  return (
+    <div className="card" style={{ marginTop: '1.25rem' }}>
+      <div style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}><i className="fa-solid fa-heart-pulse" style={{ color: TEAL }} /> Saúde do número</div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 12, borderRadius: 10, background: h.connected ? 'rgba(16,185,129,0.06)' : 'rgba(239,68,68,0.06)', border: `1px solid ${h.connected ? 'rgba(16,185,129,0.25)' : 'rgba(239,68,68,0.25)'}`, marginBottom: 12 }}>
+        <i className={`fa-solid ${h.connected ? 'fa-circle-check' : 'fa-circle-xmark'}`} style={{ color: h.connected ? '#10b981' : '#ef4444', fontSize: '1.2rem' }} />
+        <div>
+          <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{h.connected ? 'Conectado' : 'Desconectado'} · {h.instancia}</div>
+          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{h.connected ? 'A instância está online e pronta pra enviar.' : 'Reconecte a instância em Negócio › Instâncias antes de disparar.'}</div>
+        </div>
+      </div>
+      <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', lineHeight: 1.6 }}>
+        <p style={{ margin: '0 0 6px', fontWeight: 700, color: 'var(--text-main)' }}><i className="fa-solid fa-shield-halved" style={{ color: TEAL, marginRight: 6 }} />Boas práticas anti-banimento</p>
+        <ul style={{ margin: 0, paddingLeft: 18 }}>
+          <li>Aqueça números novos: comece com poucos envios/dia e aumente aos poucos.</li>
+          <li>Personalize as mensagens ({'{{nome}}'}) e evite textos idênticos em massa.</li>
+          <li>Só envie para quem consentiu; respeite os descadastros (já é automático).</li>
+          <li>Use intervalos entre envios nas campanhas (o disparo já faz isso).</li>
+        </ul>
+      </div>
     </div>
   );
 }
