@@ -62,6 +62,12 @@ function RootRoute() {
   return <StorefrontHost host={host} />;
 }
 
+// Preview da landing page (aberto em nova guia pela tela de Configuração da FarmaQui).
+function LandingPreviewRoute() {
+  const companyId = new URLSearchParams(window.location.search).get('companyId') || '';
+  return <FarmaLanding companyId={companyId} />;
+}
+
 function StorefrontHost({ host }: { host: string }) {
   const [res, setRes] = useState<{ storeId?: string | null; companyId?: string; tipo?: string } | null | undefined>(undefined);
   useEffect(() => {
@@ -97,6 +103,7 @@ export function App() {
           {/* Rotas públicas (sem login) */}
           <Route path="/catalog/:storeId" element={<Catalog />} />
           <Route path="/qr/:token" element={<QRPage />} />
+          <Route path="/lp-preview" element={<LandingPreviewRoute />} />
 
           <Route path="/login" element={<LoginRoute />} />
           <Route path="/signup" element={<SignupRoute />} />

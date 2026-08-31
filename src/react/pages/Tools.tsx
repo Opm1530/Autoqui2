@@ -24,7 +24,7 @@ const TOOLS: Tool[] = [
   { key: 'vitrine', name: 'Vitrine', desc: 'Mostruário elegante sem checkout — o cliente vê os produtos e pede direto no WhatsApp.', icon: 'fa-image', color: '#4d7c0f', group: 'canal', open: '/products' },
   { key: 'agendamento', name: 'Agendamento', desc: 'Agenda de serviços com confirmação e lembretes automáticos. Ideal para clínicas, salões e consultorias.', icon: 'fa-calendar-check', color: '#f59e0b', group: 'canal', open: '/schedule', soon: true },
   { key: 'ecommerce', name: 'E-commerce (NuvemShop)', desc: 'Conecte sua loja NuvemShop: automações de WhatsApp e (em breve) analytics e CRM.', icon: 'fa-store', color: '#0ea5e9', group: 'canal', open: '/ecommerce', soon: true },
-  { key: 'farmaqui', name: 'FarmaQui (CRM)', desc: 'Captura quem manda mensagem no WhatsApp como lead, marca última compra e (em breve) lembra a recompra. Ideal para farmácias e recorrência.', icon: 'fa-prescription-bottle-medical', color: '#14b8a6', group: 'canal', open: '/farmaqui' },
+  { key: 'farmaqui', name: 'FarmaQui (CRM)', desc: 'Captura quem manda mensagem no WhatsApp como lead, marca última compra e (em breve) lembra a recompra. Ideal para farmácias e recorrência.', icon: 'fa-prescription-bottle-medical', color: '#84cc16', group: 'canal', open: '/farmaqui' },
   { key: 'atendimento', name: 'Atendente IA', desc: 'Uma IA que atende, tira dúvidas e qualifica seus clientes no WhatsApp, 24 horas por dia.', icon: 'fa-robot', color: '#22c55e', group: 'camada', open: '/leads', soon: true },
   { key: 'disparo', name: 'Campanhas', desc: 'Dispare mensagens em massa para toda a sua base no WhatsApp, com inteligência anti-banimento.', icon: 'fa-bullhorn', color: '#ef4444', group: 'camada', open: '/campaigns' },
 ];

@@ -15,7 +15,7 @@
   --success: #16a34a;
   --warning: #f59e0b;
   --danger: #ef4444;
-  --info: #0ea5e9;
+  --info: #6fae12;
 
   --text-main: #17251c;
   --text-muted: #5f6b63;
@@ -82,6 +82,11 @@ a {
   color: inherit;
   transition: var(--transition);
 }
+
+/* Remove qualquer azul padrão do navegador (seleção de texto e controles nativos) */
+body { accent-color: var(--primary); }
+::selection { background: rgba(132, 204, 22, 0.35); color: var(--text-main); }
+:focus-visible { outline-color: var(--primary); }
 
 ul {
   list-style: none;
@@ -542,7 +547,7 @@ ul {
 
 .stats-icon.info {
   color: var(--info);
-  background: rgba(59, 130, 246, 0.1);
+  background: rgba(132, 204, 22, 0.12);
 }
 
 .stats-icon.success {
@@ -645,8 +650,14 @@ ul {
 }
 
 .badge.info {
-  background: rgba(59, 130, 246, 0.1);
-  color: var(--info);
+  background: rgba(132, 204, 22, 0.12);
+  color: var(--primary-hover);
+}
+
+/* Checkbox/radio na cor do tema (remove o azul padrão do navegador) */
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: var(--primary);
 }
 
 .badge.primary {
@@ -1597,7 +1608,7 @@ ul {
 }
 
 .toast-info .toast-icon {
-  background: rgba(59, 130, 246, 0.15);
+  background: rgba(132, 204, 22, 0.15);
   color: var(--info);
 }
 
@@ -2162,6 +2173,9 @@ ul {
   padding: 0 !important;
   overflow: hidden !important;
 }
+/* Variante larga (FarmaQui): duas colunas no corpo do modal */
+.lead-modal-content.lead-modal-wide { max-width: 900px !important; }
+@media (max-width: 640px) { .lead-modal-content.lead-modal-wide { max-width: 560px !important; } }
 
 .lead-modal-header {
   display: flex;

@@ -32,7 +32,7 @@ export function DeliveryBadge({ entrega, compact }: { entrega: string; compact?:
   if (entrega === 'retirada') {
     return badge('badge secondary', { background: 'rgba(139,92,246,0.1)', color: '#a3e635', border: '1px solid rgba(139,92,246,0.2)' }, 'fa-store', 'Retirada', compact);
   }
-  return badge('badge info', { background: 'rgba(59,130,246,0.1)', color: '#60a5fa', border: '1px solid rgba(59,130,246,0.2)' }, 'fa-truck', 'Entrega', compact);
+  return badge('badge info', { background: 'rgba(132,204,22,0.12)', color: 'var(--primary-hover)', border: '1px solid rgba(132,204,22,0.3)' }, 'fa-truck', 'Entrega', compact);
 }
 
 export function PaymentBadge({ order, compact }: { order: any; compact?: boolean }): ReactNode {
@@ -44,12 +44,12 @@ export function PaymentBadge({ order, compact }: { order: any; compact?: boolean
   const isEntrega = payment.includes('entrega') || payment.includes('dinheiro') || payment.includes('maquininha');
 
   if (isLink) {
-    return badge('badge info', { background: 'rgba(59,130,246,0.1)', color: '#60a5fa', border: '1px solid rgba(59,130,246,0.2)' }, 'fa-link', 'Link', compact);
+    return badge('badge info', { background: 'rgba(132,204,22,0.12)', color: 'var(--primary-hover)', border: '1px solid rgba(132,204,22,0.3)' }, 'fa-link', 'Link', compact);
   }
   if (isPix) {
     return (
       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-        {badge('badge info', { background: 'rgba(59,130,246,0.1)', color: '#60a5fa', border: '1px solid rgba(59,130,246,0.2)' }, 'fa-brands fa-pix', 'PIX', compact, true)}
+        {badge('badge info', { background: 'rgba(132,204,22,0.12)', color: 'var(--primary-hover)', border: '1px solid rgba(132,204,22,0.3)' }, 'fa-brands fa-pix', 'PIX', compact, true)}
         {order.estornado === true
           ? badge('badge', { background: 'rgba(245,158,11,0.15)', color: '#fbbf24', border: '1px solid rgba(245,158,11,0.3)' }, 'fa-rotate-left', 'ESTORNADO', compact)
           : order.pago === true

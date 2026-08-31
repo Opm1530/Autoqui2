@@ -1,21 +1,29 @@
 import { useEffect, useState } from 'react';
 import { farmaquiApi } from '../../services/farmaquiApi';
 import { toast } from '../../services/toast';
+import { useAuth } from '../useAuth';
 
-const TEAL = '#14b8a6';
+const TEAL = 'var(--primary-hover)';
 
 const LANDING_DEFAULT = {
   publicado: false, host: '', titulo: 'Sua farmácia de confiança',
   subtitulo: 'Atendimento rápido pelo WhatsApp, entrega no mesmo dia e os melhores preços da região.',
-  corPrimaria: '#14b8a6', logoUrl: '', whatsapp: '', ctaTexto: 'Chamar no WhatsApp', endereco: '',
+  corPrimaria: '#84cc16', logoUrl: '', whatsapp: '', ctaTexto: 'Chamar no WhatsApp', endereco: '',
   destaques: [{ icone: '🚚', texto: 'Entrega no mesmo dia' }, { icone: '💊', texto: 'Grande variedade de medicamentos' }, { icone: '💬', texto: 'Atendimento humano no WhatsApp' }],
 };
 
 // Configuração da FarmaQui: gestão do design da Landing page (igual Configuração do catálogo/vitrine).
 export function FarmaSettings() {
+  const { user } = useAuth();
   const [l, setL] = useState<any>(LANDING_DEFAULT);
   const [busy, setBusy] = useState(false);
   const [sub, setSub] = useState('');
+
+  function abrirPreview() {
+    if (l.host) { window.open(`https://${l.host}`, '_blank', 'noopener'); return; }
+    if (!l.publicado) { toast.warning('Ative e salve a página para pré-visualizar.'); return; }
+    window.open(`${window.location.origin}/lp-preview?companyId=${user?.companyId || ''}`, '_blank', 'noopener');
+  }
   useEffect(() => { farmaquiApi.getLanding().then((d) => { if (d) { setL(d); setSub((d.host || '').replace('.autoqui.com.br', '')); } }).catch(() => {}); }, []);
 
   const set = (k: string, v: any) => setL({ ...l, [k]: v });
@@ -38,7 +46,7 @@ export function FarmaSettings() {
   }
 
   return (
-    <div style={{ maxWidth: 760 }}>
+    <div>
       <div className="page-heading">
         <h1>Configuração</h1>
         <p>Monte o design da sua landing page de campanhas — título, cores, destaques e o endereço no ar.</p>
@@ -55,7 +63,7 @@ export function FarmaSettings() {
           <div><label className="config-label">Título</label><input className="config-input" value={l.titulo} onChange={(e) => set('titulo', e.target.value)} /></div>
           <div><label className="config-label">Subtítulo</label><textarea className="config-input" style={{ minHeight: 60, resize: 'vertical', fontFamily: 'inherit' }} value={l.subtitulo} onChange={(e) => set('subtitulo', e.target.value)} /></div>
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-            <div><label className="config-label">Cor principal</label><input type="color" className="config-input" style={{ width: 60, padding: 4, height: 40 }} value={l.corPrimaria} onChange={(e) => set('corPrimaria', e.target.value)} /></div>
+            <div><label className="config-label">Cor principal</label><div><input type="color" className="color-swatch" value={l.corPrimaria} onChange={(e) => set('corPrimaria', e.target.value)} /></div></div>
             <div style={{ flex: 1, minWidth: 180 }}><label className="config-label">WhatsApp (só números, com DDD)</label><input className="config-input" placeholder="11999998888" value={l.whatsapp} onChange={(e) => set('whatsapp', e.target.value)} /></div>
           </div>
           <div><label className="config-label">URL do logo (opcional)</label><input className="config-input" value={l.logoUrl} onChange={(e) => set('logoUrl', e.target.value)} /></div>
@@ -77,7 +85,10 @@ export function FarmaSettings() {
           </div>
         </div>
 
-        <div style={{ textAlign: 'right', marginTop: 14 }}><button className="btn-primary" disabled={busy} onClick={save} style={{ background: TEAL }}>{busy ? 'Salvando...' : 'Salvar página'}</button></div>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 14 }}>
+          <button className="btn-secondary" onClick={abrirPreview}><i className="fa-solid fa-arrow-up-right-from-square" /> Ver preview</button>
+          <button className="btn-primary" disabled={busy} onClick={save} style={{ background: TEAL }}>{busy ? 'Salvando...' : 'Salvar página'}</button>
+        </div>
 
         <div style={{ marginTop: 18, borderTop: '1px solid var(--border-color)', paddingTop: 16 }}>
           <label className="config-label">Endereço da página (subdomínio)</label>

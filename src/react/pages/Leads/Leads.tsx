@@ -138,6 +138,13 @@ export function Leads() {
                         <div>
                           <div style={{ fontWeight: 600 }}>{lead.nome || 'Sem nome'}</div>
                           <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{phone}</div>
+                          {Array.isArray(lead.tags) && lead.tags.length > 0 && (
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
+                              {lead.tags.slice(0, 4).map((t: string) => (
+                                <span key={t} style={{ fontSize: '0.68rem', fontWeight: 600, background: 'rgba(132,204,22,0.12)', color: 'var(--primary-hover)', border: '1px solid rgba(132,204,22,0.3)', borderRadius: 999, padding: '1px 8px' }}>{t}</span>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       </div>
                     </td>

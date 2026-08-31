@@ -77,11 +77,14 @@ export function LeadModal({ lead, isOnlyCatalog, farmaqui, onClose, onUpdated }:
 
   return (
     <div className="modal" style={{ display: 'flex' }} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="modal-content glass lead-modal-content">
+      <div className={'modal-content glass lead-modal-content' + (farmaqui ? ' lead-modal-wide' : '')}>
         <div className="lead-modal-header">
           <div className="lead-modal-avatar">{(lead.nome || phone || 'C')[0].toUpperCase()}</div>
           <div className="lead-modal-title">
-            <h2>{lead.nome || 'Sem nome'}</h2>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+              <h2 style={{ margin: 0 }}>{lead.nome || 'Sem nome'}</h2>
+              <LeadStatusBadge status={statusLead} />
+            </div>
             <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>{phone}</span>
           </div>
           <div className="lead-modal-header-actions" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -104,45 +107,69 @@ export function LeadModal({ lead, isOnlyCatalog, farmaqui, onClose, onUpdated }:
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', padding: '0 1.5rem' }}>
-          <div className="lead-badge-group"><span className="badge-label">Status do Lead</span> <LeadStatusBadge status={statusLead} /></div>
-          {!isOnlyCatalog && <div className="lead-badge-group"><span className="badge-label">Status do Atendimento</span> <AtendimentoBadge status={statusAtend} /></div>}
-        </div>
+        {!isOnlyCatalog && (
+          <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', padding: '0 1.5rem' }}>
+            <div className="lead-badge-group"><span className="badge-label">Status do Atendimento</span> <AtendimentoBadge status={statusAtend} /></div>
+          </div>
+        )}
 
         <div className="lead-modal-body">
-          <div className="lead-info-grid">
-            <div className="lead-info-item"><span className="lead-info-label">Telefone</span><span className="lead-info-value">{phone || '-'}</span></div>
-            <div className="lead-info-item"><span className="lead-info-label">Criado em</span><span className="lead-info-value">{formatDate(lead.criadoEm || lead.createdAt)}</span></div>
-            <div className="lead-info-item"><span className="lead-info-label">Última atividade</span><span className="lead-info-value">{formatDate(lead.updatedAt)}</span></div>
-            {lead.aniversario && <div className="lead-info-item"><span className="lead-info-label">Aniversário</span><span className="lead-info-value">{String(lead.aniversario).slice(0, 10).split('-').reverse().join('/')}</span></div>}
-            {lead.endereco && <div className="lead-info-item" style={{ gridColumn: '1 / -1' }}><span className="lead-info-label">Endereço</span><span className="lead-info-value">{lead.endereco}</span></div>}
-          </div>
-
-          {farmaqui && <TagsEditor lead={lead} onUpdated={onUpdated} />}
-
-          {(lead.ultimoPedido || lead.lastOrder) && (
-            <div className="lead-section"><h4 className="lead-section-title">Último Pedido</h4><div className="lead-last-order"><span>{lead.ultimoPedido || lead.lastOrder}</span></div></div>
-          )}
-          {lead.historicoResumo && (
-            <div className="lead-section"><h4 className="lead-section-title">Histórico</h4><p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', lineHeight: 1.6 }}>{lead.historicoResumo}</p></div>
-          )}
-          {isBloqueado && (
-            <div className="lead-alert danger"><i className="fa-solid fa-lock" /> Este lead está bloqueado. Desbloqueie antes de iniciar atendimento.</div>
-          )}
-
-          {farmaqui && <RecompraLead lead={lead} onUpdated={onUpdated} />}
-          {farmaqui && Array.isArray(lead.historicoCompras) && lead.historicoCompras.length > 0 && (
-            <div className="lead-section" style={{ borderTop: '1px solid var(--border-color)', paddingTop: 14, marginTop: 6 }}>
-              <h4 className="lead-section-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}><i className="fa-solid fa-clock-rotate-left" style={{ color: '#14b8a6' }} /> Histórico de compras</h4>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 6 }}>
-                {lead.historicoCompras.slice(0, 20).map((h: any, i: number) => (
-                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, padding: '8px 10px', background: 'rgba(23, 37, 28, 0.03)', border: '1px solid var(--border-color)', borderRadius: 8 }}>
-                    <span style={{ fontSize: '0.85rem' }}>{h.produto || <em style={{ color: 'var(--text-dim)' }}>compra sem descrição</em>}</span>
-                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{String(h.data).slice(0, 10).split('-').reverse().join('/')}</span>
+          {farmaqui ? (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 20, alignItems: 'start' }}>
+              {/* Esquerda: dados do lead + tags */}
+              {/* Esquerda: dados + tags + registrar compra */}
+              <div>
+                <div className="lead-info-grid">
+                  <div className="lead-info-item"><span className="lead-info-label">Telefone</span><span className="lead-info-value">{phone || '-'}</span></div>
+                  <div className="lead-info-item"><span className="lead-info-label">Criado em</span><span className="lead-info-value">{formatDate(lead.criadoEm || lead.createdAt)}</span></div>
+                  <div className="lead-info-item"><span className="lead-info-label">Última atividade</span><span className="lead-info-value">{formatDate(lead.updatedAt)}</span></div>
+                  {lead.aniversario && <div className="lead-info-item"><span className="lead-info-label">Aniversário</span><span className="lead-info-value">{String(lead.aniversario).slice(0, 10).split('-').reverse().join('/')}</span></div>}
+                  {lead.endereco && <div className="lead-info-item" style={{ gridColumn: '1 / -1' }}><span className="lead-info-label">Endereço</span><span className="lead-info-value">{lead.endereco}</span></div>}
+                </div>
+                <TagsEditor lead={lead} onUpdated={onUpdated} />
+                <RecompraLead lead={lead} onUpdated={onUpdated} />
+                {isBloqueado && (
+                  <div className="lead-alert danger" style={{ marginTop: 12 }}><i className="fa-solid fa-lock" /> Este lead está bloqueado. Desbloqueie antes de iniciar atendimento.</div>
+                )}
+              </div>
+              {/* Direita: histórico de compras */}
+              <div className="lead-section" style={{ marginTop: 0 }}>
+                <h4 className="lead-section-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}><i className="fa-solid fa-clock-rotate-left" style={{ color: 'var(--primary-hover)' }} /> Histórico de compras</h4>
+                {Array.isArray(lead.historicoCompras) && lead.historicoCompras.length > 0 ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 10 }}>
+                    {lead.historicoCompras.slice(0, 30).map((h: any, i: number) => (
+                      <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '9px 12px', background: 'rgba(23, 37, 28, 0.03)', border: '1px solid var(--border-color)', borderRadius: 8 }}>
+                        <span style={{ fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 }}>
+                          {h.recompra && <i className="fa-solid fa-clock" title="Recompra agendada para este item" style={{ color: 'var(--primary-hover)', fontSize: '0.8rem' }} />}
+                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{h.produto || <em style={{ color: 'var(--text-dim)' }}>compra sem descrição</em>}</span>
+                        </span>
+                        <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{String(h.data).slice(0, 10).split('-').reverse().join('/')}</span>
+                      </div>
+                    ))}
                   </div>
-                ))}
+                ) : (
+                  <p style={{ fontSize: '0.83rem', color: 'var(--text-dim)', marginTop: 10 }}>Nenhuma compra registrada ainda. Use "Registrar compra" ao lado.</p>
+                )}
               </div>
             </div>
+          ) : (
+            <>
+              <div className="lead-info-grid">
+                <div className="lead-info-item"><span className="lead-info-label">Telefone</span><span className="lead-info-value">{phone || '-'}</span></div>
+                <div className="lead-info-item"><span className="lead-info-label">Criado em</span><span className="lead-info-value">{formatDate(lead.criadoEm || lead.createdAt)}</span></div>
+                <div className="lead-info-item"><span className="lead-info-label">Última atividade</span><span className="lead-info-value">{formatDate(lead.updatedAt)}</span></div>
+                {lead.endereco && <div className="lead-info-item" style={{ gridColumn: '1 / -1' }}><span className="lead-info-label">Endereço</span><span className="lead-info-value">{lead.endereco}</span></div>}
+              </div>
+              {(lead.ultimoPedido || lead.lastOrder) && (
+                <div className="lead-section"><h4 className="lead-section-title">Último Pedido</h4><div className="lead-last-order"><span>{lead.ultimoPedido || lead.lastOrder}</span></div></div>
+              )}
+              {lead.historicoResumo && (
+                <div className="lead-section"><h4 className="lead-section-title">Histórico</h4><p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', lineHeight: 1.6 }}>{lead.historicoResumo}</p></div>
+              )}
+              {isBloqueado && (
+                <div className="lead-alert danger"><i className="fa-solid fa-lock" /> Este lead está bloqueado. Desbloqueie antes de iniciar atendimento.</div>
+              )}
+            </>
           )}
         </div>
 
@@ -252,11 +279,11 @@ function TagsEditor({ lead, onUpdated }: { lead: any; onUpdated: (l: any) => voi
 
   return (
     <div className="lead-section" style={{ borderTop: '1px solid var(--border-color)', paddingTop: 14, marginTop: 6 }}>
-      <h4 className="lead-section-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}><i className="fa-solid fa-tags" style={{ color: '#14b8a6' }} /> Tags do cliente</h4>
+      <h4 className="lead-section-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}><i className="fa-solid fa-tags" style={{ color: 'var(--primary-hover)' }} /> Tags do cliente</h4>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, margin: '8px 0' }}>
         {tags.length === 0 && <span style={{ fontSize: '0.82rem', color: 'var(--text-dim)' }}>Sem tags. Use para agrupar (ex.: diabético) e ofertar depois.</span>}
         {tags.map((t) => (
-          <span key={t} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '0.8rem', fontWeight: 600, background: 'rgba(20,184,166,0.12)', color: '#0d9488', border: '1px solid rgba(20,184,166,0.3)', borderRadius: 999, padding: '3px 10px' }}>
+          <span key={t} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '0.8rem', fontWeight: 600, background: 'rgba(132,204,22,0.12)', color: 'var(--primary-hover)', border: '1px solid rgba(132,204,22,0.3)', borderRadius: 999, padding: '3px 10px' }}>
             {t} <i className="fa-solid fa-xmark" style={{ cursor: 'pointer', opacity: 0.7 }} onClick={() => remove(t)} />
           </span>
         ))}
@@ -276,50 +303,63 @@ function RecompraLead({ lead, onUpdated }: { lead: any; onUpdated: (l: any) => v
   const hoje = new Date().toISOString().slice(0, 10);
   const [data, setData] = useState(lead.ultimaCompra ? String(lead.ultimaCompra).slice(0, 10) : hoje);
   const [ciclo, setCiclo] = useState(Number(lead.cicloRecompraDias) || 30);
-  const [produto, setProduto] = useState(lead.ultimoPedido || '');
+  const [produto, setProduto] = useState('');
+  const [agendarRec, setAgendarRec] = useState(false);
   const [busy, setBusy] = useState(false);
-
-  const fmt = (iso: string) => iso.slice(0, 10).split('-').reverse().join('/');
-  const proxima = (() => { const d = new Date(data + 'T12:00:00'); d.setDate(d.getDate() + ciclo); return d.toISOString().slice(0, 10); })();
 
   async function salvar() {
     setBusy(true);
+    const nowISO = new Date().toISOString();
+    const dataISO = new Date(data + 'T12:00:00').toISOString();
+    const entry = { produto: produto.trim(), data: dataISO, registradoEm: nowISO, recompra: agendarRec };
+    const historico = [entry, ...(Array.isArray(lead.historicoCompras) ? lead.historicoCompras : [])].slice(0, 100);
     try {
-      const r = await farmaquiApi.setUltimaCompra(lead.id, new Date(data + 'T12:00:00').toISOString(), ciclo, produto.trim());
-      onUpdated({ ...lead, ultimaCompra: data, cicloRecompraDias: ciclo, ultimoPedido: produto.trim() || lead.ultimoPedido, statusLead: 'cliente_ativo', updatedAt: new Date() });
-      toast.success(r.agendado ? `Compra registrada! Lembrete agendado para ${fmt(proxima)}.` : 'Última compra registrada.');
-    } catch (e: any) { toast.error('Erro: ' + (e.message || e)); }
+      // Salva o histórico direto no lead (funciona sem depender do backend novo).
+      const upd: any = { historicoCompras: historico, ultimaCompra: dataISO, ultimoPedido: produto.trim() || lead.ultimoPedido || '', statusLead: 'cliente_ativo', updatedAt: nowISO, ultimoContato: nowISO };
+      if (agendarRec) upd.cicloRecompraDias = ciclo;
+      await dataApi.update('leads', lead.id, upd);
+      onUpdated({ ...lead, ...upd, updatedAt: new Date() });
+      // Agenda o lembrete de recompra SÓ se o usuário marcar a opção.
+      let agendou = false;
+      if (agendarRec) {
+        try { const r = await farmaquiApi.setUltimaCompra(lead.id, dataISO, ciclo, produto.trim()); agendou = !!r?.agendado; } catch { /* backend de recompra indisponível */ }
+      }
+      setProduto(''); setAgendarRec(false);
+      toast.success(agendou ? 'Compra adicionada! Lembrete de recompra agendado.' : 'Compra adicionada ao histórico.');
+    } catch { toast.error('Erro ao registrar a compra.'); }
     finally { setBusy(false); }
   }
 
   return (
     <div className="lead-section" style={{ borderTop: '1px solid var(--border-color)', paddingTop: 14, marginTop: 6 }}>
-      <h4 className="lead-section-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}><i className="fa-solid fa-pills" style={{ color: '#14b8a6' }} /> Última compra & recompra</h4>
+      <h4 className="lead-section-title" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}><i className="fa-solid fa-cart-plus" style={{ color: 'var(--primary-hover)' }} /> Registrar compra</h4>
 
-      {lead.ultimaCompra ? (
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
-          <div style={{ flex: 1, minWidth: 150, background: 'rgba(20,184,166,0.06)', border: '1px solid rgba(20,184,166,0.2)', borderRadius: 10, padding: '10px 12px' }}>
-            <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)', textTransform: 'uppercase', fontWeight: 700 }}>Última compra</div>
-            <div style={{ fontWeight: 700, fontSize: '0.95rem' }}>{fmt(String(lead.ultimaCompra))}</div>
-            {lead.ultimoPedido && <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: 2 }}>{lead.ultimoPedido}</div>}
-          </div>
-          <div style={{ flex: 1, minWidth: 150, background: 'rgba(132,204,22,0.06)', border: '1px solid rgba(132,204,22,0.2)', borderRadius: 10, padding: '10px 12px' }}>
-            <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)', textTransform: 'uppercase', fontWeight: 700 }}>Próxima recompra</div>
-            <div style={{ fontWeight: 700, fontSize: '0.95rem' }}>{(() => { const d = new Date(String(lead.ultimaCompra)); d.setDate(d.getDate() + (Number(lead.cicloRecompraDias) || 30)); return fmt(d.toISOString()); })()}</div>
-            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: 2 }}>ciclo de {lead.cicloRecompraDias || 30} dias</div>
-          </div>
+      <div style={{ display: 'grid', gap: 12 }}>
+        <div>
+          <label className="config-label" style={{ fontSize: '0.75rem' }}>O que comprou</label>
+          <input className="config-input" value={produto} onChange={(e) => setProduto(e.target.value)} placeholder="Ex: Losartana 50mg, 2 caixas" />
         </div>
-      ) : (
-        <p style={{ fontSize: '0.82rem', color: 'var(--text-dim)', margin: '0 0 10px' }}>Registre a última compra deste cliente para agendar o lembrete de recompra.</p>
-      )}
-
-      <div style={{ display: 'grid', gap: 8 }}>
-        <div><label className="config-label" style={{ fontSize: '0.75rem' }}>O que comprou (opcional)</label><input className="config-input" value={produto} onChange={(e) => setProduto(e.target.value)} placeholder="Ex: Losartana 50mg, 2 caixas" /></div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end', flexWrap: 'wrap' }}>
-          <div><label className="config-label" style={{ fontSize: '0.75rem' }}>Data da compra</label><input type="date" className="config-input" value={data} onChange={(e) => setData(e.target.value)} /></div>
-          <div><label className="config-label" style={{ fontSize: '0.75rem' }}>Ciclo</label><select className="config-select" value={ciclo} onChange={(e) => setCiclo(Number(e.target.value))}><option value={30}>30 dias</option><option value={60}>60 dias</option><option value={90}>90 dias</option></select></div>
-          <button className="btn-primary" disabled={busy} onClick={salvar} style={{ background: '#14b8a6' }}>{busy ? '...' : <><i className="fa-solid fa-check" /> Registrar compra</>}</button>
+          <div style={{ flex: 1, minWidth: 130 }}>
+            <label className="config-label" style={{ fontSize: '0.75rem' }}>Data da compra</label>
+            <input type="date" className="config-input" style={{ width: '100%' }} value={data} onChange={(e) => setData(e.target.value)} />
+          </div>
+          {agendarRec && (
+            <div style={{ flex: 1, minWidth: 110 }}>
+              <label className="config-label" style={{ fontSize: '0.75rem' }}>Recompra a cada</label>
+              <select className="config-select" style={{ width: '100%' }} value={ciclo} onChange={(e) => setCiclo(Number(e.target.value))}>
+                <option value={30}>30 dias</option><option value={60}>60 dias</option><option value={90}>90 dias</option>
+              </select>
+            </div>
+          )}
         </div>
+
+        <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.85rem', color: 'var(--text-muted)', cursor: 'pointer' }}>
+          <input type="checkbox" checked={agendarRec} onChange={(e) => setAgendarRec(e.target.checked)} style={{ width: 16, height: 16, flex: 'none', margin: 0 }} />
+          <span>Agendar lembrete de recompra</span>
+        </label>
+
+        <button className="btn-primary" disabled={busy} onClick={salvar} style={{ background: 'var(--primary-hover)', justifyContent: 'center' }}>{busy ? 'Salvando...' : <><i className="fa-solid fa-plus" /> Adicionar compra</>}</button>
       </div>
     </div>
   );

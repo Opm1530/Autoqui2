@@ -5,7 +5,7 @@ import { Timestamp } from 'firebase-admin/firestore';
 import { db, getAll } from './firebase.js';
 import { loadUser } from './currentUser.js';
 import { PUBLIC_BASE_URL } from './config.js';
-import { setWebhook, sendText, sendToGroup, fetchGroups, fetchGroupParticipants, fetchAllContacts, fetchContactName } from './evolution.js';
+import { setWebhook, sendText, sendToGroup, fetchGroups, fetchGroupParticipants, fetchAllContacts, fetchContactName, phoneFromJid } from './evolution.js';
 import { assertInstanceOwner } from './waInstances.js';
 import { normalizeSubdomain, setLandingSubdomain, removeLandingSubdomain } from './domains.js';
 
@@ -63,7 +63,8 @@ export async function handleIncoming(companyId: string, payload: any): Promise<v
   const key = data?.key || {};
   if (!key.remoteJid || key.fromMe) return;                 // só recebidas
   if (String(key.remoteJid).endsWith('@g.us')) return;      // ignora grupos
-  const phone = String(key.remoteJid).split('@')[0];
+  const phone = phoneFromJid(key.remoteJid);                // rejeita @lid e IDs não-telefone
+  if (!phone) return;
   const name = data.pushName || '';
   const msg = data.message?.conversation || data.message?.extendedTextMessage?.text || data.message?.imageMessage?.caption || '';
   const cap = await readCapture(companyId);
@@ -201,10 +202,8 @@ export async function setUltimaCompra(uid: string, leadId: string, dataISO: stri
   const nowISO = new Date().toISOString();
   const upd: any = { ultimaCompra: data, cicloRecompraDias: ciclo, statusLead: 'cliente_ativo', updatedAt: nowISO, ultimoContato: nowISO };
   if (produto.trim()) upd.ultimoPedido = produto.trim();
-  // Acumula no histórico de compras do cliente (mais recente primeiro, cap 100).
-  const hist = Array.isArray((lead.data() as any).historicoCompras) ? (lead.data() as any).historicoCompras : [];
-  hist.unshift({ data, produto: produto.trim(), registradoEm: nowISO });
-  upd.historicoCompras = hist.slice(0, 100);
+  // Obs.: o histórico de compras é montado pelo front (grava direto no lead),
+  // então aqui só agendamos a recompra e atualizamos os campos-resumo.
   await leadRef.update(upd);
 
   const company = await db.collection('companies').doc(companyId).get();

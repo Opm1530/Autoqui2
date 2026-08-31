@@ -601,7 +601,7 @@ export function Catalog({ storeId: storeIdProp }: { storeId?: string } = {}) {
             </div>
             <h4 style={{ margin: '0 0 10px', color: 'var(--primary-cat)' }}><i className="fa-solid fa-credit-card" /> Formas de Pagamento</h4>
             <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 12, padding: 12, fontSize: '0.9rem', display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-              <span style={{ background: 'rgba(59,130,246,0.1)', color: '#60a5fa', border: '1px solid rgba(59,130,246,0.2)', padding: '4px 8px', borderRadius: 6, fontSize: '0.8rem' }}><i className="fa-solid fa-money-bill" /> Na Entrega/Retirada</span>
+              <span style={{ background: 'rgba(132,204,22,0.12)', color: 'var(--primary-hover)', border: '1px solid rgba(132,204,22,0.3)', padding: '4px 8px', borderRadius: 6, fontSize: '0.8rem' }}><i className="fa-solid fa-money-bill" /> Na Entrega/Retirada</span>
               {data.pixKey && <span style={{ background: 'rgba(16,185,129,0.1)', color: '#4ade80', border: '1px solid rgba(16,185,129,0.2)', padding: '4px 8px', borderRadius: 6, fontSize: '0.8rem' }}><i className="fa-brands fa-pix" /> PIX</span>}
               {data.isMpActive && <span style={{ background: 'rgba(132, 204, 22,0.1)', color: '#a3e635', border: '1px solid rgba(132, 204, 22,0.2)', padding: '4px 8px', borderRadius: 6, fontSize: '0.8rem' }}><i className="fa-solid fa-credit-card" /> Mercado Pago</span>}
             </div>

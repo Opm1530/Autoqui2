@@ -7,7 +7,7 @@ import { confirm } from '../../services/confirm';
 import { useAuth } from '../useAuth';
 import { SkeletonCards } from '../components/Skeleton';
 
-const TEAL = '#14b8a6';
+const TEAL = 'var(--primary-hover)';
 
 export function FarmaQui() {
   const { user } = useAuth();
@@ -50,7 +50,7 @@ export function FarmaQui() {
   if (loading) return <SkeletonCards count={2} lines={3} />;
 
   return (
-    <div style={{ maxWidth: 760 }}>
+    <div>
       <div className="page-heading">
         <h1>FarmaQui · Ajustes</h1>
         <p>Configure a captura automática de leads e importe contatos de grupos ou da agenda.</p>
@@ -68,7 +68,7 @@ export function FarmaQui() {
       {tab === 'captacao' && (
       <div className="card">
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 12 }}>
-          <div style={{ width: 48, height: 48, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.4rem', background: status.ativa ? 'rgba(16,185,129,0.12)' : 'rgba(20,184,166,0.12)', color: status.ativa ? '#34d399' : TEAL }}>
+          <div style={{ width: 48, height: 48, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.4rem', background: status.ativa ? 'rgba(16,185,129,0.12)' : 'rgba(132,204,22,0.12)', color: status.ativa ? '#34d399' : TEAL }}>
             <i className={`fa-solid ${status.ativa ? 'fa-circle-check' : 'fa-user-plus'}`} />
           </div>
           <div>
@@ -128,7 +128,7 @@ export function FarmaQuiRecompra() {
 // Página: Ofertas no grupo (menu FarmaQui › Ofertas no grupo).
 export function FarmaQuiGrupo() {
   return (
-    <div style={{ maxWidth: 760 }}>
+    <div>
       <div className="page-heading">
         <h1>FarmaQui · Ofertas no grupo</h1>
         <p>Envie ofertas para um grupo do WhatsApp agora ou agende para depois.</p>

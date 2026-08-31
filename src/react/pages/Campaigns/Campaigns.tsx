@@ -81,6 +81,7 @@ function NovaCampanha({ company, instances, allLeads, loaded }: { company: any; 
   const [storeFilter, setStoreFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [activityFilter, setActivityFilter] = useState('');
+  const [tagFilter, setTagFilter] = useState('');
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [messages, setMessages] = useState<string[]>(['']);
@@ -90,6 +91,13 @@ function NovaCampanha({ company, instances, allLeads, loaded }: { company: any; 
   const [scheduleDt, setScheduleDt] = useState('');
   const [busy, setBusy] = useState(false);
 
+  // Todas as tags existentes na base (para o filtro).
+  const allTags = useMemo(() => {
+    const s = new Set<string>();
+    allLeads.forEach((l) => (Array.isArray(l.tags) ? l.tags : []).forEach((t: string) => t && s.add(t)));
+    return Array.from(s).sort((a, b) => a.localeCompare(b));
+  }, [allLeads]);
+
   const filtered = useMemo(() => {
     const term = search.toLowerCase();
     const days = parseInt(activityFilter || '0');
@@ -98,13 +106,14 @@ function NovaCampanha({ company, instances, allLeads, loaded }: { company: any; 
       const matchSearch = !term || (l.nome || '').toLowerCase().includes(term) || (l.telefone || '').includes(term);
       const matchStore = !storeFilter || l.lojaId === storeFilter;
       const matchStatus = !statusFilter || (l.statusLead || 'novo') === statusFilter;
+      const matchTag = !tagFilter || (Array.isArray(l.tags) && l.tags.includes(tagFilter));
       let matchAct = true;
       if (cutoff !== null) { const ms = resolveTimestampMs(l.updatedAt || l.criadoEm || l.createdAt); matchAct = ms !== null && ms >= cutoff; }
-      return matchSearch && matchStore && matchStatus && matchAct;
+      return matchSearch && matchStore && matchStatus && matchTag && matchAct;
     });
-  }, [allLeads, search, storeFilter, statusFilter, activityFilter]);
+  }, [allLeads, search, storeFilter, statusFilter, tagFilter, activityFilter]);
 
-  useEffect(() => { setPage(1); }, [search, storeFilter, statusFilter, activityFilter]);
+  useEffect(() => { setPage(1); }, [search, storeFilter, statusFilter, tagFilter, activityFilter]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const start = (page - 1) * PAGE_SIZE;
@@ -191,6 +200,7 @@ function NovaCampanha({ company, instances, allLeads, loaded }: { company: any; 
             {(company?.stores?.length || 0) > 1 && <select value={storeFilter} onChange={(e) => setStoreFilter(e.target.value)} className="form-control"><option value="">Todas as Lojas</option>{company?.stores?.map((s: any) => <option key={s.id} value={s.id}>{s.name}</option>)}</select>}
             <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="form-control"><option value="">Todos os Status</option><option value="novo">Novo</option><option value="cliente_ativo">Cliente Ativo</option><option value="lead_frio">Lead Frio</option></select>
             <select value={activityFilter} onChange={(e) => setActivityFilter(e.target.value)} className="form-control"><option value="">Qualquer atividade</option><option value="7">Últimos 7 dias</option><option value="15">Últimos 15 dias</option><option value="30">Últimos 30 dias</option><option value="90">Últimos 90 dias</option></select>
+            {allTags.length > 0 && <select value={tagFilter} onChange={(e) => setTagFilter(e.target.value)} className="form-control"><option value="">Todas as tags</option>{allTags.map((t) => <option key={t} value={t}>{t}</option>)}</select>}
           </div>
           <div className="leads-table-content">
             <table className="cmp-leads-table">
@@ -203,7 +213,16 @@ function NovaCampanha({ company, instances, allLeads, loaded }: { company: any; 
                     return (
                       <tr key={l.id}>
                         <td><input type="checkbox" checked={selected.has(l.id)} onChange={() => toggleLead(l.id)} /></td>
-                        <td>{l.nome || 'Sem nome'}</td>
+                        <td>
+                          <div>{l.nome || 'Sem nome'}</div>
+                          {Array.isArray(l.tags) && l.tags.length > 0 && (
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 3 }}>
+                              {l.tags.slice(0, 4).map((t: string) => (
+                                <span key={t} style={{ fontSize: '0.65rem', fontWeight: 600, background: 'rgba(132,204,22,0.12)', color: 'var(--primary-hover)', border: '1px solid rgba(132,204,22,0.3)', borderRadius: 999, padding: '1px 7px' }}>{t}</span>
+                              ))}
+                            </div>
+                          )}
+                        </td>
                         <td>{(l.telefone || '').split('@')[0]}</td>
                         <td><span className={`badge ${l.statusLead === 'cliente_ativo' ? 'success' : 'secondary'}`} style={{ fontSize: '0.7rem' }}>{l.statusLead || 'novo'}</span></td>
                         <td><span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '0.78rem' }}><span style={{ width: 7, height: 7, borderRadius: '50%', background: act.color }} /><span style={{ color: act.color, fontWeight: 600 }}>{act.label}</span></span></td>

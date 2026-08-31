@@ -68,6 +68,17 @@ export async function fetchGroups(instanceName: string): Promise<{ id: string; s
   }
 }
 
+// Extrai o telefone real de um JID. Rejeita @lid (IDs internos do WhatsApp,
+// que NÃO são telefone) e @g.us (grupos). Só aceita número plausível (10-13 dígitos).
+export function phoneFromJid(jidRaw: string): string {
+  const jid = String(jidRaw || '');
+  if (!jid) return '';
+  if (jid.includes('@lid') || jid.includes('@g.us') || jid.includes('@broadcast') || jid.includes('@newsletter')) return '';
+  const num = jid.split('@')[0].replace(/\D/g, '');
+  if (num.length < 10 || num.length > 13) return ''; // fora do padrão de telefone
+  return num;
+}
+
 // Participantes de um grupo (números). Usado para extrair leads do grupo.
 export async function fetchGroupParticipants(instanceName: string, groupJid: string): Promise<{ phone: string; name?: string }[]> {
   try {
@@ -77,7 +88,9 @@ export async function fetchGroupParticipants(instanceName: string, groupJid: str
     if (!response.ok) return [];
     const data = await response.json().catch(() => ({}));
     const arr = Array.isArray(data?.participants) ? data.participants : Array.isArray(data) ? data : [];
-    return arr.map((p: any) => ({ phone: String(p.id || p.jid || '').split('@')[0], name: p.name || p.pushName || undefined })).filter((p: any) => p.phone);
+    return arr
+      .map((p: any) => ({ phone: phoneFromJid(p.id || p.jid || ''), name: p.name || p.pushName || undefined }))
+      .filter((p: any) => p.phone);
   } catch (error) {
     console.error('[evolution] fetchGroupParticipants exceção:', error);
     return [];
@@ -94,8 +107,8 @@ export async function fetchAllContacts(instanceName: string): Promise<{ phone: s
     const data = await response.json().catch(() => []);
     const arr = Array.isArray(data) ? data : (data?.contacts || []);
     return arr
-      .map((c: any) => ({ phone: String(c.id || c.remoteJid || c.jid || '').split('@')[0], name: c.pushName || c.name || undefined }))
-      .filter((c: any) => c.phone && /^\d{8,15}$/.test(c.phone)); // ignora JIDs de grupo/serviço
+      .map((c: any) => ({ phone: phoneFromJid(c.id || c.remoteJid || c.jid || ''), name: c.pushName || c.name || undefined }))
+      .filter((c: any) => c.phone); // ignora @lid, grupos e IDs que não são telefone
   } catch (error) {
     console.error('[evolution] fetchAllContacts exceção:', error);
     return [];

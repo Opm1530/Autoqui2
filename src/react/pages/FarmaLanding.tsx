@@ -41,7 +41,7 @@ export function FarmaLanding({ companyId, data: dataProp }: { companyId?: string
   if (loading) return null;
   if (!l || !l.titulo) return <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', color: '#666', fontFamily: 'system-ui' }}>Página não encontrada.</div>;
 
-  const cor = l.corPrimaria || '#14b8a6';
+  const cor = l.corPrimaria || '#84cc16';
   const zap = String(l.whatsapp || '').replace(/\D/g, '');
   const waLink = zap ? `https://wa.me/${zap.length <= 11 ? '55' + zap : zap}?text=${encodeURIComponent(l.mensagemWhatsapp || '')}` : '#';
 
