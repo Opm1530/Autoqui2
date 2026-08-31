@@ -244,11 +244,6 @@ export function OrderModal({ order, companyId, storeName, clientName, clientPhon
                 <i className="fa-solid fa-user" /> Atend. Humano
               </button>
             )}
-            {!isOrderArchived(order) && (
-              <button className="btn-lead-action ghost" disabled={busy} onClick={archive}>
-                <i className="fa-solid fa-box-archive" /> Arquivar
-              </button>
-            )}
             {isPlatformAdmin && (
               <button className="btn-lead-action danger" disabled={busy} onClick={removeOrder}
                 title="Exclusão definitiva — apenas admin da plataforma">
@@ -257,12 +252,19 @@ export function OrderModal({ order, companyId, storeName, clientName, clientPhon
             )}
           </div>
 
-          {!isTerminal && (
-            <a href={`https://wa.me/${(clientPhone || '').replace(/\D/g, '')}`} target="_blank" rel="noreferrer"
-              className="order-footer-wa" title="Abrir conversa no WhatsApp">
-              <i className="fa-brands fa-whatsapp" />
-            </a>
-          )}
+          <div className="order-footer-right">
+            {!isOrderArchived(order) && (
+              <button className="order-icon-btn" disabled={busy} onClick={archive} title="Arquivar pedido">
+                <i className="fa-solid fa-box-archive" />
+              </button>
+            )}
+            {!isTerminal && (
+              <a href={`https://wa.me/${(clientPhone || '').replace(/\D/g, '')}`} target="_blank" rel="noreferrer"
+                className="order-footer-wa" title="Abrir conversa no WhatsApp">
+                <i className="fa-brands fa-whatsapp" />
+              </a>
+            )}
+          </div>
         </div>
       </div>
     </div>
