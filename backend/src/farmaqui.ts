@@ -129,6 +129,25 @@ export async function extractAgendaLeads(uid: string) {
   return { ok: true, total: contatos.length, criados };
 }
 
+// Envia uma mensagem 1:1 para o lead pelo painel (atendimento).
+export async function sendLeadMessage(uid: string, leadId: string, text: string) {
+  const companyId = await companyOf(uid);
+  const msg = String(text || '').trim();
+  if (!msg) throw new Error('mensagem_vazia');
+  const leadRef = db.collection('leads').doc(leadId);
+  const lead = await leadRef.get();
+  if (!lead.exists || (lead.data() as any).empresaId !== companyId) throw new Error('lead_nao_encontrado');
+  const cap = await readCapture(companyId);
+  const phone = String((lead.data() as any).telefone || (lead.data() as any).whatsapp || '').replace(/\D/g, '');
+  if (!cap.instancia) throw new Error('sem_instancia');
+  if (!phone) throw new Error('sem_telefone');
+  const ok = await sendText(cap.instancia, phone, msg);
+  if (!ok) throw new Error('falha_envio');
+  const now = new Date().toISOString();
+  await leadRef.update({ ultimaMensagemEnviada: msg.slice(0, 500), ultimoContato: now, updatedAt: now });
+  return { ok: true };
+}
+
 // Cria um lead manualmente.
 export async function createManualLead(uid: string, nome: string, telefone: string) {
   const companyId = await companyOf(uid);

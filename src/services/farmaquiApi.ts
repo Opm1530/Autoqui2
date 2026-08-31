@@ -33,6 +33,7 @@ export const farmaquiApi = {
   extractGroup: (grupoJid: string): Promise<{ total: number; criados: number }> => req('/api/farmaqui/extract-group', 'POST', { grupoJid }),
   extractAgenda: (): Promise<{ total: number; criados: number }> => req('/api/farmaqui/extract-agenda', 'POST'),
   manualLead: (nome: string, telefone: string) => req('/api/farmaqui/manual-lead', 'POST', { nome, telefone }),
+  sendMessage: (leadId: string, text: string) => req('/api/farmaqui/send-message', 'POST', { leadId, text }),
   getLanding: (): Promise<any> => req('/api/farmaqui/landing', 'GET'),
   saveLanding: (l: any) => req('/api/farmaqui/landing', 'POST', l),
   setLandingHost: (subdominio: string): Promise<{ host: string }> => req('/api/farmaqui/landing/host', 'POST', { subdominio }),
