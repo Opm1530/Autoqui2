@@ -114,9 +114,11 @@ export function FarmaQui() {
 
 // Saúde do número: conexão da instância + boas práticas anti-ban.
 function NumberHealth() {
-  const [h, setH] = useState<{ instancia: string; connected: boolean; state: string; totalLeads: number } | null>(null);
+  const [h, setH] = useState<{ instancia: string; connected: boolean; state: string; totalLeads: number; enviadosHoje: number; limiteHoje: number } | null>(null);
   useEffect(() => { farmaquiApi.health().then(setH).catch(() => {}); }, []);
   if (!h || !h.instancia) return null;
+  const pct = h.limiteHoje > 0 ? Math.min(100, Math.round((h.enviadosHoje / h.limiteHoje) * 100)) : 0;
+  const perto = pct >= 80;
   return (
     <div className="card" style={{ marginTop: '1.25rem' }}>
       <div style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}><i className="fa-solid fa-heart-pulse" style={{ color: TEAL }} /> Saúde do número</div>
@@ -127,6 +129,18 @@ function NumberHealth() {
           <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{h.connected ? 'A instância está online e pronta pra enviar.' : 'Reconecte a instância em Negócio › Instâncias antes de disparar.'}</div>
         </div>
       </div>
+      {h.limiteHoje > 0 && (
+        <div style={{ marginBottom: 14 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginBottom: 6 }}>
+            <span style={{ fontWeight: 600 }}>Envios hoje</span>
+            <span style={{ color: perto ? '#dc2626' : 'var(--text-muted)' }}>{h.enviadosHoje}/{h.limiteHoje}</span>
+          </div>
+          <div style={{ height: 8, background: 'var(--surface-hover)', borderRadius: 999, overflow: 'hidden' }}>
+            <div style={{ width: `${pct}%`, height: '100%', background: perto ? '#ef4444' : 'var(--primary)', borderRadius: 999 }} />
+          </div>
+          {perto && <p style={{ fontSize: '0.78rem', color: '#dc2626', margin: '6px 0 0' }}>Perto do limite diário — envios extras são pausados e continuam amanhã.</p>}
+        </div>
+      )}
       <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', lineHeight: 1.6 }}>
         <p style={{ margin: '0 0 6px', fontWeight: 700, color: 'var(--text-main)' }}><i className="fa-solid fa-shield-halved" style={{ color: TEAL, marginRight: 6 }} />Boas práticas anti-banimento</p>
         <ul style={{ margin: 0, paddingLeft: 18 }}>

@@ -2,6 +2,7 @@
 // A chave vem do ambiente e nunca é exposta ao navegador.
 
 import { EVOLUTION_API_URL, EVOLUTION_API_KEY } from './config.js';
+import { incSent } from './waHealth.js';
 
 function headers(json = false): Record<string, string> {
   const h: Record<string, string> = { apikey: EVOLUTION_API_KEY };
@@ -29,6 +30,7 @@ export async function sendText(
       console.error('[evolution] sendText erro:', response.status, error);
       return false;
     }
+    incSent(instanceName).catch(() => {}); // contabiliza para o limite diário
     return true;
   } catch (error) {
     console.error('[evolution] sendText exceção:', error);

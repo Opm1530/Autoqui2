@@ -3,8 +3,10 @@
 // com intervalo aleatório (anti-ban), substitui variáveis, revalida descadastro,
 // respeita cancelamento e checa se a instância está online.
 import cron from 'node-cron';
+import { Timestamp } from 'firebase-admin/firestore';
 import { db } from './firebase.js';
 import { sendText, getInstanceStatus } from './evolution.js';
+import { sentToday, dailyLimit } from './waHealth.js';
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const randSec = (min: number, max: number) => Math.floor(min + Math.random() * Math.max(0, max - min));
@@ -50,10 +52,21 @@ async function runCampaign(id: string) {
   const dMax = Math.max(dMin, Number(c.config?.delay_max) || 60);
   let enviados = 0, falhas = 0;
 
+  // Limite diário do número (anti-ban): pausa e reagenda para amanhã se estourar.
+  const limite = await dailyLimit(instanceName);
+  let enviadosHoje = await sentToday(instanceName);
+
   for (let i = 0; i < ids.length; i++) {
     // Respeita cancelamento feito pelo painel.
     const cur = await ref.get();
     if ((cur.data() as any)?.status === 'cancelada') return;
+
+    if (enviadosHoje >= limite) {
+      const amanha = new Date(); amanha.setDate(amanha.getDate() + 1); amanha.setHours(9, 0, 0, 0);
+      // Remove os já processados e reagenda o restante para amanhã.
+      await ref.update({ status: 'agendada', agendamento_imediato: false, data_agendamento: Timestamp.fromMillis(amanha.getTime()), lead_ids: ids.slice(i), ultimoErro: 'limite_diario_atingido' });
+      return;
+    }
 
     const leadSnap = await db.collection('leads').doc(String(ids[i])).get();
     const lead = leadSnap.exists ? (leadSnap.data() as any) : null;
@@ -65,7 +78,7 @@ async function runCampaign(id: string) {
     const tpl = mensagens.length ? mensagens[Math.floor(Math.random() * mensagens.length)] : '';
     const msg = fillVars(tpl, lead, phone);
     const ok = msg.trim() ? await sendText(instanceName, phone, msg) : false;
-    if (ok) enviados++; else falhas++;
+    if (ok) { enviados++; enviadosHoje++; } else falhas++;
     await ref.update({ enviados, falhas });
 
     // Intervalo anti-ban entre envios (menos após o último).

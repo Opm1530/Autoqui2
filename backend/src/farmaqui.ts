@@ -6,6 +6,7 @@ import { db, getAll } from './firebase.js';
 import { loadUser } from './currentUser.js';
 import { PUBLIC_BASE_URL } from './config.js';
 import { setWebhook, sendText, sendToGroup, fetchGroups, fetchGroupParticipants, fetchAllContacts, fetchContactName, phoneFromJid, getInstanceStatus } from './evolution.js';
+import { sentToday, dailyLimit } from './waHealth.js';
 import { assertInstanceOwner } from './waInstances.js';
 import { normalizeSubdomain, setLandingSubdomain, removeLandingSubdomain } from './domains.js';
 
@@ -207,10 +208,14 @@ export async function captureStatus(uid: string) {
 export async function numberHealth(uid: string) {
   const companyId = await companyOf(uid);
   const cap = await readCapture(companyId);
-  if (!cap.instancia) return { instancia: '', connected: false, state: 'none', totalLeads: 0 };
+  if (!cap.instancia) return { instancia: '', connected: false, state: 'none', totalLeads: 0, enviadosHoje: 0, limiteHoje: 0 };
   const st = await getInstanceStatus(cap.instancia).catch(() => ({ state: 'close', connected: false }));
-  const leads = await getAll('leads', [{ field: 'empresaId', operator: '==', value: companyId }]).catch(() => []);
-  return { instancia: cap.instancia, connected: st.connected, state: st.state, totalLeads: leads.length };
+  const [leads, enviadosHoje, limiteHoje] = await Promise.all([
+    getAll('leads', [{ field: 'empresaId', operator: '==', value: companyId }]).catch(() => []),
+    sentToday(cap.instancia).catch(() => 0),
+    dailyLimit(cap.instancia).catch(() => 0),
+  ]);
+  return { instancia: cap.instancia, connected: st.connected, state: st.state, totalLeads: leads.length, enviadosHoje, limiteHoje };
 }
 
 const DEFAULT_RECOMPRA = { enabled: false, mensagem: 'Olá {{nome}}! 💊 Já faz um tempinho da sua última compra. Precisa repor algum remédio? É só me chamar por aqui!', cicloDiasPadrao: 30 };
