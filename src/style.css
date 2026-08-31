@@ -2827,25 +2827,28 @@ ul {
 .product-item-card:hover { border-color: rgba(132, 204, 22, 0.3); }
 .item-visual { position: relative; width: 100px; flex-shrink: 0; }
 .image-preview-wrapper {
-  width: 100px; height: 100px; background: rgba(0,0,0,0.3);
+  width: 100px; height: 100px; background: var(--surface-hover);
   border-radius: 8px; overflow: hidden; display: flex; align-items: center;
   justify-content: center; border: 1px solid var(--border-color);
 }
 .preview-img { width: 100%; height: 100%; object-fit: cover; }
 .preview-placeholder { font-size: 2rem; color: var(--text-dim); }
 .btn-change-img {
-  position: absolute; bottom: -8px; right: -8px; width: 32px; height: 32px;
-  background: var(--primary); color: white; border-radius: 50%;
+  position: absolute; bottom: 6px; right: 6px; width: 30px; height: 30px;
+  background: var(--primary); color: var(--primary-contrast); border-radius: 50%;
   display: flex; align-items: center; justify-content: center; font-size: 0.8rem;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.3); border: 2px solid var(--surface-hover); cursor: pointer;
+  box-shadow: 0 3px 8px rgba(20, 40, 25, 0.25); border: 2px solid var(--surface-color); cursor: pointer;
+  transition: var(--transition);
 }
+.btn-change-img:hover { background: var(--primary-hover); }
 .item-details { flex: 1; display: flex; flex-direction: column; justify-content: center; min-width: 0; }
 .input-row { display: grid; grid-template-columns: 1fr 140px; gap: 12px; }
-.field label { font-size: 0.75rem; color: var(--text-dim); text-transform: uppercase; font-weight: 700; margin-bottom: 6px; display: block; }
+.field label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 6px; display: block; }
 .field input, .field select, .field textarea {
-  width: 100%; background: var(--bg-color); border: 1px solid var(--border-color);
-  color: white; padding: 10px 12px; border-radius: 8px; font-size: 0.95rem; box-sizing: border-box;
+  width: 100%; background: var(--surface-color); border: 1px solid var(--border-color);
+  color: var(--text-main); padding: 10px 12px; border-radius: 8px; font-size: 0.95rem; box-sizing: border-box;
 }
+.field input::placeholder, .field textarea::placeholder { color: var(--text-dim); }
 .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--primary); outline: none; }
 .btn-remove-item {
   position: absolute; top: 8px; right: 8px; width: 24px; height: 24px;
