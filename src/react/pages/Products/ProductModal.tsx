@@ -51,7 +51,6 @@ interface Props {
 export function ProductModal({ companyId, isOwner, isAgendamento, isVitrine, labelSingular, labelPlural, stores, categories, userStoreIds, editProduct, onClose, onSaved }: Props) {
   const isEdit = !!editProduct;
   const [items, setItems] = useState<ItemDraft[]>([]);
-  const [storeIds, setStoreIds] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const bulkInputRef = useRef<HTMLInputElement>(null);
 
@@ -76,10 +75,8 @@ export function ProductModal({ companyId, isOwner, isAgendamento, isVitrine, lab
         file: null,
         previewUrl: getProductImageUrl(editProduct),
       }]);
-      setStoreIds(editProduct.storeIds || (editProduct.storeId ? [editProduct.storeId] : []));
     } else {
       setItems([]);
-      setStoreIds([]);
     }
   }, [editProduct]);
 
@@ -113,16 +110,13 @@ export function ProductModal({ companyId, isOwner, isAgendamento, isVitrine, lab
     readPreview(file, tempId);
   };
 
-  const toggleStore = (id: string) =>
-    setStoreIds((prev) => (prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]));
 
   async function save() {
     if (items.length === 0) { toast.warning(`Adicione pelo menos um ${labelSingular.toLowerCase()}.`); return; }
 
-    let targetStores: string[] = [];
-    if (isOwner) targetStores = storeIds;
-    else targetStores = userStoreIds;
-    if (targetStores.length === 0) { toast.warning('Selecione pelo menos uma loja.'); return; }
+    // Loja única: o produto vai para o negócio inteiro automaticamente.
+    const targetStores: string[] = isOwner ? stores.map((s) => s.id) : userStoreIds;
+    if (targetStores.length === 0) { toast.warning('Configure seu negócio antes de adicionar produtos.'); return; }
 
     setSaving(true);
     try {
@@ -189,13 +183,6 @@ export function ProductModal({ companyId, isOwner, isAgendamento, isVitrine, lab
         </div>
 
         <div style={{ overflowY: 'auto', paddingRight: 10, flex: 1 }}>
-          {isOwner && (
-            <div className="form-group">
-              <label>Lojas de Destino <span style={{ color: 'var(--text-dim)', fontWeight: 400, textTransform: 'none' }}>(selecione uma ou mais)</span></label>
-              <StoreMultiSelect stores={stores} storeIds={storeIds} onToggle={toggleStore} />
-            </div>
-          )}
-
           {!isEdit && (
             <div className="prod-bulk-dropzone"
               onClick={() => bulkInputRef.current?.click()}
@@ -246,56 +233,6 @@ export function ProductModal({ companyId, isOwner, isAgendamento, isVitrine, lab
   );
 }
 
-// Dropdown multi-seleção de lojas (chips + lista de checkboxes).
-function StoreMultiSelect({ stores, storeIds, onToggle }: { stores: any[]; storeIds: string[]; onToggle: (id: string) => void }) {
-  const [open, setOpen] = useState(false);
-  const boxRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const onDoc = (e: MouseEvent) => { if (boxRef.current && !boxRef.current.contains(e.target as Node)) setOpen(false); };
-    document.addEventListener('mousedown', onDoc);
-    return () => document.removeEventListener('mousedown', onDoc);
-  }, [open]);
-
-  const selected = stores.filter((s) => storeIds.includes(s.id));
-
-  return (
-    <div ref={boxRef} style={{ position: 'relative' }}>
-      <button type="button" onClick={() => setOpen((o) => !o)}
-        style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, background: 'var(--bg-color)', border: '1px solid var(--border-color)', color: 'white', padding: '10px 14px', borderRadius: 8, fontSize: '0.95rem', cursor: 'pointer', minHeight: 46 }}>
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', flex: 1, minWidth: 0 }}>
-          {selected.length === 0
-            ? <span style={{ color: 'var(--text-dim)' }}>Selecione uma loja</span>
-            : selected.map((s) => (
-              <span key={s.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(132, 204, 22,0.15)', border: '1px solid rgba(132, 204, 22,0.4)', color: '#d9f0a3', borderRadius: 6, padding: '2px 8px', fontSize: '0.8rem' }}>
-                {s.name}
-                <i className="fa-solid fa-xmark" style={{ cursor: 'pointer' }} onClick={(e) => { e.stopPropagation(); onToggle(s.id); }} />
-              </span>
-            ))}
-        </div>
-        <i className={`fa-solid fa-chevron-${open ? 'up' : 'down'}`} style={{ color: 'var(--text-dim)', flexShrink: 0 }} />
-      </button>
-
-      {open && (
-        <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 20, background: 'var(--surface-color)', border: '1px solid var(--border-color)', borderRadius: 8, boxShadow: '0 10px 30px rgba(0,0,0,0.4)', maxHeight: 240, overflowY: 'auto', padding: 6 }}>
-          {stores.length === 0 && <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem', padding: '0.75rem 0', margin: 0 }}>Nenhuma loja disponível.</p>}
-          {stores.map((s) => {
-            const on = storeIds.includes(s.id);
-            return (
-              <label key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 6, cursor: 'pointer' }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(23, 37, 28, 0.05)')}
-                onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
-                <input type="checkbox" checked={on} onChange={() => onToggle(s.id)} style={{ width: 16, height: 16, accentColor: 'var(--primary)' }} />
-                <span style={{ fontSize: '0.9rem' }}>{s.name}</span>
-              </label>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-}
 
 function ItemCard({ it, isAgendamento, isVitrine, labelSingular, categories, onPatch, onFile, onRemove }: {
   it: ItemDraft; isAgendamento: boolean; isVitrine: boolean; labelSingular: string; categories: Category[];

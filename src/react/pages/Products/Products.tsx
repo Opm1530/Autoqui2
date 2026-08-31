@@ -67,11 +67,6 @@ export function Products() {
 
   const enabled = modulos ? (modulos.includes('venda') || modulos.includes('agendamento') || modulos.includes('venda_catalogo') || modulos.includes('vitrine')) : true;
 
-  const storeName = (p: Product) => {
-    const ids = p.storeIds || (p.storeId ? [p.storeId] : []);
-    if (ids.length === 0) return 'Sem Loja';
-    return ids.map((id) => stores.find((s) => s.id === id)?.name || 'Desconhecida').join(', ');
-  };
 
   const filtered = useMemo(() => {
     let list = products;
@@ -143,7 +138,6 @@ export function Products() {
   }
 
   // Categorias usadas no filtro (inclui "uncategorized" só se houver)
-  const inputBase: React.CSSProperties = { padding: 10, background: 'var(--surface-hover)', border: '1px solid var(--border-color)', borderRadius: 12, color: 'var(--text-main)', outline: 'none' };
 
   if (loading) return <SkeletonTable rows={8} cols={7} />;
   if (!enabled) {
@@ -196,13 +190,13 @@ export function Products() {
             </div>
           </div>
         )}
-        <div style={{ display: 'flex', gap: 12, flex: 1, minWidth: 200, maxWidth: 260 }}>
-          <div style={{ flex: 1 }}>
-            <select value={catFilter} onChange={(e) => setCatFilter(e.target.value)} style={{ ...inputBase, width: '100%' }}>
-              <option value="all">Todas Categorias</option>
-              {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
-          </div>
+        <div className="leads-filter-bar">
+          <button className={'filter-btn' + (catFilter === 'all' ? ' active' : '')} onClick={() => setCatFilter('all')}>Todas</button>
+          {categories.map((c) => (
+            <button key={c.id} className={'filter-btn' + (catFilter === c.id ? ' active' : '')} onClick={() => setCatFilter(c.id)}>
+              {c.icon && <i className={`fa-solid ${c.icon}`} />} {c.name}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -229,7 +223,6 @@ export function Products() {
               <tr>
                 <th style={{ width: 40 }}><input type="checkbox" checked={filtered.length > 0 && selected.size === filtered.length} onChange={(e) => toggleAll(e.target.checked)} /></th>
                 <th>{labelSingular}</th>
-                <th>Loja</th>
                 <th>Preço</th>
                 <th>{isAgendamento ? 'Duração' : 'Estoque'}</th>
                 <th>Status</th>
@@ -238,7 +231,7 @@ export function Products() {
             </thead>
             <tbody>
               {total === 0 ? (
-                <tr><td colSpan={7} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
+                <tr><td colSpan={6} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
                   {(search || catFilter || storeFilter) ? (
                     <>Nenhum {labelSingular.toLowerCase()} encontrado com esse filtro.</>
                   ) : (
@@ -264,7 +257,6 @@ export function Products() {
                         </div>
                       </div>
                     </td>
-                    <td><div title={storeName(p)} style={{ maxWidth: 200, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{storeName(p)}</div></td>
                     <td style={{ whiteSpace: 'nowrap' }}>R$ {(p.price || 0).toFixed(2)}</td>
                     <td>
                       {isAgendamento
