@@ -5,7 +5,7 @@ import { Timestamp } from 'firebase-admin/firestore';
 import { db, getAll } from './firebase.js';
 import { loadUser } from './currentUser.js';
 import { PUBLIC_BASE_URL } from './config.js';
-import { setWebhook, sendText } from './evolution.js';
+import { setWebhook, sendText, sendToGroup, fetchGroups } from './evolution.js';
 import { assertInstanceOwner } from './waInstances.js';
 import { normalizeSubdomain, setLandingSubdomain, removeLandingSubdomain } from './domains.js';
 
@@ -229,7 +229,129 @@ async function processRecompra() {
   }
 }
 
+// ── Métricas (painel) ──
+const metricsCache = new Map<string, { at: number; data: any }>();
+export async function farmaMetrics(uid: string) {
+  const companyId = await companyOf(uid);
+  const hit = metricsCache.get(companyId);
+  if (hit && Date.now() - hit.at < 30 * 60 * 1000) return hit.data;
+
+  const leads = await getAll('leads', [{ field: 'empresaId', operator: '==', value: companyId }]).catch(() => []);
+  const clientes = leads.filter((l: any) => l.ultimaCompra || l.statusLead === 'cliente_ativo').length;
+  const schedSnap = await db.collection('farmaqui_scheduled').where('companyId', '==', companyId).get();
+  let agendadas = 0, enviadas = 0;
+  schedSnap.forEach((d) => { (d.data() as any).done ? enviadas++ : agendadas++; });
+  const conversao = leads.length > 0 ? Math.round((clientes / leads.length) * 1000) / 10 : 0;
+  const data = { leadsTotal: leads.length, clientes, conversao, recompraAgendadas: agendadas, recompraEnviadas: enviadas };
+  metricsCache.set(companyId, { at: Date.now(), data });
+  return data;
+}
+
+// ── Gestão de recompra (agendadas / cancelar / enviar já) ──
+export async function listRecompra(uid: string) {
+  const companyId = await companyOf(uid);
+  const snap = await db.collection('farmaqui_scheduled').where('companyId', '==', companyId).limit(300).get();
+  const items = snap.docs.map((d) => {
+    const s = d.data() as any;
+    return { leadId: d.id, nome: s.nome || '', phone: s.phone || '', runAt: s.runAt?.toMillis ? s.runAt.toMillis() : 0, done: !!s.done };
+  }).filter((i) => !i.done).sort((a, b) => a.runAt - b.runAt);
+  return { items };
+}
+
+export async function cancelRecompra(uid: string, leadId: string) {
+  const companyId = await companyOf(uid);
+  const ref = db.collection('farmaqui_scheduled').doc(leadId);
+  const doc = await ref.get();
+  if (doc.exists && (doc.data() as any).companyId === companyId) await ref.delete();
+  return { ok: true };
+}
+
+export async function sendRecompraNow(uid: string, leadId: string) {
+  const companyId = await companyOf(uid);
+  const ref = db.collection('farmaqui_scheduled').doc(leadId);
+  const doc = await ref.get();
+  if (!doc.exists || (doc.data() as any).companyId !== companyId) throw new Error('nao_encontrado');
+  const s = doc.data() as any;
+  const cap = await readCapture(companyId);
+  const company = await db.collection('companies').doc(companyId).get();
+  const f = (company.data() as any)?.farmaqui || {};
+  const msg = String(f.recompra?.mensagem || '').replace(/\{\{nome\}\}/gi, s.nome || 'tudo bem');
+  if (!cap.instancia || !s.phone || !msg.trim()) throw new Error('sem_instancia_ou_mensagem');
+  const ok = await sendText(cap.instancia, String(s.phone).replace(/\D/g, ''), msg);
+  if (!ok) throw new Error('falha_envio');
+  await ref.update({ done: true, enviadoManual: true });
+  return { ok: true };
+}
+
+// ── Ofertas no grupo do WhatsApp ──
+export async function groupsList(uid: string) {
+  const companyId = await companyOf(uid);
+  const cap = await readCapture(companyId);
+  if (!cap.instancia) return { instancia: '', grupos: [] };
+  const grupos = await fetchGroups(cap.instancia);
+  return { instancia: cap.instancia, grupos };
+}
+
+export async function listGroupOffers(uid: string) {
+  const companyId = await companyOf(uid);
+  const snap = await db.collection('farmaqui_group_offers').where('companyId', '==', companyId).limit(100).get();
+  const items = snap.docs.map((d) => {
+    const o = d.data() as any;
+    return { id: d.id, grupoNome: o.grupoNome || '', mensagem: o.mensagem || '', runAt: o.runAt?.toMillis ? o.runAt.toMillis() : 0, done: !!o.done };
+  }).sort((a, b) => b.runAt - a.runAt);
+  return { items };
+}
+
+// Cria uma oferta (envio imediato ou agendado) para um grupo.
+export async function createGroupOffer(uid: string, body: any) {
+  const companyId = await companyOf(uid);
+  const cap = await readCapture(companyId);
+  const grupoJid = String(body?.grupoJid || '').trim();
+  const grupoNome = String(body?.grupoNome || '').slice(0, 120);
+  const mensagem = String(body?.mensagem || '').trim();
+  if (!cap.instancia) throw new Error('sem_instancia');
+  if (!grupoJid.endsWith('@g.us')) throw new Error('grupo_invalido');
+  if (!mensagem) throw new Error('mensagem_obrigatoria');
+  const agora = Date.now();
+  const runAt = body?.runAt ? new Date(body.runAt).getTime() : agora;
+
+  if (runAt <= agora + 30_000) {
+    // Envio imediato.
+    const ok = await sendToGroup(cap.instancia, grupoJid, mensagem);
+    if (!ok) throw new Error('falha_envio');
+    await db.collection('farmaqui_group_offers').add({ companyId, instancia: cap.instancia, grupoJid, grupoNome, mensagem, runAt: Timestamp.fromMillis(agora), done: true, criadoEm: new Date().toISOString() });
+    return { ok: true, enviado: true };
+  }
+  // Agendado.
+  await db.collection('farmaqui_group_offers').add({ companyId, instancia: cap.instancia, grupoJid, grupoNome, mensagem, runAt: Timestamp.fromMillis(runAt), done: false, criadoEm: new Date().toISOString() });
+  return { ok: true, agendado: true };
+}
+
+export async function deleteGroupOffer(uid: string, id: string) {
+  const companyId = await companyOf(uid);
+  const ref = db.collection('farmaqui_group_offers').doc(id);
+  const doc = await ref.get();
+  if (doc.exists && (doc.data() as any).companyId === companyId) await ref.delete();
+  return { ok: true };
+}
+
+// Cron: dispara as ofertas de grupo vencidas.
+async function processGroupOffers() {
+  const now = Date.now();
+  const snap = await db.collection('farmaqui_group_offers').where('done', '==', false).limit(100).get();
+  for (const doc of snap.docs) {
+    const o = doc.data() as any;
+    const runAt = o.runAt?.toMillis ? o.runAt.toMillis() : 0;
+    if (runAt > now) continue; // ainda não venceu
+    try {
+      if (o.instancia && o.grupoJid && o.mensagem) await sendToGroup(o.instancia, o.grupoJid, o.mensagem);
+      await doc.ref.update({ done: true });
+    } catch (e: any) { console.error('[farmaqui] oferta grupo erro:', e?.message); }
+  }
+}
+
 export function startFarmaquiJobs() {
   cron.schedule('0 * * * *', () => processRecompra().catch((e) => console.error('[farmaqui/jobs]', e?.message)));
-  console.log('[farmaqui] jobs iniciados (recompra)');
+  cron.schedule('*/5 * * * *', () => processGroupOffers().catch((e) => console.error('[farmaqui/jobs grupo]', e?.message)));
+  console.log('[farmaqui] jobs iniciados (recompra + ofertas de grupo)');
 }

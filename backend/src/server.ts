@@ -27,7 +27,7 @@ import { rateLimit, verifyMpSignature } from './security.js';
 import { ecommerceRouter } from './ecommerce/router.js';
 import { startEcommerceJobs } from './ecommerce/jobs.js';
 import { storefrontPublicRouter, storefrontAuthRouter } from './ecommerce/storefront.js';
-import { handleIncoming, activateCapture, deactivateCapture, captureStatus, getConfig, saveRecompra, setUltimaCompra, startFarmaquiJobs, getLanding, saveLanding, setLandingHost, publicLanding } from './farmaqui.js';
+import { handleIncoming, activateCapture, deactivateCapture, captureStatus, getConfig, saveRecompra, setUltimaCompra, startFarmaquiJobs, getLanding, saveLanding, setLandingHost, publicLanding, farmaMetrics, listRecompra, cancelRecompra, sendRecompraNow, groupsList, listGroupOffers, createGroupOffer, deleteGroupOffer } from './farmaqui.js';
 import { trackEvent, getVitrineMetrics } from './vitrineMetrics.js';
 import { setStoreSubdomain, removeStoreSubdomain, storeByHost } from './domains.js';
 
@@ -252,7 +252,16 @@ app.post('/api/track', rateLimit(120, 60_000), (req, res) => {
 });
 app.get('/api/vitrine/metrics', requireAuth, wrap((req) => getVitrineMetrics(req.uid, Number(req.query.days) || 30)));
 app.get('/api/farmaqui/status', requireAuth, wrap((req) => captureStatus(req.uid)));
+app.post('/api/farmaqui/deactivate', requireAuth, wrap((req) => deactivateCapture(req.uid)));
 app.get('/api/farmaqui/config', requireAuth, wrap((req) => getConfig(req.uid)));
+app.get('/api/farmaqui/metrics', requireAuth, wrap((req) => farmaMetrics(req.uid)));
+app.get('/api/farmaqui/recompra/list', requireAuth, wrap((req) => listRecompra(req.uid)));
+app.post('/api/farmaqui/recompra/cancel', requireAuth, wrap((req) => cancelRecompra(req.uid, String(req.body?.leadId || ''))));
+app.post('/api/farmaqui/recompra/send-now', requireAuth, wrap((req) => sendRecompraNow(req.uid, String(req.body?.leadId || ''))));
+app.get('/api/farmaqui/groups', requireAuth, wrap((req) => groupsList(req.uid)));
+app.get('/api/farmaqui/group-offers', requireAuth, wrap((req) => listGroupOffers(req.uid)));
+app.post('/api/farmaqui/group-offers', requireAuth, wrap((req) => createGroupOffer(req.uid, req.body || {})));
+app.post('/api/farmaqui/group-offers/delete', requireAuth, wrap((req) => deleteGroupOffer(req.uid, String(req.body?.id || ''))));
 app.post('/api/farmaqui/recompra', requireAuth, wrap((req) => saveRecompra(req.uid, req.body || {})));
 app.post('/api/farmaqui/ultima-compra', requireAuth, wrap((req) => setUltimaCompra(req.uid, String(req.body?.leadId || ''), String(req.body?.data || ''), Number(req.body?.cicloDias) || 30)));
 app.get('/api/farmaqui/landing', requireAuth, wrap((req) => getLanding(req.uid)));

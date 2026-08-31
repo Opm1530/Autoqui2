@@ -7,6 +7,7 @@ import { subscriptionApi } from '../../services/subscriptionApi';
 import { MonthlyBars, BairroDonut, BestHours, RecentOrders, SubscriptionCard, fmtInt, fmtBRL } from './DashboardWidgets';
 import { SkeletonBox } from '../components/Skeleton';
 import { vitrineApi, type VitrineMetrics } from '../../services/vitrineApi';
+import { farmaquiApi } from '../../services/farmaquiApi';
 
 const MESES_PT = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
 const orderDate = (o: any): Date => (o.criadoEm?.toDate ? o.criadoEm.toDate() : new Date(o.criadoEm || o.createdAt || 0));
@@ -69,6 +70,7 @@ export function Dashboard() {
   const [checklist, setChecklist] = useState<Checklist | null>(null);
   const [vm, setVm] = useState<VitrineMetrics | null>(null);
   const [vmDays, setVmDays] = useState(30);
+  const [fm, setFm] = useState<any | null>(null);
   const [shared, setShared] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -214,6 +216,12 @@ export function Dashboard() {
     vitrineApi.metrics(vmDays).then(setVm).catch(() => {});
   }, [isVitrine, vmDays]);
 
+  const isFarma = modulos.includes('farmaqui');
+  useEffect(() => {
+    if (!isFarma) return;
+    farmaquiApi.metrics().then(setFm).catch(() => {});
+  }, [isFarma]);
+
   const hasVenda = modulos.includes('venda') || modulos.includes('venda_catalogo');
   const copyLink = (storeId: string) => {
     const url = `${window.location.origin}/catalog/${storeId}`;
@@ -295,6 +303,8 @@ export function Dashboard() {
       </div>
 
       {isVitrine && <VitrineBlock m={vm} days={vmDays} setDays={setVmDays} />}
+
+      {isFarma && <FarmaBlock m={fm} />}
 
       {hasVenda && salesViz && (
         <div className="dash-viz">
@@ -386,6 +396,23 @@ function VitrineBlock({ m, days, setDays }: { m: VitrineMetrics | null; days: nu
             </div>
           </div>
         </>
+      )}
+    </div>
+  );
+}
+
+// Bloco de métricas da FarmaQui: leads, clientes, recompras.
+function FarmaBlock({ m }: { m: any | null }) {
+  return (
+    <div style={{ marginTop: '0.5rem', marginBottom: '1.5rem' }}>
+      <h3 style={{ margin: '0 0 1rem', display: 'flex', alignItems: 'center', gap: 10 }}><i className="fa-solid fa-prescription-bottle-medical" style={{ color: 'var(--primary)' }} /> FarmaQui</h3>
+      {!m ? <SkeletonBox height={110} /> : (
+        <div className="dashboard-grid">
+          <StatCard label="Leads capturados" value={fmtInt(m.leadsTotal)} />
+          <StatCard green label="Viraram clientes" value={fmtInt(m.clientes)} subtitle={`${m.conversao}% de conversão`} />
+          <StatCard label="Recompras agendadas" value={fmtInt(m.recompraAgendadas)} />
+          <StatCard label="Recompras enviadas" value={fmtInt(m.recompraEnviadas)} />
+        </div>
       )}
     </div>
   );

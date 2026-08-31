@@ -36,6 +36,38 @@ export async function sendText(
   }
 }
 
+// Envia texto para um grupo (JID xxxx@g.us). Não limpa o número como o sendText.
+export async function sendToGroup(instanceName: string, groupJid: string, text: string): Promise<boolean> {
+  try {
+    const response = await fetch(`${EVOLUTION_API_URL}/message/sendText/${instanceName}`, {
+      method: 'POST',
+      headers: headers(true),
+      body: JSON.stringify({ number: groupJid, text, delay: 1200, linkPreview: true }),
+    });
+    if (!response.ok) { console.error('[evolution] sendToGroup erro:', response.status); return false; }
+    return true;
+  } catch (error) {
+    console.error('[evolution] sendToGroup exceção:', error);
+    return false;
+  }
+}
+
+// Lista os grupos de uma instância (sem participantes, mais leve).
+export async function fetchGroups(instanceName: string): Promise<{ id: string; subject: string; size?: number }[]> {
+  try {
+    const response = await fetch(`${EVOLUTION_API_URL}/group/fetchAllGroups/${instanceName}?getParticipants=false`, {
+      method: 'GET', headers: headers(true),
+    });
+    if (!response.ok) return [];
+    const data = await response.json().catch(() => []);
+    const arr = Array.isArray(data) ? data : (data?.groups || []);
+    return arr.map((g: any) => ({ id: g.id || g.jid || '', subject: g.subject || g.name || '(sem nome)', size: g.size || g.participants?.length })).filter((g: any) => g.id);
+  } catch (error) {
+    console.error('[evolution] fetchGroups exceção:', error);
+    return [];
+  }
+}
+
 export async function createInstance(instanceName: string): Promise<any> {
   const response = await fetch(`${EVOLUTION_API_URL}/instance/create`, {
     method: 'POST',
