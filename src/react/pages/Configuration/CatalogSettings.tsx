@@ -10,6 +10,7 @@ import { Appearance } from './Appearance';
 import { Messages } from './Messages';
 import { Payment } from './Payment';
 import { Delivery } from './Delivery';
+import { VitrineLeads } from './VitrineLeads';
 import { MercadoPago } from '../MercadoPago';
 
 export function CatalogSettings() {
@@ -23,8 +24,8 @@ export function CatalogSettings() {
   const [lojaConfigs, setLojaConfigs] = useState<any[]>([]);
   const [activeStoreId, setActiveStoreId] = useState('');
   const [params] = useSearchParams();
-  const initialSection = (['design', 'mensagens', 'entrega', 'pagamento'] as const).find((s) => s === params.get('sec')) || 'design';
-  const [section, setSection] = useState<'design' | 'mensagens' | 'entrega' | 'pagamento'>(initialSection);
+  const initialSection = (['design', 'mensagens', 'entrega', 'leads', 'pagamento'] as const).find((s) => s === params.get('sec')) || 'design';
+  const [section, setSection] = useState<'design' | 'mensagens' | 'entrega' | 'leads' | 'pagamento'>(initialSection);
   const [isVitrine, setIsVitrine] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -126,6 +127,7 @@ export function CatalogSettings() {
 
       {section === 'design' && <Appearance key={`ap-${activeStoreId}`} companyId={companyId} storeId={activeStoreId} design={design} vitrine={isVitrine} onSave={save} />}
       {section === 'entrega' && !isVitrine && <Delivery config={config} onSave={save} />}
+      {section === 'leads' && isVitrine && <VitrineLeads instances={instances} />}
       {section === 'mensagens' && !isVitrine && (
         <>
           <div className="card" style={{ marginBottom: '1.5rem' }}>
@@ -164,4 +166,5 @@ const SECTIONS = [
 const SECTIONS_VITRINE = [
   { key: 'design', label: 'Design', icon: 'fa-palette' },
   { key: 'pagamento', label: 'Contato', icon: 'fa-comment-dots' },
+  { key: 'leads', label: 'Leads', icon: 'fa-user-plus' },
 ];

@@ -2,6 +2,8 @@
 // O menu é montado conforme o papel (owner/employee) e os módulos ativos da empresa.
 import { useEffect, useRef, useState } from 'react';
 import { NavLink, Outlet, useLocation, useSearchParams } from 'react-router-dom';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { db } from '../firebase/config';
 import { GlobalSearch } from './GlobalSearch';
 import { authService } from '../services/auth';
 import { dbService } from '../services/db';
@@ -87,7 +89,7 @@ function buildNav(role: string | undefined, modulos: string[]): NavEntry[] {
   }
 
   // ── Camadas (somam sobre qualquer canal) ──
-  if (atendimento || vendaCatalogo || venda) add({ to: '/leads', label: 'Leads', icon: 'fa-people-group' });
+  if (atendimento || vendaCatalogo || venda || vitrine) add({ to: '/leads', label: 'Leads', icon: 'fa-people-group' });
   if (disparo) add({ to: '/campaigns', label: 'Campanhas', icon: 'fa-bullhorn' });
 
   if (isEmployee) return nav;
@@ -158,6 +160,24 @@ export function Shell() {
     return () => orderNotification.stopListening();
   }, []);
 
+  // Contador de pedidos em aberto (tudo que não está finalizado/cancelado) → badge no menu.
+  const [openOrders, setOpenOrders] = useState(0);
+  useEffect(() => {
+    if (!user?.companyId) { setOpenOrders(0); return; }
+    const qy = query(collection(db, 'pedidos'), where('empresaId', '==', user.companyId));
+    const unsub = onSnapshot(qy, (snap) => {
+      let n = 0;
+      snap.forEach((d) => {
+        const o = d.data() as any;
+        if (o.arquivado) return; // arquivados não contam
+        const s = (o.status || 'em_montagem').toLowerCase();
+        if (s !== 'finalizado' && s !== 'cancelado') n++;
+      });
+      setOpenOrders(n);
+    }, () => {});
+    return () => unsub();
+  }, [user?.companyId]);
+
   // Parede de cobrança: bloqueia o painel se a assinatura estiver inadimplente
   // além da tolerância. Fail-open (erro/backend fora → não bloqueia).
   const [blocked, setBlocked] = useState(false);
@@ -218,6 +238,7 @@ export function Shell() {
                     className={({ isActive }) => 'nav-item' + (isActive ? ' active' : '')}>
                     <span className="icon">{iconEl(item.icon)}</span>
                     <span>{item.label}</span>
+                    {item.to === '/orders' && openOrders > 0 && <span className="nav-badge">{openOrders}</span>}
                   </NavLink>
                 ))}
         </nav>
@@ -274,7 +295,10 @@ export function Shell() {
           {mobile.map((item) => (
             <NavLink key={item.to! + item.label} to={item.to!} end
               className={({ isActive }) => 'mobile-nav-item' + (isActive ? ' active' : '')}>
-              {iconEl(item.icon)}
+              <span style={{ position: 'relative', display: 'inline-flex' }}>
+                {iconEl(item.icon)}
+                {item.to === '/orders' && openOrders > 0 && <span className="nav-badge nav-badge-dot">{openOrders}</span>}
+              </span>
               <span>{item.label}</span>
             </NavLink>
           ))}

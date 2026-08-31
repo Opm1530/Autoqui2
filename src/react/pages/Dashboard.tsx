@@ -6,6 +6,7 @@ import { useAuth } from '../useAuth';
 import { subscriptionApi } from '../../services/subscriptionApi';
 import { MonthlyBars, BairroDonut, BestHours, RecentOrders, SubscriptionCard, fmtInt, fmtBRL } from './DashboardWidgets';
 import { SkeletonBox } from '../components/Skeleton';
+import { vitrineApi, type VitrineMetrics } from '../../services/vitrineApi';
 
 const MESES_PT = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
 const orderDate = (o: any): Date => (o.criadoEm?.toDate ? o.criadoEm.toDate() : new Date(o.criadoEm || o.createdAt || 0));
@@ -66,6 +67,8 @@ export function Dashboard() {
   const [sub, setSub] = useState<any>(null);
   const [stores, setStores] = useState<any[]>([]);
   const [checklist, setChecklist] = useState<Checklist | null>(null);
+  const [vm, setVm] = useState<VitrineMetrics | null>(null);
+  const [vmDays, setVmDays] = useState(30);
   const [shared, setShared] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -205,6 +208,12 @@ export function Dashboard() {
     })();
   }, [companyId]);
 
+  const isVitrine = modulos.includes('vitrine');
+  useEffect(() => {
+    if (!isVitrine) return;
+    vitrineApi.metrics(vmDays).then(setVm).catch(() => {});
+  }, [isVitrine, vmDays]);
+
   const hasVenda = modulos.includes('venda') || modulos.includes('venda_catalogo');
   const copyLink = (storeId: string) => {
     const url = `${window.location.origin}/catalog/${storeId}`;
@@ -285,6 +294,8 @@ export function Dashboard() {
         </>}
       </div>
 
+      {isVitrine && <VitrineBlock m={vm} days={vmDays} setDays={setVmDays} />}
+
       {hasVenda && salesViz && (
         <div className="dash-viz">
           <div className="dash-col">
@@ -304,6 +315,77 @@ export function Dashboard() {
             <SubscriptionCard sub={sub} />
           </div>
         </div>
+      )}
+    </div>
+  );
+}
+
+// Bloco de métricas da Vitrine: funil (visitas → cliques → WhatsApp → leads),
+// conversão, visitas por dia e produtos mais clicados.
+function VitrineBlock({ m, days, setDays }: { m: VitrineMetrics | null; days: number; setDays: (d: number) => void }) {
+  const maxV = m ? Math.max(1, ...m.serie.map((s) => s.views)) : 1;
+  return (
+    <div style={{ marginTop: '0.5rem', marginBottom: '1.5rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: '1rem' }}>
+        <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 10 }}><i className="fa-solid fa-chart-simple" style={{ color: 'var(--primary)' }} /> Sua vitrine</h3>
+        <select className="config-select" style={{ width: 'auto' }} value={days} onChange={(e) => setDays(Number(e.target.value))}>
+          <option value={7}>Últimos 7 dias</option>
+          <option value={30}>Últimos 30 dias</option>
+          <option value={90}>Últimos 90 dias</option>
+        </select>
+      </div>
+
+      {!m ? <SkeletonBox height={110} /> : (
+        <>
+          <div className="dashboard-grid">
+            <StatCard label="Visitas" value={fmtInt(m.views)} subtitle={`${fmtInt(m.uniques)} visitantes únicos`} />
+            <StatCard label="Cliques em produtos" value={fmtInt(m.cliquesProduto)} />
+            <StatCard green label="Idas pro WhatsApp" value={fmtInt(m.whatsapp)} subtitle={`${m.conversao}% de conversão`} />
+            <StatCard label="Leads capturados" value={fmtInt(m.leadsPeriodo)} subtitle={`${fmtInt(m.leadsTotal)} no total`} />
+          </div>
+
+          <div className="dash-viz" style={{ marginTop: '1rem' }}>
+            <div className="dash-col" style={{ flex: 2 }}>
+              <div className="card viz-card">
+                <div className="viz-head"><h4>Visitas por dia</h4></div>
+                {m.serie.every((s) => s.views === 0) ? (
+                  <p style={{ color: 'var(--text-dim)', fontSize: '0.85rem', margin: '1rem 0 0' }}>Sem visitas registradas ainda. Compartilhe o link da sua vitrine para começar a medir.</p>
+                ) : (
+                  <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 140, marginTop: 16 }}>
+                    {m.serie.map((s, i) => (
+                      <div key={i} title={`${s.dia}: ${s.views} visitas, ${s.whatsapp} no WhatsApp`}
+                        style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', height: '100%', gap: 2 }}>
+                        <div style={{ height: `${(s.views / maxV) * 100}%`, minHeight: s.views ? 3 : 0, background: 'var(--primary)', borderRadius: '4px 4px 0 0' }} />
+                        <div style={{ height: `${(s.whatsapp / maxV) * 100}%`, minHeight: s.whatsapp ? 3 : 0, background: 'var(--success)', borderRadius: '4px 4px 0 0' }} />
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div style={{ display: 'flex', gap: 16, marginTop: 12, fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                  <span><i className="fa-solid fa-square" style={{ color: 'var(--primary)', marginRight: 5 }} />Visitas</span>
+                  <span><i className="fa-solid fa-square" style={{ color: 'var(--success)', marginRight: 5 }} />Idas pro WhatsApp</span>
+                </div>
+              </div>
+            </div>
+            <div className="dash-col">
+              <div className="card viz-card">
+                <div className="viz-head"><h4>Produtos mais clicados</h4></div>
+                {m.topProdutos.length === 0 ? (
+                  <p style={{ color: 'var(--text-dim)', fontSize: '0.85rem', margin: '1rem 0 0' }}>Nenhum clique em produto ainda.</p>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 12 }}>
+                    {m.topProdutos.map((p, i) => (
+                      <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                        <span style={{ fontSize: '0.88rem', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{i + 1}. {p.nome}</span>
+                        <span className="badge" style={{ background: 'rgba(132, 204, 22,0.15)', color: 'var(--primary-hover)', border: '1px solid rgba(132, 204, 22,0.3)', flexShrink: 0 }}>{p.cliques} cliques</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </>
       )}
     </div>
   );

@@ -798,6 +798,35 @@ ul {
   opacity: 0.85;
 }
 
+/* Badge de contagem no menu (ex.: pedidos em aberto) */
+.nav-badge {
+  margin-left: auto;
+  min-width: 24px;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: var(--primary);
+  color: var(--primary-contrast);
+  font-size: 0.78rem;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+/* Variante compacta sobre o ícone (bottom nav mobile) */
+.nav-badge-dot {
+  position: absolute;
+  top: -7px;
+  left: 12px;
+  margin-left: 0;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  font-size: 0.68rem;
+  border: 2px solid var(--surface-color);
+}
+
 .nav-item:hover {
   color: #eef4ef;
   background-color: var(--sidebar-hover);
@@ -1127,13 +1156,63 @@ ul {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: radial-gradient(circle at 30% 20%, #d7e8d4 0%, transparent 55%), radial-gradient(circle at center, #f3f6ef 0%, #e4e9df 100%);
+  background: #ffffff;
   width: 100vw;
   position: fixed;
   top: 0;
   left: 0;
   z-index: 1000;
+  padding: 20px;
 }
+
+.login-card {
+  width: 100%;
+  max-width: 400px;
+  background: var(--sidebar-bg);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 22px;
+  padding: 2.5rem 2.25rem 2rem;
+  box-shadow: 0 30px 70px -24px rgba(16, 42, 28, 0.45);
+}
+.login-brand { text-align: center; margin-bottom: 2rem; }
+.login-logo-row {
+  display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 1.4rem;
+}
+.login-logo-row img { width: 40px; height: 40px; object-fit: contain; border-radius: 10px; }
+.login-logo-row span { font-size: 1.6rem; font-weight: 800; color: #ffffff; letter-spacing: -0.02em; }
+.login-brand h1 { margin: 0; font-size: 1.4rem; font-weight: 800; color: #ffffff; }
+.login-brand p { margin: 6px 0 0; font-size: 0.9rem; color: rgba(255, 255, 255, 0.6); }
+
+.login-field { margin-bottom: 1.25rem; }
+.login-field .config-label { color: rgba(255, 255, 255, 0.75); }
+.login-input-wrap { position: relative; display: flex; align-items: center; }
+.login-input-wrap > i {
+  position: absolute; left: 15px; color: rgba(255, 255, 255, 0.45); font-size: 0.95rem; pointer-events: none;
+}
+.login-input-wrap .config-input {
+  width: 100%; padding-left: 42px; padding-right: 42px; height: 50px; border-radius: 12px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+}
+.login-input-wrap .config-input::placeholder { color: rgba(255, 255, 255, 0.4); }
+.login-input-wrap .config-input:focus {
+  border-color: var(--primary);
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 0 0 3px rgba(132, 204, 22, 0.2);
+}
+.login-eye {
+  position: absolute; right: 8px; background: none; border: none; cursor: pointer;
+  color: rgba(255, 255, 255, 0.5); padding: 8px; border-radius: 8px; line-height: 1;
+}
+.login-eye:hover { color: var(--primary); }
+
+.login-submit {
+  width: 100%; justify-content: center; gap: 8px;
+  height: 52px; margin-top: 0.5rem; border-radius: 14px;
+  font-size: 1rem; font-weight: 700;
+}
+.login-foot { text-align: center; margin: 1.5rem 0 0; font-size: 0.75rem; color: rgba(255, 255, 255, 0.4); }
 
 .login-card {
   width: 100%;

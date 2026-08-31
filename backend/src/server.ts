@@ -27,7 +27,8 @@ import { rateLimit, verifyMpSignature } from './security.js';
 import { ecommerceRouter } from './ecommerce/router.js';
 import { startEcommerceJobs } from './ecommerce/jobs.js';
 import { storefrontPublicRouter, storefrontAuthRouter } from './ecommerce/storefront.js';
-import { handleIncoming, activateCapture, captureStatus, getConfig, saveRecompra, setUltimaCompra, startFarmaquiJobs, getLanding, saveLanding, setLandingHost, publicLanding } from './farmaqui.js';
+import { handleIncoming, activateCapture, deactivateCapture, captureStatus, getConfig, saveRecompra, setUltimaCompra, startFarmaquiJobs, getLanding, saveLanding, setLandingHost, publicLanding } from './farmaqui.js';
+import { trackEvent, getVitrineMetrics } from './vitrineMetrics.js';
 import { setStoreSubdomain, removeStoreSubdomain, storeByHost } from './domains.js';
 
 // Empresa do usuário logado (a partir do doc users/{uid}).
@@ -240,6 +241,16 @@ app.post('/api/wa/incoming/:companyId', (req, res) => {
   handleIncoming(String(req.params.companyId), req.body || {}).catch((err) => console.error('[farmaqui] incoming erro:', err?.message));
 });
 app.post('/api/farmaqui/activate', requireAuth, wrap((req) => activateCapture(req.uid, String(req.body?.instanceName || ''))));
+// Captação de leads genérica (usada pela Vitrine; mesma engine da FarmaQui).
+app.get('/api/leadcapture/status', requireAuth, wrap((req) => captureStatus(req.uid)));
+app.post('/api/leadcapture/activate', requireAuth, wrap((req) => activateCapture(req.uid, String(req.body?.instanceName || ''), String(req.body?.origem || 'whatsapp'))));
+app.post('/api/leadcapture/deactivate', requireAuth, wrap((req) => deactivateCapture(req.uid)));
+// Métricas da Vitrine: coleta pública (rate-limited) + leitura autenticada (cache 30min).
+app.post('/api/track', rateLimit(120, 60_000), (req, res) => {
+  trackEvent(req.body || {}).catch((err) => console.error('[vitrine] track erro:', err?.message));
+  res.json({ ok: true }); // fire-and-forget
+});
+app.get('/api/vitrine/metrics', requireAuth, wrap((req) => getVitrineMetrics(req.uid, Number(req.query.days) || 30)));
 app.get('/api/farmaqui/status', requireAuth, wrap((req) => captureStatus(req.uid)));
 app.get('/api/farmaqui/config', requireAuth, wrap((req) => getConfig(req.uid)));
 app.post('/api/farmaqui/recompra', requireAuth, wrap((req) => saveRecompra(req.uid, req.body || {})));

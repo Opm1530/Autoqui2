@@ -7,6 +7,11 @@ export function ChangePassword() {
   const [nova, setNova] = useState('');
   const [conf, setConf] = useState('');
   const [busy, setBusy] = useState(false);
+  const [show, setShow] = useState(false);
+
+  const novaOk = nova.length >= 6;
+  const confOk = conf.length > 0 && conf === nova;
+  const podeSalvar = atual.length > 0 && novaOk && confOk && !busy;
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -31,19 +36,32 @@ export function ChangePassword() {
       <form className="card" style={{ maxWidth: 460 }} onSubmit={submit}>
         <div className="cat-field" style={{ marginBottom: '1.25rem' }}>
           <label className="config-label">Senha atual</label>
-          <input type="password" className="config-input" value={atual} onChange={(e) => setAtual(e.target.value)} required autoComplete="current-password" />
+          <div style={{ position: 'relative' }}>
+            <input type={show ? 'text' : 'password'} className="config-input" style={{ paddingRight: 44 }} value={atual} onChange={(e) => setAtual(e.target.value)} required autoComplete="current-password" />
+            <button type="button" onClick={() => setShow((s) => !s)} title={show ? 'Ocultar senhas' : 'Mostrar senhas'}
+              style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-dim)', cursor: 'pointer', padding: 4 }}>
+              <i className={`fa-solid ${show ? 'fa-eye-slash' : 'fa-eye'}`} />
+            </button>
+          </div>
         </div>
         <div className="cat-field" style={{ marginBottom: '1.25rem' }}>
           <label className="config-label">Nova senha</label>
-          <input type="password" className="config-input" value={nova} onChange={(e) => setNova(e.target.value)} required autoComplete="new-password" />
-          <p className="cat-field-hint">Mínimo de 6 caracteres.</p>
+          <input type={show ? 'text' : 'password'} className="config-input" value={nova} onChange={(e) => setNova(e.target.value)} required autoComplete="new-password" />
+          <p className="cat-field-hint" style={{ color: nova.length === 0 ? undefined : novaOk ? 'var(--success)' : '#f87171' }}>
+            {nova.length === 0 ? 'Mínimo de 6 caracteres.' : novaOk ? <><i className="fa-solid fa-check" /> Tamanho ok.</> : 'Ainda muito curta (mínimo 6).'}
+          </p>
         </div>
         <div className="cat-field" style={{ marginBottom: '1.75rem' }}>
           <label className="config-label">Confirmar nova senha</label>
-          <input type="password" className="config-input" value={conf} onChange={(e) => setConf(e.target.value)} required autoComplete="new-password" />
+          <input type={show ? 'text' : 'password'} className="config-input" value={conf} onChange={(e) => setConf(e.target.value)} required autoComplete="new-password" />
+          {conf.length > 0 && (
+            <p className="cat-field-hint" style={{ color: confOk ? 'var(--success)' : '#f87171' }}>
+              {confOk ? <><i className="fa-solid fa-check" /> As senhas conferem.</> : <><i className="fa-solid fa-xmark" /> As senhas não conferem.</>}
+            </p>
+          )}
         </div>
         <div style={{ textAlign: 'right' }}>
-          <button type="submit" className="btn-primary" disabled={busy}>{busy ? 'Salvando...' : 'Alterar senha'}</button>
+          <button type="submit" className="btn-primary" disabled={!podeSalvar}>{busy ? 'Salvando...' : 'Alterar senha'}</button>
         </div>
       </form>
     </div>

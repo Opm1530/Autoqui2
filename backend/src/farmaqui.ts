@@ -11,8 +11,19 @@ import { normalizeSubdomain, setLandingSubdomain, removeLandingSubdomain } from 
 
 const incomingUrl = (companyId: string) => `${PUBLIC_BASE_URL}/api/wa/incoming/${companyId}`;
 
+// Lê a config de captação de leads da empresa (novo formato genérico `leadCapture`,
+// com fallback para o legado `farmaqui.captura*`).
+async function readCapture(companyId: string): Promise<{ ativa: boolean; instancia: string; origem: string }> {
+  const doc = await db.collection('companies').doc(companyId).get();
+  const d = doc.data() as any || {};
+  const lc = d.leadCapture;
+  if (lc) return { ativa: !!lc.ativa, instancia: lc.instancia || '', origem: lc.origem || 'whatsapp' };
+  const f = d.farmaqui || {};
+  return { ativa: !!f.capturaAtiva, instancia: f.capturaInstancia || '', origem: 'whatsapp' };
+}
+
 // Cria/atualiza um lead a partir de uma mensagem recebida. Dedupe por telefone.
-async function upsertLeadFromMessage(companyId: string, phone: string, name: string, message: string) {
+async function upsertLeadFromMessage(companyId: string, phone: string, name: string, message: string, origem = 'whatsapp') {
   let cleanPhone = phone.replace(/\D/g, '');
   if (cleanPhone.length === 13 && cleanPhone.startsWith('55')) cleanPhone = cleanPhone.substring(2);
   if (!cleanPhone) return;
@@ -38,7 +49,7 @@ async function upsertLeadFromMessage(companyId: string, phone: string, name: str
     telefone: cleanPhone,
     whatsapp: cleanPhone,
     empresaId: companyId,
-    origem: 'whatsapp',
+    origem,
     statusLead: 'lead',
     ultimaMensagem: message.slice(0, 500),
     ultimoContato: now,
@@ -55,7 +66,9 @@ export async function handleIncoming(companyId: string, payload: any): Promise<v
   const phone = String(key.remoteJid).split('@')[0];
   const name = data.pushName || '';
   const msg = data.message?.conversation || data.message?.extendedTextMessage?.text || data.message?.imageMessage?.caption || '';
-  await upsertLeadFromMessage(companyId, phone, name, msg);
+  const cap = await readCapture(companyId);
+  if (!cap.ativa) return; // captação desligada
+  await upsertLeadFromMessage(companyId, phone, name, msg, cap.origem);
 }
 
 // ── Painel (autenticado) ──
@@ -67,20 +80,29 @@ async function companyOf(uid: string): Promise<string> {
 }
 
 // Liga a captura: aponta o webhook da instância pro nosso endpoint e marca na empresa.
-export async function activateCapture(uid: string, instanceName: string) {
+// `origem` identifica de onde vieram os leads (whatsapp | vitrine | ...).
+export async function activateCapture(uid: string, instanceName: string, origem = 'whatsapp') {
   const companyId = await companyOf(uid);
   await assertInstanceOwner(uid, instanceName); // valida posse
   const ok = await setWebhook(instanceName, incomingUrl(companyId), true);
   if (!ok) throw new Error('falha_ao_configurar_webhook');
-  await db.collection('companies').doc(companyId).set({ farmaqui: { capturaInstancia: instanceName, capturaAtiva: true, atualizadoEm: new Date().toISOString() } }, { merge: true });
+  await db.collection('companies').doc(companyId).set({ leadCapture: { instancia: instanceName, ativa: true, origem, atualizadoEm: new Date().toISOString() } }, { merge: true });
+  return { ok: true };
+}
+
+// Desliga a captura: desabilita o webhook e marca inativa.
+export async function deactivateCapture(uid: string) {
+  const companyId = await companyOf(uid);
+  const cap = await readCapture(companyId);
+  if (cap.instancia) { try { await setWebhook(cap.instancia, incomingUrl(companyId), false); } catch { /* ignore */ } }
+  await db.collection('companies').doc(companyId).set({ leadCapture: { ativa: false, atualizadoEm: new Date().toISOString() } }, { merge: true });
   return { ok: true };
 }
 
 export async function captureStatus(uid: string) {
   const companyId = await companyOf(uid);
-  const doc = await db.collection('companies').doc(companyId).get();
-  const f = (doc.data() as any)?.farmaqui || {};
-  return { ativa: !!f.capturaAtiva, instancia: f.capturaInstancia || '' };
+  const cap = await readCapture(companyId);
+  return { ativa: cap.ativa, instancia: cap.instancia, origem: cap.origem };
 }
 
 const DEFAULT_RECOMPRA = { enabled: false, mensagem: 'Olá {{nome}}! 💊 Já faz um tempinho da sua última compra. Precisa repor algum remédio? É só me chamar por aqui!', cicloDiasPadrao: 30 };
@@ -89,7 +111,8 @@ export async function getConfig(uid: string) {
   const companyId = await companyOf(uid);
   const doc = await db.collection('companies').doc(companyId).get();
   const f = (doc.data() as any)?.farmaqui || {};
-  return { capturaAtiva: !!f.capturaAtiva, capturaInstancia: f.capturaInstancia || '', recompra: { ...DEFAULT_RECOMPRA, ...(f.recompra || {}) } };
+  const cap = await readCapture(companyId);
+  return { capturaAtiva: cap.ativa, capturaInstancia: cap.instancia, recompra: { ...DEFAULT_RECOMPRA, ...(f.recompra || {}) } };
 }
 
 export async function saveRecompra(uid: string, body: any) {
@@ -196,9 +219,10 @@ async function processRecompra() {
     try {
       const company = await db.collection('companies').doc(s.companyId).get();
       const f = (company.data() as any)?.farmaqui || {};
-      if (f.recompra?.enabled && f.capturaInstancia && s.phone) {
+      const cap = await readCapture(s.companyId);
+      if (f.recompra?.enabled && cap.instancia && s.phone) {
         const msg = String(f.recompra.mensagem || '').replace(/\{\{nome\}\}/gi, s.nome || 'tudo bem');
-        await sendText(f.capturaInstancia, String(s.phone).replace(/\D/g, ''), msg);
+        await sendText(cap.instancia, String(s.phone).replace(/\D/g, ''), msg);
       }
       await doc.ref.update({ done: true });
     } catch (e: any) { console.error('[farmaqui] recompra erro:', e?.message); }

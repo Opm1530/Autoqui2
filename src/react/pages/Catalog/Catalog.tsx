@@ -4,6 +4,7 @@ import { dbService } from '../../../services/db';
 import { toast } from '../../../services/toast';
 import { getImageUrl, getProductGallery, getCategoryCover, storeStatusLabel, isFreteAbertoAgora, isStoreOpen, getNextOpenTime, getStoreHorario, DIAS_NOME } from './helpers';
 import { CheckoutModals } from './CheckoutModals';
+import { trackVitrine } from './track';
 import './catalog-vitrine.css';
 import './catalog.css';
 
@@ -21,6 +22,7 @@ export function Catalog({ storeId: storeIdProp }: { storeId?: string } = {}) {
   const [detailImg, setDetailImg] = useState(0);                    // índice da foto no modal
   const [vitrineCat, setVitrineCat] = useState('');                 // categoria selecionada no carrossel (vitrine); '' = todas
   const gridRef = useRef<HTMLDivElement>(null);                     // âncora do botão do banner (vitrine)
+  const trackedView = useRef('');                                   // evita duplicar a métrica de visita
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [closedAlert, setClosedAlert] = useState<'store' | 'delivery' | null>(null);
   const [storeInfoOpen, setStoreInfoOpen] = useState(false);
@@ -99,6 +101,12 @@ export function Catalog({ storeId: storeIdProp }: { storeId?: string } = {}) {
           logoUrl: design.logoUrl || '', pixKey: design.pixKey || '',
           flatBairros, taxaGenerica, cuponsList,
         });
+
+        // Métrica: visita da vitrine (uma vez por carga).
+        if (modulos.includes('vitrine') && trackedView.current !== storeId) {
+          trackedView.current = storeId;
+          trackVitrine('view', company.id, storeId);
+        }
 
         // carrinho salvo
         try { const saved = localStorage.getItem(`cat_cart_${storeId}`); if (saved) setCart(new Map(JSON.parse(saved))); } catch { /* ignore */ }
@@ -205,7 +213,7 @@ export function Catalog({ storeId: storeIdProp }: { storeId?: string } = {}) {
     const price = usePromo ? (p.promotionalPrice || p.price) : p.price;
     const original = usePromo ? p.price : null;
     const out = p.stock === 0;
-    const openDetail = () => { setDetail(p); setDetailImg(0); };
+    const openDetail = () => { setDetail(p); setDetailImg(0); if (isVitrine) trackVitrine('produto', data.company.id, storeId, p.id); };
     return (
       <div className="product-card" style={{ ...(out ? { opacity: 0.6 } : undefined), ...(isVitrine ? { cursor: 'pointer' } : undefined) }} onClick={isVitrine ? openDetail : undefined}>
         <div className="card-image">
@@ -310,7 +318,8 @@ export function Catalog({ storeId: storeIdProp }: { storeId?: string } = {}) {
               </div>
             )}
             {whatsappNumber ? (
-              <a href={waProductLink(detail)} target="_blank" rel="noreferrer" className="vt-wa-btn">
+              <a href={waProductLink(detail)} target="_blank" rel="noreferrer" className="vt-wa-btn"
+                onClick={() => trackVitrine('whatsapp', data.company.id, storeId, detail?.id)}>
                 <i className="fa-brands fa-whatsapp" style={{ fontSize: '1.2rem' }} /> Pedir no WhatsApp
               </a>
             ) : <p style={{ fontSize: '0.85rem', color: '#b45309', textAlign: 'center', margin: 0 }}>A loja ainda não configurou o WhatsApp de contato.</p>}
@@ -382,7 +391,7 @@ export function Catalog({ storeId: storeIdProp }: { storeId?: string } = {}) {
               {gridProducts.map((p: any) => {
                 const cover = getImageUrl(p);
                 return (
-                  <button key={p.id} className="vt-card" onClick={() => { setDetail(p); setDetailImg(0); }}>
+                  <button key={p.id} className="vt-card" onClick={() => { setDetail(p); setDetailImg(0); trackVitrine('produto', data.company.id, storeId, p.id); }}>
                     <div className="vt-card-img"><img src={cover} alt={p.name} loading="lazy" /></div>
                     <div className="vt-card-info">
                       <div className="vt-card-name">{p.name}</div>
@@ -504,7 +513,7 @@ export function Catalog({ storeId: storeIdProp }: { storeId?: string } = {}) {
       )}
 
       {/* WHATSAPP FLOAT */}
-      {whatsappNumber && <a href={`https://wa.me/${whatsappNumber}`} target="_blank" rel="noopener noreferrer" className="whatsapp-float"><i className="fa-brands fa-whatsapp" /><span>Falar conosco</span></a>}
+      {whatsappNumber && <a href={`https://wa.me/${whatsappNumber}`} target="_blank" rel="noopener noreferrer" className="whatsapp-float" onClick={() => isVitrine && trackVitrine('whatsapp', data.company.id, storeId)}><i className="fa-brands fa-whatsapp" /><span>Falar conosco</span></a>}
 
       {/* FLOATING CART */}
       {hasVendaCatalogo && totalQty > 0 && (

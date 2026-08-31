@@ -5,6 +5,7 @@ import { toast } from '../../services/toast';
 export function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -21,27 +22,43 @@ export function Login() {
 
   return (
     <div className="login-page-container">
-      <form id="login-form" className="card glass" style={{ maxWidth: 440, width: '100%', margin: '10vh auto', padding: '3rem 3rem 3.25rem' }} onSubmit={handleSubmit}>
-        <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
-          <img src="/logo.png" alt="AutoQui" style={{ width: 60, borderRadius: 14 }} />
-          <h2 style={{ marginTop: '1.25rem' }}>Entrar no Painel</h2>
+      <form className="login-card" onSubmit={handleSubmit}>
+        <div className="login-brand">
+          <div className="login-logo-row">
+            <img src="/logo.png" alt="" />
+            <span>AutoQui</span>
+          </div>
+          <h1>Entrar no Painel</h1>
+          <p>Acesse sua conta para gerenciar seu negócio.</p>
         </div>
-        <div className="form-group" style={{ marginBottom: '1.5rem' }}>
-          <label style={{ display: 'block', marginBottom: 10, fontWeight: 600 }}>E-mail</label>
-          <input id="email" type="email" className="input-field" required value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            style={{ width: '100%', padding: '14px 16px', borderRadius: 10 }} />
+
+        <div className="login-field">
+          <div className="login-input-wrap">
+            <i className="fa-solid fa-envelope" />
+            <input id="email" type="email" className="config-input" required value={email}
+              autoComplete="email" placeholder="E-mail"
+              onChange={(e) => setEmail(e.target.value)} />
+          </div>
         </div>
-        <div className="form-group" style={{ marginBottom: '2rem' }}>
-          <label style={{ display: 'block', marginBottom: 10, fontWeight: 600 }}>Senha</label>
-          <input id="password" type="password" className="input-field" required value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            style={{ width: '100%', padding: '14px 16px', borderRadius: 10 }} />
+
+        <div className="login-field">
+          <div className="login-input-wrap">
+            <i className="fa-solid fa-lock" />
+            <input id="password" type={showPass ? 'text' : 'password'} className="config-input" required value={password}
+              autoComplete="current-password" placeholder="Senha"
+              onChange={(e) => setPassword(e.target.value)} />
+            <button type="button" className="login-eye" onClick={() => setShowPass((s) => !s)}
+              title={showPass ? 'Ocultar senha' : 'Mostrar senha'}>
+              <i className={`fa-solid ${showPass ? 'fa-eye-slash' : 'fa-eye'}`} />
+            </button>
+          </div>
         </div>
-        <button type="submit" className="btn-primary" disabled={loading}
-          style={{ width: '100%', justifyContent: 'center', padding: '14px' }}>
-          {loading ? <i className="fa-solid fa-spinner fa-spin" /> : 'Entrar'}
+
+        <button type="submit" className="btn-primary login-submit" disabled={loading}>
+          {loading ? <i className="fa-solid fa-spinner fa-spin" /> : <><i className="fa-solid fa-arrow-right-to-bracket" /> Entrar</>}
         </button>
+
+        <p className="login-foot">AutoQui · Painel de gestão</p>
       </form>
     </div>
   );
