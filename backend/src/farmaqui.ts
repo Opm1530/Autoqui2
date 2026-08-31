@@ -183,7 +183,9 @@ const DEFAULT_RECOMPRA = { enabled: false, mensagem: 'Olá {{nome}}! 💊 Já fa
 const DEFAULT_AUTOMACOES = {
   aniversario: { enabled: false, mensagem: 'Feliz aniversário, {{nome}}! 🎉 Passa aqui na farmácia pra ganhar um mimo especial. Um abraço!' },
   reativacao: { enabled: false, dias: 60, mensagem: 'Oi {{nome}}! Faz um tempo que a gente não se fala. Precisa de algum medicamento ou tem alguma dúvida? Estamos aqui pra ajudar. 💚' },
+  usoContinuo: { enabled: false, mensagem: 'Olá {{nome}}! 💊 Passando pra lembrar de repor seu medicamento de uso contínuo. Quer que eu já separe pra você? É só me chamar!' },
 };
+const TAG_USO_CONTINUO = 'uso continuo'; // normalizado (sem acento)
 
 export async function getConfig(uid: string) {
   const companyId = await companyOf(uid);
@@ -196,6 +198,7 @@ export async function getConfig(uid: string) {
     automacoes: {
       aniversario: { ...DEFAULT_AUTOMACOES.aniversario, ...(f.automacoes?.aniversario || {}) },
       reativacao: { ...DEFAULT_AUTOMACOES.reativacao, ...(f.automacoes?.reativacao || {}) },
+      usoContinuo: { ...DEFAULT_AUTOMACOES.usoContinuo, ...(f.automacoes?.usoContinuo || {}) },
     },
   };
 }
@@ -212,9 +215,11 @@ export async function saveAutomacoes(uid: string, body: any) {
   const companyId = await companyOf(uid);
   const aniversario = { enabled: body?.aniversario?.enabled === true, mensagem: String(body?.aniversario?.mensagem || '') };
   const reativacao = { enabled: body?.reativacao?.enabled === true, dias: Math.max(15, Number(body?.reativacao?.dias) || 60), mensagem: String(body?.reativacao?.mensagem || '') };
+  const usoContinuo = { enabled: body?.usoContinuo?.enabled === true, mensagem: String(body?.usoContinuo?.mensagem || '') };
   if (aniversario.enabled && !aniversario.mensagem.trim()) throw new Error('mensagem_aniversario_obrigatoria');
   if (reativacao.enabled && !reativacao.mensagem.trim()) throw new Error('mensagem_reativacao_obrigatoria');
-  await db.collection('companies').doc(companyId).set({ farmaqui: { automacoes: { aniversario, reativacao } } }, { merge: true });
+  if (usoContinuo.enabled && !usoContinuo.mensagem.trim()) throw new Error('mensagem_uso_continuo_obrigatoria');
+  await db.collection('companies').doc(companyId).set({ farmaqui: { automacoes: { aniversario, reativacao, usoContinuo } } }, { merge: true });
   return { ok: true };
 }
 
@@ -342,7 +347,7 @@ async function processAutomacoes() {
   for (const c of companies) {
     const f = (c as any).farmaqui || {};
     const auto = f.automacoes || {};
-    if (!auto.aniversario?.enabled && !auto.reativacao?.enabled) continue;
+    if (!auto.aniversario?.enabled && !auto.reativacao?.enabled && !auto.usoContinuo?.enabled) continue;
     const cap = await readCapture(c.id);
     if (!cap.instancia) continue;
     const leads = await getAll('leads', [{ field: 'empresaId', operator: '==', value: c.id }]).catch(() => []);
@@ -360,6 +365,20 @@ async function processAutomacoes() {
             await sendText(cap.instancia, phone, String(auto.aniversario.mensagem || '').replace(/\{\{nome\}\}/gi, primeiroNome));
             await db.collection('leads').doc(lead.id).update({ ultimoAniversarioEnviado: anoAtual });
           } catch (e: any) { console.error('[farmaqui] aniversario erro:', e?.message); }
+          continue; // não manda reativação no mesmo dia
+        }
+      }
+
+      // Uso contínuo: lembrete mensal para quem tem a tag "Uso contínuo".
+      if (auto.usoContinuo?.enabled) {
+        const tags = (Array.isArray(lead.tags) ? lead.tags : []).map((t: string) => String(t).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim());
+        const temUso = tags.includes(TAG_USO_CONTINUO);
+        const ultUso = lead.ultimoUsoContinuo ? new Date(lead.ultimoUsoContinuo).getTime() : 0;
+        if (temUso && Date.now() - ultUso >= 30 * 86400000) {
+          try {
+            await sendText(cap.instancia, phone, String(auto.usoContinuo.mensagem || '').replace(/\{\{nome\}\}/gi, primeiroNome));
+            await db.collection('leads').doc(lead.id).update({ ultimoUsoContinuo: new Date().toISOString() });
+          } catch (e: any) { console.error('[farmaqui] uso continuo erro:', e?.message); }
           continue; // não manda reativação no mesmo dia
         }
       }

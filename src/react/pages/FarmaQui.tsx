@@ -130,18 +130,20 @@ export function FarmaQuiRecompra() {
 function Automacoes() {
   const [aniv, setAniv] = useState({ enabled: false, mensagem: '' });
   const [reat, setReat] = useState({ enabled: false, dias: 60, mensagem: '' });
+  const [uso, setUso] = useState({ enabled: false, mensagem: '' });
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    farmaquiApi.config().then((c) => { if (c.automacoes) { setAniv(c.automacoes.aniversario); setReat(c.automacoes.reativacao); } setLoading(false); }).catch(() => setLoading(false));
+    farmaquiApi.config().then((c) => { if (c.automacoes) { setAniv(c.automacoes.aniversario); setReat(c.automacoes.reativacao); if (c.automacoes.usoContinuo) setUso(c.automacoes.usoContinuo); } setLoading(false); }).catch(() => setLoading(false));
   }, []);
 
   async function save() {
     if (aniv.enabled && !aniv.mensagem.trim()) { toast.warning('Escreva a mensagem de aniversário.'); return; }
     if (reat.enabled && !reat.mensagem.trim()) { toast.warning('Escreva a mensagem de reativação.'); return; }
+    if (uso.enabled && !uso.mensagem.trim()) { toast.warning('Escreva a mensagem de uso contínuo.'); return; }
     setBusy(true);
-    try { await farmaquiApi.saveAutomacoes({ aniversario: aniv, reativacao: reat }); toast.success('Automações salvas!'); }
+    try { await farmaquiApi.saveAutomacoes({ aniversario: aniv, reativacao: reat, usoContinuo: uso }); toast.success('Automações salvas!'); }
     catch (e: any) { toast.error('Erro: ' + (e.message || e)); }
     finally { setBusy(false); }
   }
@@ -189,6 +191,22 @@ function Automacoes() {
             <textarea className="config-input" style={{ minHeight: 80, resize: 'vertical', fontFamily: 'inherit' }} value={reat.mensagem} onChange={(e) => setReat({ ...reat, mensagem: e.target.value })} placeholder="Ex: Oi {{nome}}, faz um tempo que não se fala..." />
             <VarHint onInsert={(v) => setReat({ ...reat, mensagem: (reat.mensagem || '') + v })} note="Enviada no máximo 1x por mês por cliente." />
           </div>
+        </div>
+      </div>
+
+      {/* Uso contínuo */}
+      <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: 14, marginTop: 14 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+          <div>
+            <div style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}><i className="fa-solid fa-prescription-bottle-medical" style={{ color: TEAL }} /> Uso contínuo</div>
+            <p style={{ margin: '2px 0 0', color: 'var(--text-muted)', fontSize: '0.85rem' }}>Lembrete <strong>mensal</strong> para clientes com a tag <strong>"Uso contínuo"</strong> reporem o medicamento.</p>
+          </div>
+          <label className="cfg-switch"><input type="checkbox" checked={uso.enabled} onChange={(e) => setUso({ ...uso, enabled: e.target.checked })} /><span className="cfg-slider" /></label>
+        </div>
+        <div style={{ marginTop: 12 }}>
+          <label className="config-label">Mensagem</label>
+          <textarea className="config-input" style={{ minHeight: 80, resize: 'vertical', fontFamily: 'inherit' }} value={uso.mensagem} onChange={(e) => setUso({ ...uso, mensagem: e.target.value })} placeholder="Ex: Olá {{nome}}! Hora de repor seu medicamento de uso contínuo 💊" />
+          <VarHint onInsert={(v) => setUso({ ...uso, mensagem: (uso.mensagem || '') + v })} note="Enviada 1x por mês para quem tem a tag." />
         </div>
       </div>
 
