@@ -100,31 +100,30 @@ export function CatalogSettings() {
 
   return (
     <div>
-      {/* Seletor de loja + seções */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', marginBottom: 28 }}>
-        <div className="config-subnav" style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+      <div className="page-heading"><h1>Configuração</h1><p>Ajuste o design, as mensagens e o pagamento do seu catálogo.</p></div>
+
+      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+        <div className="manage-tabs" style={{ marginBottom: 0, flex: 1 }}>
           {(isVitrine ? SECTIONS_VITRINE : SECTIONS).map((s) => (
             <button key={s.key} onClick={() => setSection(s.key as any)}
-              className={'config-subnav-btn' + (section === s.key ? ' active' : '')}>
-              <i className={`fa-solid ${s.icon}`} /> {s.label}
+              className={'manage-tab' + (section === s.key ? ' active' : '')}>
+              <i className={`fa-solid ${s.icon}`} /> <span>{s.label}</span>
             </button>
           ))}
         </div>
 
         {stores.length > 1 && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-dim)', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Loja</span>
-            <div style={{ position: 'relative' }}>
-              <i className="fa-solid fa-store" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--primary)', pointerEvents: 'none' }} />
-              <select value={activeStoreId} onChange={(e) => setActiveStoreId(e.target.value)}
-                style={{ appearance: 'none', padding: '0.6rem 2.2rem 0.6rem 34px', background: 'var(--surface-hover)', border: '1px solid var(--border-color)', borderRadius: 10, color: 'var(--text-main)', fontSize: '0.9rem', fontWeight: 600, cursor: 'pointer', minWidth: 220 }}>
-                {stores.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-              </select>
-              <i className="fa-solid fa-chevron-down" style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)', pointerEvents: 'none', fontSize: '0.75rem' }} />
-            </div>
+          <div style={{ position: 'relative', marginBottom: 8 }}>
+            <i className="fa-solid fa-store" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--primary)', pointerEvents: 'none' }} />
+            <select value={activeStoreId} onChange={(e) => setActiveStoreId(e.target.value)}
+              style={{ appearance: 'none', padding: '0.55rem 2.2rem 0.55rem 34px', background: 'var(--surface-hover)', border: '1px solid var(--border-color)', borderRadius: 10, color: 'var(--text-main)', fontSize: '0.9rem', fontWeight: 600, cursor: 'pointer', minWidth: 200 }}>
+              {stores.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+            </select>
+            <i className="fa-solid fa-chevron-down" style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)', pointerEvents: 'none', fontSize: '0.75rem' }} />
           </div>
         )}
       </div>
+      <div style={{ marginBottom: 28 }} />
 
       {section === 'design' && <Appearance key={`ap-${activeStoreId}`} companyId={companyId} storeId={activeStoreId} design={design} vitrine={isVitrine} onSave={save} />}
       {section === 'mensagens' && !isVitrine && (
