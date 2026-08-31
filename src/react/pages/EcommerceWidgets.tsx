@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { SkeletonCards } from '../components/Skeleton';
 import { ecommerceApi } from '../../services/ecommerceApi';
 import { toast } from '../../services/toast';
 
@@ -19,7 +20,7 @@ export function EcommerceWidgets() {
     finally { setBusy(false); }
   }
 
-  if (loading) return <p style={{ color: 'var(--text-muted)' }}>Carregando...</p>;
+  if (loading) return <SkeletonCards count={3} lines={3} />;
 
   return (
     <div style={{ display: 'grid', gap: '1.25rem' }}>

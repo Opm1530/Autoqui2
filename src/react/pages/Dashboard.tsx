@@ -5,6 +5,7 @@ import { toast } from '../../services/toast';
 import { useAuth } from '../useAuth';
 import { subscriptionApi } from '../../services/subscriptionApi';
 import { MonthlyBars, BairroDonut, BestHours, RecentOrders, SubscriptionCard, fmtInt, fmtBRL } from './DashboardWidgets';
+import { SkeletonBox } from '../components/Skeleton';
 
 const MESES_PT = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
 const orderDate = (o: any): Date => (o.criadoEm?.toDate ? o.criadoEm.toDate() : new Date(o.criadoEm || o.createdAt || 0));
@@ -66,6 +67,7 @@ export function Dashboard() {
   const [stores, setStores] = useState<any[]>([]);
   const [checklist, setChecklist] = useState<Checklist | null>(null);
   const [shared, setShared] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => { subscriptionApi.mine().then(setSub).catch(() => {}); }, []);
 
@@ -199,6 +201,7 @@ export function Dashboard() {
         const bestHours = Array.from(hourMap.entries()).sort((a, b) => b[1] - a[1]).slice(0, 3) as [number, number][];
         setCatalog({ lowStockProducts, topProducts, bestHours });
       }
+      setLoading(false);
     })();
   }, [companyId]);
 
@@ -229,6 +232,8 @@ export function Dashboard() {
   ];
   const doneCount = steps.filter((s) => s.done).length;
   const showChecklist = checklist && doneCount < steps.length;
+
+  if (loading) return <DashboardSkeleton />;
 
   return (
     <div>
@@ -300,6 +305,45 @@ export function Dashboard() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// Skeleton de carregamento do Dashboard (mesma silhueta da tela).
+function DashboardSkeleton() {
+  return (
+    <div>
+      <div className="page-heading" style={{ marginBottom: '1.75rem' }}>
+        <SkeletonBox width={200} height={28} />
+        <SkeletonBox width={320} height={16} style={{ marginTop: 10 }} />
+      </div>
+      <div className="dashboard-grid">
+        {[0, 1, 2, 3].map((i) => (
+          <div key={i} className="stats-card card">
+            <SkeletonBox width={110} height={14} />
+            <SkeletonBox width={140} height={30} style={{ marginTop: 'auto' }} />
+            <SkeletonBox width={90} height={12} />
+          </div>
+        ))}
+      </div>
+      <div className="dash-viz">
+        {[0, 1, 2].map((col) => (
+          <div key={col} className="dash-col">
+            <div className="card viz-card">
+              <SkeletonBox width={160} height={18} />
+              <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {[0, 1, 2, 3, 4].map((r) => <SkeletonBox key={r} height={16} />)}
+              </div>
+            </div>
+            <div className="card viz-card">
+              <SkeletonBox width={140} height={18} />
+              <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {[0, 1, 2].map((r) => <SkeletonBox key={r} height={16} />)}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

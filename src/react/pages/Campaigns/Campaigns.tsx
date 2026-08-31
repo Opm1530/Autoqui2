@@ -6,6 +6,7 @@ import { dataApi } from '../../../services/dataApi';
 import { toast } from '../../../services/toast';
 import { confirm } from '../../../services/confirm';
 import { useAuth } from '../../useAuth';
+import { SkeletonCards } from '../../components/Skeleton';
 import { formatActivityDate, resolveTimestampMs } from './helpers';
 
 export function Campaigns() {
@@ -43,6 +44,7 @@ export function Campaigns() {
   }, [companyId]);
 
   if (!companyId) return <p>Usuário sem empresa.</p>;
+  if (!loaded) return <SkeletonCards count={4} lines={4} />;
 
   return (
     <div className="campaign-container">
