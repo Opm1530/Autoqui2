@@ -190,13 +190,12 @@ export function Products() {
             </div>
           </div>
         )}
-        <div className="leads-filter-bar">
-          <button className={'filter-btn' + (catFilter === 'all' ? ' active' : '')} onClick={() => setCatFilter('all')}>Todas</button>
-          {categories.map((c) => (
-            <button key={c.id} className={'filter-btn' + (catFilter === c.id ? ' active' : '')} onClick={() => setCatFilter(c.id)}>
-              {c.icon && <i className={`fa-solid ${c.icon}`} />} {c.name}
-            </button>
-          ))}
+        <div className={'date-filter' + (catFilter !== 'all' ? ' active' : '')}>
+          <i className="fa-solid fa-tags" />
+          <select value={catFilter} onChange={(e) => setCatFilter(e.target.value)} aria-label="Categoria">
+            <option value="all">Todas as categorias</option>
+            {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
         </div>
       </div>
 
