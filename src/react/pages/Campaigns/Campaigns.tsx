@@ -107,7 +107,6 @@ function NovaCampanha({ company, instances, allLeads, loaded }: { company: any; 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const start = (page - 1) * PAGE_SIZE;
   const pageLeads = filtered.slice(start, start + PAGE_SIZE);
-  const storeName = (id: string) => company?.stores?.find((s: any) => s.id === id)?.name || 'N/A';
 
   const toggleLead = (id: string) => setSelected((prev) => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
   const allPageChecked = pageLeads.length > 0 && pageLeads.every((l) => selected.has(l.id));
@@ -193,10 +192,10 @@ function NovaCampanha({ company, instances, allLeads, loaded }: { company: any; 
           </div>
           <div className="leads-table-content">
             <table className="cmp-leads-table">
-              <thead><tr><th style={{ width: 40 }}><input type="checkbox" checked={allPageChecked} onChange={(e) => toggleAllPage(e.target.checked)} /></th><th>Nome</th><th>WhatsApp</th><th>Loja</th><th>Status</th><th>Última Atividade</th></tr></thead>
+              <thead><tr><th style={{ width: 40 }}><input type="checkbox" checked={allPageChecked} onChange={(e) => toggleAllPage(e.target.checked)} /></th><th>Nome</th><th>WhatsApp</th><th>Status</th><th>Última Atividade</th></tr></thead>
               <tbody>
-                {!loaded ? <tr><td colSpan={6} style={{ textAlign: 'center', padding: '1.5rem', color: 'var(--text-muted)' }}>Carregando...</td></tr>
-                  : pageLeads.length === 0 ? <tr><td colSpan={6} style={{ textAlign: 'center', padding: '1.5rem', color: 'var(--text-muted)' }}>Nenhum lead encontrado.</td></tr>
+                {!loaded ? <tr><td colSpan={5} style={{ textAlign: 'center', padding: '1.5rem', color: 'var(--text-muted)' }}>Carregando...</td></tr>
+                  : pageLeads.length === 0 ? <tr><td colSpan={5} style={{ textAlign: 'center', padding: '1.5rem', color: 'var(--text-muted)' }}>Nenhum lead encontrado.</td></tr>
                   : pageLeads.map((l) => {
                     const act = formatActivityDate(l.updatedAt || l.criadoEm || l.createdAt);
                     return (
@@ -204,7 +203,6 @@ function NovaCampanha({ company, instances, allLeads, loaded }: { company: any; 
                         <td><input type="checkbox" checked={selected.has(l.id)} onChange={() => toggleLead(l.id)} /></td>
                         <td>{l.nome || 'Sem nome'}</td>
                         <td>{(l.telefone || '').split('@')[0]}</td>
-                        <td><span className="badge secondary" style={{ fontSize: '0.7rem' }}>{storeName(l.lojaId)}</span></td>
                         <td><span className={`badge ${l.statusLead === 'cliente_ativo' ? 'success' : 'secondary'}`} style={{ fontSize: '0.7rem' }}>{l.statusLead || 'novo'}</span></td>
                         <td><span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '0.78rem' }}><span style={{ width: 7, height: 7, borderRadius: '50%', background: act.color }} /><span style={{ color: act.color, fontWeight: 600 }}>{act.label}</span></span></td>
                       </tr>
