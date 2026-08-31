@@ -395,6 +395,25 @@ ul {
 }
 .sub-cta:hover { background: #264227; transform: translateY(-1px); }
 
+/* Filtros da direita em Pedidos: data + arquivados */
+.orders-right-filters { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.date-filter {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  padding: 0.45rem 0.95rem;
+}
+.date-filter > i { color: var(--primary); font-size: 0.9rem; }
+.date-filter input[type="date"] {
+  border: none; background: transparent; color: var(--text-main);
+  font-family: inherit; font-size: 0.85rem; outline: none; cursor: pointer;
+  min-width: 108px;
+}
+.date-sep { color: var(--text-muted); font-size: 0.8rem; }
+.date-clear { background: none; border: none; color: var(--text-dim); cursor: pointer; padding: 2px 4px; font-size: 0.85rem; }
+.date-clear:hover { color: var(--danger); }
+
 /* Instâncias: no máximo 2 por linha (cards maiores) */
 .instances-grid {
   display: grid;

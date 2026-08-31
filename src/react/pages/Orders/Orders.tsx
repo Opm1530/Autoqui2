@@ -19,6 +19,8 @@ export function Orders() {
   const [stores, setStores] = useState<any[]>([]);
   const [leads, setLeads] = useState<any[]>([]);
   const [activeFilter, setActiveFilter] = useState('todos');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
   const [selected, setSelected] = useState<any | null>(null);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [loaded, setLoaded] = useState(false);
@@ -71,10 +73,18 @@ export function Orders() {
       base = orders.filter((o) => !isOrderArchived(o) && !isPendingPayment(o));
       if (activeFilter !== 'todos') base = base.filter((o) => (o.status || 'em_montagem').toLowerCase() === activeFilter);
     }
+    if (dateFrom || dateTo) {
+      const min = dateFrom ? new Date(dateFrom + 'T00:00:00').getTime() : -Infinity;
+      const max = dateTo ? new Date(dateTo + 'T23:59:59').getTime() : Infinity;
+      base = base.filter((o) => {
+        const t = (o.criadoEm?.toDate?.() || new Date(o.criadoEm || 0)).getTime();
+        return t >= min && t <= max;
+      });
+    }
     return base;
-  }, [orders, activeFilter]);
+  }, [orders, activeFilter, dateFrom, dateTo]);
 
-  const { page, setPage, totalPages, pageItems, total, perPage } = usePagination(visible, 20, `${activeFilter}`);
+  const { page, setPage, totalPages, pageItems, total, perPage } = usePagination(visible, 20, `${activeFilter}|${dateFrom}|${dateTo}`);
 
   const count = (key: string) => {
     if (key === 'arquivados') return orders.filter(isOrderArchived).length;
@@ -88,14 +98,33 @@ export function Orders() {
     <div>
       <div className="page-heading"><h1>Pedidos</h1><p>Acompanhe e gerencie os pedidos do seu catálogo.</p></div>
       {/* Filtros */}
-      <div className="leads-page-header" style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+      <div className="leads-page-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+        {/* Esquerda: status */}
         <div className="leads-filter-bar">
-          {FILTERS.filter((f) => f.key === 'todos' || f.key === 'arquivados' || count(f.key) > 0).map((f) => (
+          {FILTERS.filter((f) => f.key !== 'arquivados' && (f.key === 'todos' || count(f.key) > 0)).map((f) => (
             <button key={f.key} className={'filter-btn' + (activeFilter === f.key ? ' active' : '')} onClick={() => setActiveFilter(f.key)}>
               {f.icon && <i className={`fa-solid ${f.icon}`} />} {f.label}
-              {f.key !== 'arquivados' && <span className="filter-count">{count(f.key)}</span>}
+              <span className="filter-count">{count(f.key)}</span>
             </button>
           ))}
+        </div>
+
+        {/* Direita: filtro de data + arquivados */}
+        <div className="orders-right-filters">
+          <div className="date-filter">
+            <i className="fa-solid fa-calendar-days" />
+            <input type="date" value={dateFrom} max={dateTo || undefined} onChange={(e) => setDateFrom(e.target.value)} aria-label="Data inicial" />
+            <span className="date-sep">até</span>
+            <input type="date" value={dateTo} min={dateFrom || undefined} onChange={(e) => setDateTo(e.target.value)} aria-label="Data final" />
+            {(dateFrom || dateTo) && (
+              <button className="date-clear" title="Limpar datas" onClick={() => { setDateFrom(''); setDateTo(''); }}><i className="fa-solid fa-xmark" /></button>
+            )}
+          </div>
+          <button className={'filter-btn' + (activeFilter === 'arquivados' ? ' active' : '')}
+            onClick={() => setActiveFilter(activeFilter === 'arquivados' ? 'todos' : 'arquivados')}>
+            <i className="fa-solid fa-box-archive" /> Arquivados
+            <span className="filter-count">{count('arquivados')}</span>
+          </button>
         </div>
       </div>
 
