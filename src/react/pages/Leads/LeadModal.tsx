@@ -10,11 +10,12 @@ interface Props {
   lead: any;
   isOnlyCatalog: boolean;
   farmaqui?: boolean;
+  fidelidade?: any;
   onClose: () => void;
   onUpdated: (lead: any) => void;
 }
 
-export function LeadModal({ lead, isOnlyCatalog, farmaqui, onClose, onUpdated }: Props) {
+export function LeadModal({ lead, isOnlyCatalog, farmaqui, fidelidade, onClose, onUpdated }: Props) {
   const [mode, setMode] = useState<'view' | 'edit'>('view');
   const [busy, setBusy] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -137,7 +138,23 @@ export function LeadModal({ lead, isOnlyCatalog, farmaqui, onClose, onUpdated }:
                   </div>
                 )}
                 <TagsEditor lead={lead} onUpdated={onUpdated} />
-                <RecompraLead lead={lead} onUpdated={onUpdated} />
+                {fidelidade?.enabled && fidelidade.meta > 0 && (() => {
+                  const total = Array.isArray(lead.historicoCompras) ? lead.historicoCompras.length : 0;
+                  const noCiclo = total % fidelidade.meta;
+                  const faltam = noCiclo === 0 && total > 0 ? 0 : fidelidade.meta - noCiclo;
+                  return (
+                    <div className="lead-section" style={{ borderTop: '1px solid var(--border-color)', paddingTop: 14, marginTop: 6 }}>
+                      <h4 className="lead-section-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}><i className="fa-solid fa-award" style={{ color: '#14b8a6' }} /> Fidelidade</h4>
+                      <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: '6px 0 8px' }}>
+                        {total} compra(s) · {faltam === 0 ? <strong style={{ color: 'var(--primary-hover)' }}>prêmio disponível! 🎉</strong> : <>faltam <strong>{faltam}</strong> para o prêmio</>}
+                      </div>
+                      <div style={{ height: 8, background: 'var(--surface-hover)', borderRadius: 999, overflow: 'hidden' }}>
+                        <div style={{ width: `${((fidelidade.meta - faltam) / fidelidade.meta) * 100}%`, height: '100%', background: 'var(--primary)', borderRadius: 999 }} />
+                      </div>
+                    </div>
+                  );
+                })()}
+                <RecompraLead lead={lead} onUpdated={onUpdated} fidelidade={fidelidade} />
                 {isBloqueado && (
                   <div className="lead-alert danger" style={{ marginTop: 12 }}><i className="fa-solid fa-lock" /> Este lead está bloqueado. Desbloqueie antes de iniciar atendimento.</div>
                 )}
@@ -309,7 +326,7 @@ function TagsEditor({ lead, onUpdated }: { lead: any; onUpdated: (l: any) => voi
 }
 
 // Recompra (FarmaQui): registra a última compra (com produto) e agenda o lembrete.
-function RecompraLead({ lead, onUpdated }: { lead: any; onUpdated: (l: any) => void }) {
+function RecompraLead({ lead, onUpdated, fidelidade }: { lead: any; onUpdated: (l: any) => void; fidelidade?: any }) {
   const hoje = new Date().toISOString().slice(0, 10);
   const [data, setData] = useState(lead.ultimaCompra ? String(lead.ultimaCompra).slice(0, 10) : hoje);
   const [ciclo, setCiclo] = useState(Number(lead.cicloRecompraDias) || 30);
@@ -336,6 +353,11 @@ function RecompraLead({ lead, onUpdated }: { lead: any; onUpdated: (l: any) => v
       }
       setProduto(''); setAgendarRec(false);
       toast.success(agendou ? 'Compra adicionada! Lembrete de recompra agendado.' : 'Compra adicionada ao histórico.');
+      // Fidelidade: bateu a meta? avisa e envia o prêmio.
+      if (fidelidade?.enabled && fidelidade.meta > 0 && historico.length % fidelidade.meta === 0) {
+        toast.success(`🎉 ${lead.nome || 'Cliente'} completou ${historico.length} compras! Prêmio: ${fidelidade.premio || '—'}`);
+        farmaquiApi.sendFidelidade(lead.id).catch(() => {});
+      }
     } catch { toast.error('Erro ao registrar a compra.'); }
     finally { setBusy(false); }
   }

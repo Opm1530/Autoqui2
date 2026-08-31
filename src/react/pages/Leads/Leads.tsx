@@ -21,6 +21,7 @@ export function Leads() {
   const [leads, setLeads] = useState<any[]>([]);
   const [isOnlyCatalog, setIsOnlyCatalog] = useState(false);
   const [hasFarmaqui, setHasFarmaqui] = useState(false);
+  const [fidelidade, setFidelidade] = useState<any>(null);
   const [activeFilter, setActiveFilter] = useState('todos');
   const [searchParams] = useSearchParams();
   const search = searchParams.get('q') || '';
@@ -35,6 +36,7 @@ export function Leads() {
       // Sem IA de atendimento não há "bot/humano": esconde a coluna e os filtros de atendimento.
       setIsOnlyCatalog(!modulos.includes('atendimento'));
       setHasFarmaqui(modulos.includes('farmaqui'));
+      if (modulos.includes('farmaqui')) farmaquiApi.config().then((c) => setFidelidade(c.fidelidade)).catch(() => {});
     })();
   }, [companyId]);
 
@@ -165,7 +167,7 @@ export function Leads() {
       )}
 
       {selected && (
-        <LeadModal lead={selected} isOnlyCatalog={isOnlyCatalog} farmaqui={hasFarmaqui}
+        <LeadModal lead={selected} isOnlyCatalog={isOnlyCatalog} farmaqui={hasFarmaqui} fidelidade={fidelidade}
           onClose={() => setSelected(null)} onUpdated={(l) => setSelected(l)} />
       )}
     </div>

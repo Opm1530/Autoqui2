@@ -186,6 +186,7 @@ const DEFAULT_AUTOMACOES = {
   usoContinuo: { enabled: false, mensagem: 'Olá {{nome}}! 💊 Passando pra lembrar de repor seu medicamento de uso contínuo. Quer que eu já separe pra você? É só me chamar!' },
 };
 const TAG_USO_CONTINUO = 'uso continuo'; // normalizado (sem acento)
+const DEFAULT_FIDELIDADE = { enabled: false, meta: 10, premio: '', mensagem: 'Parabéns, {{nome}}! 🎉 Você completou {{meta}} compras e ganhou: {{premio}}. É só passar aqui pra retirar. Obrigado pela preferência! 💚' };
 
 export async function getConfig(uid: string) {
   const companyId = await companyOf(uid);
@@ -200,7 +201,43 @@ export async function getConfig(uid: string) {
       reativacao: { ...DEFAULT_AUTOMACOES.reativacao, ...(f.automacoes?.reativacao || {}) },
       usoContinuo: { ...DEFAULT_AUTOMACOES.usoContinuo, ...(f.automacoes?.usoContinuo || {}) },
     },
+    fidelidade: { ...DEFAULT_FIDELIDADE, ...(f.fidelidade || {}) },
   };
+}
+
+export async function saveFidelidade(uid: string, body: any) {
+  const companyId = await companyOf(uid);
+  const fidelidade = {
+    enabled: body?.enabled === true,
+    meta: Math.max(2, Number(body?.meta) || 10),
+    premio: String(body?.premio || '').slice(0, 120),
+    mensagem: String(body?.mensagem || ''),
+  };
+  if (fidelidade.enabled && (!fidelidade.premio.trim() || !fidelidade.mensagem.trim())) throw new Error('premio_e_mensagem_obrigatorios');
+  await db.collection('companies').doc(companyId).set({ farmaqui: { fidelidade } }, { merge: true });
+  return { ok: true };
+}
+
+// Envia a mensagem de fidelidade quando o cliente bate a meta (chamado ao registrar compra).
+export async function sendFidelidade(uid: string, leadId: string) {
+  const companyId = await companyOf(uid);
+  const company = await db.collection('companies').doc(companyId).get();
+  const fid = { ...DEFAULT_FIDELIDADE, ...((company.data() as any)?.farmaqui?.fidelidade || {}) };
+  if (!fid.enabled) return { ok: false, reason: 'desativado' };
+  const leadRef = db.collection('leads').doc(leadId);
+  const lead = await leadRef.get();
+  if (!lead.exists || (lead.data() as any).empresaId !== companyId) throw new Error('lead_nao_encontrado');
+  const l = lead.data() as any;
+  if (l.descadastrado) return { ok: false, reason: 'descadastrado' };
+  const cap = await readCapture(companyId);
+  const phone = String(l.telefone || l.whatsapp || '').replace(/\D/g, '');
+  if (!cap.instancia || !phone) return { ok: false, reason: 'sem_instancia' };
+  const msg = String(fid.mensagem || '')
+    .replace(/\{\{nome\}\}/gi, String(l.nome || '').split(' ')[0] || 'tudo bem')
+    .replace(/\{\{meta\}\}/gi, String(fid.meta))
+    .replace(/\{\{premio\}\}/gi, fid.premio);
+  const ok = await sendText(cap.instancia, phone, msg);
+  return { ok };
 }
 
 export async function saveRecompra(uid: string, body: any) {

@@ -121,7 +121,52 @@ export function FarmaQuiRecompra() {
       </div>
       <RecompraConfig />
       <Automacoes />
+      <Fidelidade />
       <RecompraQueue />
+    </div>
+  );
+}
+
+// Programa de fidelidade por número de compras (selos).
+function Fidelidade() {
+  const [f, setF] = useState({ enabled: false, meta: 10, premio: '', mensagem: '' });
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => { farmaquiApi.config().then((c) => { if (c.fidelidade) setF(c.fidelidade); setLoading(false); }).catch(() => setLoading(false)); }, []);
+  async function save() {
+    if (f.enabled && (!f.premio.trim() || !f.mensagem.trim())) { toast.warning('Preencha o prêmio e a mensagem.'); return; }
+    setBusy(true);
+    try { await farmaquiApi.saveFidelidade(f); toast.success('Fidelidade salva!'); }
+    catch (e: any) { toast.error('Erro: ' + (e.message || e)); } finally { setBusy(false); }
+  }
+  if (loading) return null;
+  return (
+    <div className="card" style={{ marginTop: '1.25rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+        <div>
+          <div style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}><i className="fa-solid fa-award" style={{ color: TEAL }} /> Fidelidade (selos)</div>
+          <p style={{ margin: '2px 0 0', color: 'var(--text-muted)', fontSize: '0.85rem' }}>A cada X compras registradas, o cliente ganha um prêmio e recebe um WhatsApp automático avisando.</p>
+        </div>
+        <label className="cfg-switch"><input type="checkbox" checked={f.enabled} onChange={(e) => setF({ ...f, enabled: e.target.checked })} /><span className="cfg-slider" /></label>
+      </div>
+      <div style={{ marginTop: 12, display: 'grid', gap: 12 }}>
+        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+          <div style={{ width: 160 }}>
+            <label className="config-label">A cada (compras)</label>
+            <input type="number" min={2} className="config-input" value={f.meta} onChange={(e) => setF({ ...f, meta: Number(e.target.value) })} />
+          </div>
+          <div style={{ flex: 1, minWidth: 200 }}>
+            <label className="config-label">Prêmio</label>
+            <input className="config-input" value={f.premio} onChange={(e) => setF({ ...f, premio: e.target.value })} placeholder="Ex: 20% de desconto na próxima compra" />
+          </div>
+        </div>
+        <div>
+          <label className="config-label">Mensagem</label>
+          <textarea className="config-input" style={{ minHeight: 80, resize: 'vertical', fontFamily: 'inherit' }} value={f.mensagem} onChange={(e) => setF({ ...f, mensagem: e.target.value })} placeholder="Ex: Parabéns {{nome}}! Você completou {{meta}} compras e ganhou {{premio}} 🎉" />
+          <VarHint onInsert={(v) => setF({ ...f, mensagem: (f.mensagem || '') + v })} note="Use também {{meta}} e {{premio}}." />
+        </div>
+      </div>
+      <div style={{ textAlign: 'right', marginTop: 16 }}><button className="btn-primary" disabled={busy} onClick={save} style={{ background: TEAL }}>{busy ? 'Salvando...' : 'Salvar fidelidade'}</button></div>
     </div>
   );
 }
