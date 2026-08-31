@@ -22,6 +22,7 @@ import { ScheduleClients } from './pages/Schedule/ScheduleClients';
 import { Catalog } from './pages/Catalog/Catalog';
 import { FarmaLanding } from './pages/FarmaLanding';
 import { FarmaSettings } from './pages/FarmaSettings';
+import { Atendimento } from './pages/Atendimento';
 import { QRPage } from './pages/QRPage';
 import { AdminDashboard } from './pages/Admin/AdminDashboard';
 import { Companies } from './pages/Admin/Companies';
@@ -112,6 +113,7 @@ export function App() {
             <Route path="/tools" element={<Tools />} />
             <Route path="/ecommerce" element={<Ecommerce />} />
             <Route path="/farmaqui" element={<FarmaQui />} />
+            <Route path="/farmaqui/atendimento" element={<Atendimento />} />
             <Route path="/farmaqui/recompra" element={<FarmaQuiRecompra />} />
             <Route path="/farmaqui/grupo" element={<FarmaQuiGrupo />} />
             <Route path="/farmaqui-settings" element={<FarmaSettings />} />

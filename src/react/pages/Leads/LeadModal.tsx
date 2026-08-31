@@ -159,10 +159,8 @@ export function LeadModal({ lead, isOnlyCatalog, farmaqui, fidelidade, onClose, 
                   <div className="lead-alert danger" style={{ marginTop: 12 }}><i className="fa-solid fa-lock" /> Este lead está bloqueado. Desbloqueie antes de iniciar atendimento.</div>
                 )}
               </div>
-              {/* Direita: enviar mensagem + histórico */}
-              <div>
-                <SendMessageBox lead={lead} onUpdated={onUpdated} />
-              <div className="lead-section" style={{ marginTop: 18 }}>
+              {/* Direita: histórico de compras */}
+              <div className="lead-section" style={{ marginTop: 0 }}>
                 <h4 className="lead-section-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}><i className="fa-solid fa-clock-rotate-left" style={{ color: 'var(--primary-hover)' }} /> Histórico de compras</h4>
                 {Array.isArray(lead.historicoCompras) && lead.historicoCompras.length > 0 ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 10 }}>
@@ -179,7 +177,6 @@ export function LeadModal({ lead, isOnlyCatalog, farmaqui, fidelidade, onClose, 
                 ) : (
                   <p style={{ fontSize: '0.83rem', color: 'var(--text-dim)', marginTop: 10 }}>Nenhuma compra registrada ainda. Use "Registrar compra" ao lado.</p>
                 )}
-              </div>
               </div>
             </div>
           ) : (
@@ -288,39 +285,6 @@ function EditForm({ lead, onCancel, onUpdated, onClose }: { lead: any; onCancel:
 
 const editLabel: React.CSSProperties = { display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-dim)', textTransform: 'uppercase', marginBottom: 6, letterSpacing: '0.05em' };
 const editInput: React.CSSProperties = { width: '100%', padding: '0.75rem 1rem', background: 'var(--surface-hover)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', color: 'var(--text-main)', fontSize: '0.9rem' };
-
-// Enviar mensagem 1:1 pelo painel (inbox-lite).
-function SendMessageBox({ lead, onUpdated }: { lead: any; onUpdated: (l: any) => void }) {
-  const [text, setText] = useState('');
-  const [busy, setBusy] = useState(false);
-  async function enviar() {
-    if (!text.trim()) return;
-    setBusy(true);
-    try {
-      await farmaquiApi.sendMessage(lead.id, text.trim());
-      onUpdated({ ...lead, ultimaMensagemEnviada: text.trim(), updatedAt: new Date() });
-      setText('');
-      toast.success('Mensagem enviada!');
-    } catch (e: any) {
-      const m = e.message === 'sem_instancia' ? 'Ative a captura (instância) primeiro.' : e.message === 'falha_envio' ? 'Falha no envio pelo WhatsApp.' : (e.message || e);
-      toast.error('Erro: ' + m);
-    } finally { setBusy(false); }
-  }
-  return (
-    <div className="lead-section">
-      <h4 className="lead-section-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}><i className="fa-brands fa-whatsapp" style={{ color: '#25d366' }} /> Enviar mensagem</h4>
-      {lead.ultimaMensagem && (
-        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', background: 'rgba(23, 37, 28, 0.03)', border: '1px solid var(--border-color)', borderRadius: 8, padding: '8px 10px', margin: '8px 0' }}>
-          <span style={{ fontWeight: 600, color: 'var(--text-dim)' }}>Última recebida:</span> {String(lead.ultimaMensagem).slice(0, 160)}
-        </div>
-      )}
-      <textarea className="config-input" style={{ minHeight: 70, resize: 'vertical', fontFamily: 'inherit', marginTop: 8 }} value={text} onChange={(e) => setText(e.target.value)} placeholder="Escreva uma mensagem para o cliente..." />
-      <div style={{ textAlign: 'right', marginTop: 8 }}>
-        <button className="btn-primary" disabled={busy || !text.trim()} onClick={enviar}>{busy ? 'Enviando...' : <><i className="fa-solid fa-paper-plane" /> Enviar</>}</button>
-      </div>
-    </div>
-  );
-}
 
 // Tags do cliente (FarmaQui): segmentação por condição/interesse (ex.: diabético).
 const TAG_SUGESTOES = ['Diabético', 'Hipertenso', 'Uso contínuo', 'Idoso', 'Alérgico', 'Convênio'];

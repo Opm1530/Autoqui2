@@ -44,14 +44,17 @@ async function upsertLeadFromMessage(companyId: string, phone: string, name: str
     ]);
   }
   const existing = leads[0];
+  const entrada = { dir: 'in', text: String(message || '').slice(0, 1000), ts: now };
   if (existing) {
-    const upd: any = { ultimaMensagem: message.slice(0, 500), ultimoContato: now, updatedAt: now };
+    const conversa = [...(Array.isArray(existing.conversa) ? existing.conversa : []), entrada].slice(-50);
+    const upd: any = { ultimaMensagem: message.slice(0, 500), ultimoContato: now, updatedAt: now, conversa };
     if (optOut) upd.descadastrado = true; // opt-out por mensagem
     await db.collection('leads').doc(existing.id).update(upd);
     return;
   }
   await db.collection('leads').add({
     descadastrado: optOut,
+    conversa: [entrada],
     nome: name || cleanPhone,
     telefone: cleanPhone,
     whatsapp: cleanPhone,
@@ -144,7 +147,9 @@ export async function sendLeadMessage(uid: string, leadId: string, text: string)
   const ok = await sendText(cap.instancia, phone, msg);
   if (!ok) throw new Error('falha_envio');
   const now = new Date().toISOString();
-  await leadRef.update({ ultimaMensagemEnviada: msg.slice(0, 500), ultimoContato: now, updatedAt: now });
+  const l = lead.data() as any;
+  const conversa = [...(Array.isArray(l.conversa) ? l.conversa : []), { dir: 'out', text: msg.slice(0, 1000), ts: now }].slice(-50);
+  await leadRef.update({ ultimaMensagemEnviada: msg.slice(0, 500), ultimoContato: now, updatedAt: now, conversa });
   return { ok: true };
 }
 
