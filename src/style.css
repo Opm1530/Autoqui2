@@ -402,17 +402,15 @@ ul {
   background: var(--surface-color);
   border: 1px solid var(--border-color);
   border-radius: 999px;
-  padding: 0.45rem 0.95rem;
+  padding: 0.55rem 0.7rem 0.55rem 1rem;
 }
+.date-filter.active { border-color: var(--primary); }
 .date-filter > i { color: var(--primary); font-size: 0.9rem; }
-.date-filter input[type="date"] {
+.date-filter select {
   border: none; background: transparent; color: var(--text-main);
-  font-family: inherit; font-size: 0.85rem; outline: none; cursor: pointer;
-  min-width: 108px;
+  font-family: inherit; font-size: 0.875rem; font-weight: 500; outline: none; cursor: pointer;
+  padding-right: 4px;
 }
-.date-sep { color: var(--text-muted); font-size: 0.8rem; }
-.date-clear { background: none; border: none; color: var(--text-dim); cursor: pointer; padding: 2px 4px; font-size: 0.85rem; }
-.date-clear:hover { color: var(--danger); }
 
 /* Instâncias: no máximo 2 por linha (cards maiores) */
 .instances-grid {
@@ -663,11 +661,12 @@ ul {
 }
 
 .filter-btn {
-  padding: 0.5rem 1rem;
-  border-radius: var(--radius-sm);
+  padding: 0.55rem 1.1rem;
+  border-radius: 999px;
   font-size: 0.875rem;
   font-weight: 500;
   color: var(--text-muted);
+  background: var(--surface-color);
   border: 1px solid var(--border-color);
 }
 
@@ -1021,14 +1020,18 @@ ul {
 .gsearch-group + .gsearch-group { margin-top: 6px; border-top: 1px solid var(--border-color); padding-top: 6px; }
 .gsearch-title { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-dim); padding: 6px 10px 4px; }
 .gsearch-item {
-  display: flex; align-items: center; gap: 10px;
+  position: relative;
+  display: block;
   width: 100%; text-align: left;
-  padding: 0.55rem 0.7rem; border-radius: 9px;
+  padding: 0.55rem 0.7rem 0.55rem 2.5rem; border-radius: 9px;
   background: transparent; border: none; cursor: pointer;
   color: var(--text-main); font-family: inherit; font-size: 0.9rem;
 }
-.gsearch-item i { color: var(--text-dim); width: 18px; text-align: center; }
-.gsearch-item span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gsearch-item i {
+  position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%);
+  color: var(--text-dim); width: 18px; text-align: center;
+}
+.gsearch-item span { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .gsearch-item:hover { background: var(--surface-hover); }
 .gsearch-item:hover i { color: var(--primary); }
 .topbar-search input:focus {

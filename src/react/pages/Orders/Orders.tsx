@@ -12,6 +12,18 @@ import {
   isOrderArchived, isPendingPayment, FILTERS,
 } from './helpers';
 
+// Intervalo [min, max] em ms para o período selecionado.
+function periodRange(period: string): [number, number] {
+  const now = new Date();
+  const startOfDay = (d: Date) => { const x = new Date(d); x.setHours(0, 0, 0, 0); return x; };
+  const todayStart = startOfDay(now).getTime();
+  if (period === 'hoje') return [todayStart, Infinity];
+  if (period === 'ontem') return [todayStart - 86400000, todayStart - 1];
+  if (period === '7dias') return [todayStart - 6 * 86400000, Infinity];
+  if (period === 'mes') return [new Date(now.getFullYear(), now.getMonth(), 1).getTime(), Infinity];
+  return [-Infinity, Infinity];
+}
+
 export function Orders() {
   const { user } = useAuth();
   const companyId = user?.companyId || '';
@@ -20,8 +32,7 @@ export function Orders() {
   const [stores, setStores] = useState<any[]>([]);
   const [leads, setLeads] = useState<any[]>([]);
   const [activeFilter, setActiveFilter] = useState('todos');
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
+  const [period, setPeriod] = useState('todos');
   const [selected, setSelected] = useState<any | null>(null);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [loaded, setLoaded] = useState(false);
@@ -85,9 +96,8 @@ export function Orders() {
         return nome.includes(q) || phone.includes(q) || id.includes(q);
       });
     }
-    if (dateFrom || dateTo) {
-      const min = dateFrom ? new Date(dateFrom + 'T00:00:00').getTime() : -Infinity;
-      const max = dateTo ? new Date(dateTo + 'T23:59:59').getTime() : Infinity;
+    if (period !== 'todos') {
+      const [min, max] = periodRange(period);
       base = base.filter((o) => {
         const t = (o.criadoEm?.toDate?.() || new Date(o.criadoEm || 0)).getTime();
         return t >= min && t <= max;
@@ -95,9 +105,9 @@ export function Orders() {
     }
     return base;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [orders, activeFilter, dateFrom, dateTo, q, leads]);
+  }, [orders, activeFilter, period, q, leads]);
 
-  const { page, setPage, totalPages, pageItems, total, perPage } = usePagination(visible, 20, `${activeFilter}|${dateFrom}|${dateTo}|${q}`);
+  const { page, setPage, totalPages, pageItems, total, perPage } = usePagination(visible, 20, `${activeFilter}|${period}|${q}`);
 
   const count = (key: string) => {
     if (key === 'arquivados') return orders.filter(isOrderArchived).length;
@@ -124,14 +134,15 @@ export function Orders() {
 
         {/* Direita: filtro de data + arquivados */}
         <div className="orders-right-filters">
-          <div className="date-filter">
+          <div className={'date-filter' + (period !== 'todos' ? ' active' : '')}>
             <i className="fa-solid fa-calendar-days" />
-            <input type="date" value={dateFrom} max={dateTo || undefined} onChange={(e) => setDateFrom(e.target.value)} aria-label="Data inicial" />
-            <span className="date-sep">até</span>
-            <input type="date" value={dateTo} min={dateFrom || undefined} onChange={(e) => setDateTo(e.target.value)} aria-label="Data final" />
-            {(dateFrom || dateTo) && (
-              <button className="date-clear" title="Limpar datas" onClick={() => { setDateFrom(''); setDateTo(''); }}><i className="fa-solid fa-xmark" /></button>
-            )}
+            <select value={period} onChange={(e) => setPeriod(e.target.value)} aria-label="Período">
+              <option value="todos">Todo período</option>
+              <option value="hoje">Hoje</option>
+              <option value="ontem">Ontem</option>
+              <option value="7dias">Últimos 7 dias</option>
+              <option value="mes">Este mês</option>
+            </select>
           </div>
           <button className={'filter-btn' + (activeFilter === 'arquivados' ? ' active' : '')}
             onClick={() => setActiveFilter(activeFilter === 'arquivados' ? 'todos' : 'arquivados')}>

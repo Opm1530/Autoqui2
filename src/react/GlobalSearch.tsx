@@ -60,10 +60,12 @@ function Group({ title, icon, items, label, onClick }: { title: string; icon: st
     <div className="gsearch-group">
       <div className="gsearch-title">{title}</div>
       {items.map((it) => (
-        <button key={it.id} className="gsearch-item" onMouseDown={(e) => e.preventDefault()} onClick={onClick}>
+        <div key={it.id} className="gsearch-item" role="button" tabIndex={0}
+          onMouseDown={(e) => e.preventDefault()} onClick={onClick}
+          onKeyDown={(e) => { if (e.key === 'Enter') onClick(); }}>
           <i className={`fa-solid ${icon}`} />
           <span>{label(it)}</span>
-        </button>
+        </div>
       ))}
     </div>
   );
