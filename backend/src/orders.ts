@@ -29,16 +29,28 @@ function num(v: any, def = 0): number {
 }
 
 // Baixa de estoque agregada (combo + avulso podem abater o mesmo produto).
+// Baixa de estoque ATÔMICA: lê e decrementa dentro de uma transação, revalidando
+// o estoque no commit — dois pedidos simultâneos não vendem além do disponível.
 async function deductStock(deductions: { productId: string; qty: number }[]) {
   const byProduct = new Map<string, number>();
   for (const d of deductions) byProduct.set(d.productId, (byProduct.get(d.productId) || 0) + d.qty);
-  for (const [productId, qty] of byProduct) {
-    const snap = await db.collection('products').doc(productId).get();
-    const stock = snap.exists ? (snap.data() as any).stock : null;
-    if (stock != null) {
-      await db.collection('products').doc(productId).update({ stock: Math.max(0, stock - qty) });
+  if (byProduct.size === 0) return;
+  const entries = [...byProduct.entries()];
+  await db.runTransaction(async (tx) => {
+    const refs = entries.map(([id]) => db.collection('products').doc(id));
+    const snaps = await Promise.all(refs.map((r) => tx.get(r)));
+    // Valida com a leitura fresca da transação.
+    for (let i = 0; i < entries.length; i++) {
+      const data = snaps[i].exists ? (snaps[i].data() as any) : null;
+      const stock = data?.stock;
+      if (stock != null && stock < entries[i][1]) throw new Error(`sem_estoque:${data?.name || entries[i][0]}`);
     }
-  }
+    // Decrementa.
+    for (let i = 0; i < entries.length; i++) {
+      const data = snaps[i].exists ? (snaps[i].data() as any) : null;
+      if (data?.stock != null) tx.update(refs[i], { stock: Math.max(0, data.stock - entries[i][1]) });
+    }
+  });
 }
 
 async function findOrCreateLead(
@@ -170,9 +182,14 @@ export async function createCatalogOrder(
   if (input.couponCode) {
     const code = String(input.couponCode).trim().toUpperCase();
     const found: any = (config.cupons || []).find((c: any) => c.codigo === code && c.ativo !== false);
-    if (found && !(num(found.valorMinimo) > 0 && subtotal < num(found.valorMinimo))) {
-      desconto = found.tipo === 'percent' ? (subtotal * num(found.desconto)) / 100 : num(found.desconto);
-      codigoCupom = found.codigo;
+    if (found) {
+      const expirado = found.validade && Date.now() > new Date(found.validade).getTime();
+      const esgotado = num(found.limiteUsos) > 0 && num(found.usados) >= num(found.limiteUsos);
+      const minOk = !(num(found.valorMinimo) > 0 && subtotal < num(found.valorMinimo));
+      if (!expirado && !esgotado && minOk) {
+        desconto = found.tipo === 'percent' ? (subtotal * num(found.desconto)) / 100 : num(found.desconto);
+        codigoCupom = found.codigo;
+      }
     }
   }
 
@@ -223,6 +240,14 @@ export async function createCatalogOrder(
 
   const ref = await db.collection('pedidos').add(orderData);
   const orderId = ref.id;
+
+  // Contabiliza o uso do cupom (para o limite de usos). Best-effort.
+  if (codigoCupom && config.id) {
+    try {
+      const novos = (config.cupons || []).map((c: any) => c.codigo === codigoCupom ? { ...c, usados: num(c.usados) + 1 } : c);
+      await db.collection('loja_config').doc(config.id).update({ cupons: novos });
+    } catch { /* limite de cupom é best-effort */ }
+  }
 
   // 9. Mercado Pago: cria a cobrança DIRETO na API do MP (external_reference = orderId,
   //    pra a confirmação do pagamento achar o pedido depois). Atualiza com o payment_id.

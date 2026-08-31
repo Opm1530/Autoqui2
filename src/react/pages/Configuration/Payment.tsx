@@ -19,6 +19,8 @@ export function Payment({ config, vitrine = false, onSave }: Props) {
   const [cupomValor, setCupomValor] = useState('');
   const [cupomTipo, setCupomTipo] = useState('percent');
   const [cupomMin, setCupomMin] = useState('');
+  const [cupomValidade, setCupomValidade] = useState('');
+  const [cupomLimite, setCupomLimite] = useState('');
   const cupons: any[] = config?.cupons || [];
 
   async function savePagamento() {
@@ -41,8 +43,11 @@ export function Payment({ config, vitrine = false, onSave }: Props) {
     const code = cupomCode.trim().toUpperCase();
     const valor = parseFloat(cupomValor || '0');
     if (!code || !valor) { toast.error('Preencha código e valor do cupom.'); return; }
-    await onSave({ cupons: [...cupons, { codigo: code, desconto: valor, tipo: cupomTipo, valorMinimo: parseFloat(cupomMin || '0') || 0, ativo: true }] });
-    setCupomCode(''); setCupomValor(''); setCupomMin('');
+    const novo: any = { codigo: code, desconto: valor, tipo: cupomTipo, valorMinimo: parseFloat(cupomMin || '0') || 0, ativo: true, usados: 0 };
+    if (cupomValidade) novo.validade = new Date(cupomValidade + 'T23:59:59').toISOString();
+    if (parseInt(cupomLimite) > 0) novo.limiteUsos = parseInt(cupomLimite);
+    await onSave({ cupons: [...cupons, novo] });
+    setCupomCode(''); setCupomValor(''); setCupomMin(''); setCupomValidade(''); setCupomLimite('');
     toast.success(`Cupom ${code} adicionado!`);
   }
   async function deleteCupom(idx: number) {
@@ -96,6 +101,8 @@ export function Payment({ config, vitrine = false, onSave }: Props) {
             <div><label className="config-label">Tipo</label><select value={cupomTipo} onChange={(e) => setCupomTipo(e.target.value)} className="config-select" style={{ height: 44 }}><option value="percent">%</option><option value="fixo">R$</option></select></div>
           </div>
           <div><label className="config-label">Gasto Mínimo (R$)</label><input type="number" value={cupomMin} onChange={(e) => setCupomMin(e.target.value)} className="config-input" placeholder="0.00" min="0" step="0.01" /></div>
+          <div><label className="config-label">Validade (opcional)</label><input type="date" value={cupomValidade} onChange={(e) => setCupomValidade(e.target.value)} className="config-input" /></div>
+          <div><label className="config-label">Limite de usos (opcional)</label><input type="number" value={cupomLimite} onChange={(e) => setCupomLimite(e.target.value)} className="config-input" placeholder="ilimitado" min="0" step="1" /></div>
         </div>
         <div style={{ textAlign: 'right', marginBottom: 12 }}><button className="btn-save-msg" onClick={addCupom}><i className="fa-solid fa-plus" /> Adicionar Cupom</button></div>
         <div>
@@ -107,6 +114,8 @@ export function Payment({ config, vitrine = false, onSave }: Props) {
                   <span className={`badge ${c.ativo !== false ? 'success' : 'warning'}`}>{c.ativo !== false ? 'Ativo' : 'Inativo'}</span>
                   <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{c.tipo === 'percent' ? c.desconto + '%' : 'R$ ' + Number(c.desconto).toFixed(2)} de desconto</span>
                   {c.valorMinimo > 0 && <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)', background: 'rgba(23, 37, 28, 0.05)', padding: '2px 6px', borderRadius: 4 }}>Min: R$ {Number(c.valorMinimo).toFixed(2)}</span>}
+                  {c.validade && <span style={{ fontSize: '0.75rem', color: (new Date(c.validade) < new Date() ? '#dc2626' : 'var(--text-dim)'), background: 'rgba(23, 37, 28, 0.05)', padding: '2px 6px', borderRadius: 4 }}>Até {String(c.validade).slice(0, 10).split('-').reverse().join('/')}</span>}
+                  {c.limiteUsos > 0 && <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)', background: 'rgba(23, 37, 28, 0.05)', padding: '2px 6px', borderRadius: 4 }}>{Number(c.usados || 0)}/{c.limiteUsos} usos</span>}
                 </div>
                 <button onClick={() => deleteCupom(idx)} style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#ef4444', borderRadius: 6, padding: '4px 10px', cursor: 'pointer' }}><i className="fa-solid fa-trash" /></button>
               </div>
