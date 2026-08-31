@@ -101,3 +101,14 @@
   .lp-logo { justify-content: center; }
   .lp-wa-float { bottom: 20px; right: 20px; width: 52px; height: 52px; font-size: 26px; }
 }
+
+/* Vídeo de apresentação */
+.lp-video { max-width: 960px; margin: 0 auto; aspect-ratio: 16 / 9; border-radius: 24px; overflow: hidden; border: 1px solid var(--lp-border); box-shadow: 0 30px 80px -30px rgba(0,0,0,0.6); }
+.lp-video iframe { width: 100%; height: 100%; border: 0; display: block; }
+.lp-video-ph { width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; cursor: pointer; text-align: center; padding: 20px; background: radial-gradient(120% 100% at 50% 0%, rgba(132,204,22,0.14), transparent 60%), var(--lp-glass); color: var(--lp-text-dim); }
+.lp-video-play { width: 76px; height: 76px; border-radius: 50%; display: grid; place-items: center; font-size: 1.6rem; color: #0c1206; background: linear-gradient(135deg, var(--lp-primary), var(--lp-secondary)); box-shadow: 0 12px 40px rgba(132,204,22,0.4); transition: transform 0.3s; }
+.lp-video-ph:hover .lp-video-play { transform: scale(1.08); }
+.lp-video-ph span { max-width: 440px; font-size: 0.95rem; }
+
+/* Badge "em breve" nos cards de ferramenta */
+.lp-soon { font-size: 0.62rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; background: rgba(148,163,184,0.18); color: #cbd5e1; border: 1px solid rgba(148,163,184,0.3); padding: 2px 8px; border-radius: 999px; vertical-align: middle; margin-left: 6px; }

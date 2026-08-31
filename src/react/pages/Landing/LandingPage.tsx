@@ -8,6 +8,19 @@ import './landing.css';
 type Plan = { id: string; nome: string; valor: number; maxLojas: number };
 
 const WA = 'https://wa.me/5564999983832';
+// Cole aqui a URL de embed do vídeo (YouTube/Vimeo) quando tiver; vazio = mostra o poster.
+const VIDEO_URL = '';
+
+// Todas as ferramentas da plataforma (a vitrine completa).
+const TOOLS = [
+  { icon: 'fa-bag-shopping', color: '#84cc16', name: 'Catálogo Digital', desc: 'Loja no WhatsApp com carrinho e pagamento PIX. O cliente monta o pedido e cai pronto no painel.' },
+  { icon: 'fa-image', color: '#4d7c0f', name: 'Vitrine', desc: 'Mostruário elegante dos seus produtos — o cliente vê e pede direto no WhatsApp, sem checkout.' },
+  { icon: 'fa-prescription-bottle-medical', color: '#14b8a6', name: 'FarmaQui (CRM)', desc: 'CRM para farmácias: captura leads, histórico de compras, recompra, fidelidade e atendimento — tudo no WhatsApp.' },
+  { icon: 'fa-bullhorn', color: '#22c55e', name: 'Campanhas', desc: 'Dispare mensagens para toda a base com inteligência anti-banimento. Sem custo por mensagem.' },
+  { icon: 'fa-robot', color: '#16a34a', name: 'Atendente IA', desc: 'Uma IA que atende e qualifica seus clientes 24h. Ativada com um consultor, no tom da sua empresa.', soon: true },
+  { icon: 'fa-calendar-check', color: '#f59e0b', name: 'Agendamento', desc: 'Agenda de serviços com confirmação e lembretes automáticos. Ideal para clínicas e salões.', soon: true },
+  { icon: 'fa-store', color: '#0ea5e9', name: 'E-commerce', desc: 'Conecte sua loja NuvemShop e automatize o WhatsApp: carrinho abandonado, pós-venda e mais.', soon: true },
+];
 
 const FAQS = [
   { q: 'Como funciona a implementação do AutoQui?', a: 'É instantâneo! Após criar sua conta, você vincula seu WhatsApp por QR Code e já pode configurar seus produtos e fluxos de atendimento em poucos minutos.' },
@@ -37,7 +50,7 @@ export function LandingPage() {
       <nav className="lp-navbar">
         <div className="lp-logo"><img src="/logo.png" alt="AutoQui Logo" /><span>AutoQui</span></div>
         <div className="lp-nav-links">
-          <a href="#solucoes" className="lp-nav-link" onClick={scrollTo('solucoes')}>Recursos</a>
+          <a href="#ferramentas" className="lp-nav-link" onClick={scrollTo('ferramentas')}>Ferramentas</a>
           <a href="#planos" className="lp-nav-link" onClick={scrollTo('planos')}>Planos</a>
           <a href="#faq" className="lp-nav-link" onClick={scrollTo('faq')}>Suporte</a>
           <Link to={painelTo} className="lp-btn-login">{user ? 'Dashboard' : 'Entrar no Painel'}</Link>
@@ -45,12 +58,47 @@ export function LandingPage() {
       </nav>
 
       <section className="lp-hero">
-        <div className="lp-badge">Catálogo · IA de Atendimento · Campanhas</div>
-        <h1>Venda e atenda melhor no <span>WhatsApp</span></h1>
-        <p>Três ferramentas que trabalham juntas: um catálogo digital que recebe pedidos sozinho, uma IA que atende seus clientes 24 horas e campanhas em massa para reativar sua base. Comece hoje com o catálogo — 7 dias grátis.</p>
+        <div className="lp-badge">Tudo para vender e atender no WhatsApp</div>
+        <h1>Todas as suas ferramentas de WhatsApp, <span>em um só lugar</span></h1>
+        <p>Catálogo, vitrine, CRM de farmácia, campanhas em massa, agendamento, IA de atendimento — o AutoQui reúne tudo que o seu negócio precisa para vender e se relacionar no WhatsApp, num painel só. Comece grátis por 7 dias.</p>
         <div className="lp-hero-btns">
           <Link to="/signup" className="lp-btn-primary-lp">Começar teste grátis</Link>
-          <a href="#solucoes" className="lp-btn-secondary-lp" onClick={scrollTo('solucoes')}>Ver o que faz</a>
+          <a href="#ferramentas" className="lp-btn-secondary-lp" onClick={scrollTo('ferramentas')}>Ver as ferramentas</a>
+        </div>
+      </section>
+
+      {/* Vídeo de apresentação */}
+      <section id="video" className="lp-section">
+        <div className="lp-section-header">
+          <h2>Veja o AutoQui em ação</h2>
+          <p>Um tour rápido por tudo que a plataforma faz pelo seu negócio.</p>
+        </div>
+        <div className="lp-video">
+          {VIDEO_URL ? (
+            <iframe src={VIDEO_URL} title="Apresentação AutoQui" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
+          ) : (
+            <div className="lp-video-ph" onClick={scrollTo('ferramentas')} role="button" tabIndex={0}>
+              <div className="lp-video-play"><i className="fa-solid fa-play" /></div>
+              <span>Vídeo de apresentação em breve — enquanto isso, role e conheça as ferramentas</span>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Todas as ferramentas */}
+      <section id="ferramentas" className="lp-section alt">
+        <div className="lp-section-header">
+          <h2>Uma plataforma, várias ferramentas</h2>
+          <p>Ative só o que faz sentido pro seu negócio. Cada ferramenta vira uma seção no seu painel.</p>
+        </div>
+        <div className="lp-grid-cards">
+          {TOOLS.map((t) => (
+            <div key={t.name} className="lp-card">
+              <div className="lp-card-icon" style={{ color: t.color, background: t.color + '1f' }}><i className={`fa-solid ${t.icon}`} /></div>
+              <h3>{t.name} {t.soon && <span className="lp-soon">em breve</span>}</h3>
+              <p>{t.desc}</p>
+            </div>
+          ))}
         </div>
       </section>
 
@@ -109,8 +157,26 @@ export function LandingPage() {
         </div>
       </section>
 
+      {/* PILAR — FarmaQui (CRM de farmácia) */}
+      <section id="farmaqui" className="lp-section">
+        <div className="lp-grid-2 reverse">
+          <div className="lp-feat-content">
+            <div className="lp-badge ok" style={{ marginBottom: '1.5rem' }}><i className="fa-solid fa-check" /> Disponível</div>
+            <h2>FarmaQui — CRM para Farmácias</h2>
+            <p>Transforme cada conversa no WhatsApp em relacionamento que vende de novo. Captura quem te chama como lead, guarda o histórico de compras e lembra o cliente na hora certa — automático.</p>
+            <ul className="lp-feat-list">
+              <li className="lp-feat-item"><i className="fa-solid fa-circle-check" /> Captura de leads e histórico de compras</li>
+              <li className="lp-feat-item"><i className="fa-solid fa-circle-check" /> Recompra, aniversário e uso contínuo automáticos</li>
+              <li className="lp-feat-item"><i className="fa-solid fa-circle-check" /> Fidelidade, tags, atendimento e landing page</li>
+            </ul>
+            <Link to="/signup" className="lp-btn-primary-lp" style={{ padding: '0.9rem 2rem', fontSize: '1rem' }}>Começar teste grátis</Link>
+          </div>
+          <div className="lp-feat-visual" style={{ color: '#14b8a6' }}><i className="fa-solid fa-prescription-bottle-medical" /></div>
+        </div>
+      </section>
+
       {plans.length > 0 && (
-        <section id="planos" className="lp-section">
+        <section id="planos" className="lp-section alt">
           <div className="lp-section-header">
             <h2>Planos de Catálogo</h2>
             <p>Catálogo e campanhas inclusos. 7 dias grátis, escolha pelo número de lojas e cancele quando quiser.</p>
@@ -158,8 +224,9 @@ export function LandingPage() {
         <div className="lp-footer-col">
           <h4>Produto</h4>
           <ul>
+            <li><a href="#ferramentas" onClick={scrollTo('ferramentas')}>Ferramentas</a></li>
             <li><a href="#solucoes" onClick={scrollTo('solucoes')}>Catálogo</a></li>
-            <li><a href="#ia" onClick={scrollTo('ia')}>IA de Atendimento</a></li>
+            <li><a href="#farmaqui" onClick={scrollTo('farmaqui')}>FarmaQui</a></li>
             <li><a href="#campanhas" onClick={scrollTo('campanhas')}>Campanhas</a></li>
             <li><a href="#planos" onClick={scrollTo('planos')}>Planos</a></li>
           </ul>
