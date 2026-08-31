@@ -45,12 +45,22 @@ export function Tools() {
   const isActive = (t: Tool) => !!modulos?.includes(t.key);
 
   async function activate(t: Tool) {
-    // Canal é exclusivo: se já houver outro canal ativo, avisa que troca.
+    // Canal é exclusivo: se já houver outro canal ativo, exige confirmação por digitação.
     if (t.group === 'canal') {
       const ativo = TOOLS.find((x) => x.group === 'canal' && x.key !== t.key && modulos?.includes(x.key));
       if (ativo) {
-        const ok = await confirm.warning('Trocar de canal de venda', `Ativar "${t.name}" vai desativar "${ativo.name}" — você usa um canal principal por vez. Deseja continuar?`);
-        if (!ok) return;
+        const typed = await confirm.prompt({
+          title: 'Trocar de canal de venda',
+          message: `Você usa <strong>um canal principal por vez</strong>. Ativar "${t.name}" vai desativar "${ativo.name}" (os dados ficam guardados, mas a seção some do menu).<br><br>Para confirmar, digite <strong>${ativo.name}</strong> abaixo.`,
+          placeholder: ativo.name,
+          confirmText: `Trocar para ${t.name}`,
+          type: 'danger',
+        });
+        if (typed === null) return; // cancelou
+        if (typed.trim().toLowerCase() !== ativo.name.trim().toLowerCase()) {
+          toast.error('O nome não confere. Troca cancelada.');
+          return;
+        }
       }
     }
     setBusy(t.key);
@@ -80,20 +90,32 @@ export function Tools() {
 
   return (
     <div>
-      <div className="page-header"><div>
-        <h2 className="page-title">Ferramentas</h2>
-        <p style={{ color: 'var(--text-muted)', margin: '4px 0 0', fontSize: '0.9rem' }}>Ative as ferramentas que fazem sentido pro seu negócio. Cada uma vira uma seção no seu painel.</p>
-      </div></div>
+      <div className="page-heading">
+        <h1>Ferramentas</h1>
+        <p>Monte seu painel: escolha <strong>um canal principal</strong> de venda e some quantas melhorias de atendimento quiser. Cada ferramenta ativa vira uma seção no menu.</p>
+      </div>
 
-      <ToolSection title="Como você vende" hint="Seu canal principal — escolha um." tools={TOOLS.filter((t) => t.group === 'canal')} render={renderCard} />
-      <ToolSection title="Turbine seu atendimento" hint="Combine à vontade com o seu canal." tools={TOOLS.filter((t) => t.group === 'camada')} render={renderCard} />
+      <ToolSection
+        title="Como você vende"
+        icon="fa-store"
+        hint="Seu canal principal de venda. Você usa um por vez — trocar substitui o atual (os dados ficam guardados)."
+        tools={TOOLS.filter((t) => t.group === 'canal')}
+        render={renderCard}
+      />
+      <ToolSection
+        title="Turbine seu atendimento"
+        icon="fa-wand-magic-sparkles"
+        hint="Complementos que funcionam junto com qualquer canal — ative e desative livremente."
+        tools={TOOLS.filter((t) => t.group === 'camada')}
+        render={renderCard}
+      />
     </div>
   );
 
   function renderCard(t: Tool) {
     const active = isActive(t);
     return (
-      <div key={t.key} className="card" style={{ display: 'flex', flexDirection: 'column', gap: 14, opacity: t.soon ? 0.75 : 1, border: active ? `1px solid ${t.color}55` : undefined }}>
+      <div key={t.key} className="card" style={{ display: 'flex', flexDirection: 'column', gap: 14, opacity: t.soon ? 0.75 : 1, border: active ? `1px solid ${t.color}55` : undefined, borderLeft: active ? `4px solid ${t.color}` : undefined }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
           <div style={{ width: 52, height: 52, borderRadius: 14, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: t.color + '1f', color: t.color, fontSize: '1.4rem' }}>
             <i className={`fa-solid ${t.icon}`} />
@@ -127,12 +149,15 @@ export function Tools() {
   }
 }
 
-function ToolSection({ title, hint, tools, render }: { title: string; hint: string; tools: Tool[]; render: (t: Tool) => ReactNode }) {
+function ToolSection({ title, icon, hint, tools, render }: { title: string; icon: string; hint: string; tools: Tool[]; render: (t: Tool) => ReactNode }) {
   return (
     <div style={{ marginTop: '2rem' }}>
       <div style={{ marginBottom: '1rem' }}>
-        <h3 style={{ margin: 0 }}>{title}</h3>
-        <p style={{ color: 'var(--text-muted)', margin: '2px 0 0', fontSize: '0.85rem' }}>{hint}</p>
+        <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{ width: 30, height: 30, borderRadius: 9, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'var(--primary)', color: 'var(--primary-contrast)', fontSize: '0.85rem' }}><i className={`fa-solid ${icon}`} /></span>
+          {title}
+        </h3>
+        <p style={{ color: 'var(--text-muted)', margin: '6px 0 0', fontSize: '0.85rem' }}>{hint}</p>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.25rem' }}>
         {tools.map(render)}
