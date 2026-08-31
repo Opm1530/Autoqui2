@@ -114,8 +114,11 @@ export function LeadModal({ lead, isOnlyCatalog, farmaqui, onClose, onUpdated }:
             <div className="lead-info-item"><span className="lead-info-label">Telefone</span><span className="lead-info-value">{phone || '-'}</span></div>
             <div className="lead-info-item"><span className="lead-info-label">Criado em</span><span className="lead-info-value">{formatDate(lead.criadoEm || lead.createdAt)}</span></div>
             <div className="lead-info-item"><span className="lead-info-label">Última atividade</span><span className="lead-info-value">{formatDate(lead.updatedAt)}</span></div>
+            {lead.aniversario && <div className="lead-info-item"><span className="lead-info-label">Aniversário</span><span className="lead-info-value">{String(lead.aniversario).slice(0, 10).split('-').reverse().join('/')}</span></div>}
             {lead.endereco && <div className="lead-info-item" style={{ gridColumn: '1 / -1' }}><span className="lead-info-label">Endereço</span><span className="lead-info-value">{lead.endereco}</span></div>}
           </div>
+
+          {farmaqui && <TagsEditor lead={lead} onUpdated={onUpdated} />}
 
           {(lead.ultimoPedido || lead.lastOrder) && (
             <div className="lead-section"><h4 className="lead-section-title">Último Pedido</h4><div className="lead-last-order"><span>{lead.ultimoPedido || lead.lastOrder}</span></div></div>
@@ -128,6 +131,19 @@ export function LeadModal({ lead, isOnlyCatalog, farmaqui, onClose, onUpdated }:
           )}
 
           {farmaqui && <RecompraLead lead={lead} onUpdated={onUpdated} />}
+          {farmaqui && Array.isArray(lead.historicoCompras) && lead.historicoCompras.length > 0 && (
+            <div className="lead-section" style={{ borderTop: '1px solid var(--border-color)', paddingTop: 14, marginTop: 6 }}>
+              <h4 className="lead-section-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}><i className="fa-solid fa-clock-rotate-left" style={{ color: '#14b8a6' }} /> Histórico de compras</h4>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 6 }}>
+                {lead.historicoCompras.slice(0, 20).map((h: any, i: number) => (
+                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, padding: '8px 10px', background: 'rgba(23, 37, 28, 0.03)', border: '1px solid var(--border-color)', borderRadius: 8 }}>
+                    <span style={{ fontSize: '0.85rem' }}>{h.produto || <em style={{ color: 'var(--text-dim)' }}>compra sem descrição</em>}</span>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{String(h.data).slice(0, 10).split('-').reverse().join('/')}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {primary && (
@@ -148,6 +164,7 @@ function EditForm({ lead, onCancel, onUpdated, onClose }: { lead: any; onCancel:
   const [nome, setNome] = useState(lead.nome || '');
   const [phone, setPhone] = useState((lead.telefone || '').split('@')[0] || '');
   const [endereco, setEndereco] = useState(lead.endereco || '');
+  const [aniversario, setAniversario] = useState(lead.aniversario ? String(lead.aniversario).slice(0, 10) : '');
   const [saving, setSaving] = useState(false);
 
   async function save() {
@@ -157,7 +174,7 @@ function EditForm({ lead, onCancel, onUpdated, onClose }: { lead: any; onCancel:
     if (cleanPhone && cleanPhone.length !== 11) { notifications.showPhoneError(); return; }
     setSaving(true);
     try {
-      const updates = { nome: nome.trim(), telefone: cleanPhone, whatsapp: cleanPhone, endereco: endereco.trim() };
+      const updates = { nome: nome.trim(), telefone: cleanPhone, whatsapp: cleanPhone, endereco: endereco.trim(), aniversario: aniversario || null };
       await dataApi.update('leads', lead.id, updates);
       toast.success('Lead atualizado!');
       onUpdated({ ...lead, ...updates, updatedAt: new Date() });
@@ -196,6 +213,10 @@ function EditForm({ lead, onCancel, onUpdated, onClose }: { lead: any; onCancel:
             <label className="edit-label" style={editLabel}>Endereço</label>
             <input className="edit-input" style={editInput} value={endereco} onChange={(e) => setEndereco(e.target.value)} placeholder="Rua, número, bairro..." />
           </div>
+          <div style={{ marginBottom: '1.25rem' }}>
+            <label className="edit-label" style={editLabel}>Aniversário</label>
+            <input type="date" className="edit-input" style={editInput} value={aniversario} onChange={(e) => setAniversario(e.target.value)} />
+          </div>
         </div>
 
         <div className="lead-modal-footer">
@@ -210,6 +231,45 @@ function EditForm({ lead, onCancel, onUpdated, onClose }: { lead: any; onCancel:
 
 const editLabel: React.CSSProperties = { display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-dim)', textTransform: 'uppercase', marginBottom: 6, letterSpacing: '0.05em' };
 const editInput: React.CSSProperties = { width: '100%', padding: '0.75rem 1rem', background: 'var(--surface-hover)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', color: 'var(--text-main)', fontSize: '0.9rem' };
+
+// Tags do cliente (FarmaQui): segmentação por condição/interesse (ex.: diabético).
+const TAG_SUGESTOES = ['Diabético', 'Hipertenso', 'Uso contínuo', 'Idoso', 'Alérgico', 'Convênio'];
+function TagsEditor({ lead, onUpdated }: { lead: any; onUpdated: (l: any) => void }) {
+  const [tags, setTags] = useState<string[]>(Array.isArray(lead.tags) ? lead.tags : []);
+  const [nova, setNova] = useState('');
+
+  async function persist(next: string[]) {
+    setTags(next);
+    try { await dataApi.update('leads', lead.id, { tags: next, updatedAt: new Date().toISOString() }); onUpdated({ ...lead, tags: next }); }
+    catch { toast.error('Erro ao salvar tags.'); }
+  }
+  function add(tag: string) {
+    const t = tag.trim();
+    if (!t || tags.some((x) => x.toLowerCase() === t.toLowerCase())) { setNova(''); return; }
+    persist([...tags, t]); setNova('');
+  }
+  const remove = (t: string) => persist(tags.filter((x) => x !== t));
+
+  return (
+    <div className="lead-section" style={{ borderTop: '1px solid var(--border-color)', paddingTop: 14, marginTop: 6 }}>
+      <h4 className="lead-section-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}><i className="fa-solid fa-tags" style={{ color: '#14b8a6' }} /> Tags do cliente</h4>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, margin: '8px 0' }}>
+        {tags.length === 0 && <span style={{ fontSize: '0.82rem', color: 'var(--text-dim)' }}>Sem tags. Use para agrupar (ex.: diabético) e ofertar depois.</span>}
+        {tags.map((t) => (
+          <span key={t} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '0.8rem', fontWeight: 600, background: 'rgba(20,184,166,0.12)', color: '#0d9488', border: '1px solid rgba(20,184,166,0.3)', borderRadius: 999, padding: '3px 10px' }}>
+            {t} <i className="fa-solid fa-xmark" style={{ cursor: 'pointer', opacity: 0.7 }} onClick={() => remove(t)} />
+          </span>
+        ))}
+      </div>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+        <input className="config-input" style={{ flex: 1, minWidth: 160 }} value={nova} onChange={(e) => setNova(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); add(nova); } }} placeholder="Nova tag e Enter" />
+        {TAG_SUGESTOES.filter((s) => !tags.some((t) => t.toLowerCase() === s.toLowerCase())).slice(0, 4).map((s) => (
+          <button key={s} type="button" onClick={() => add(s)} style={{ fontSize: '0.78rem', background: 'var(--surface-hover)', border: '1px dashed var(--border-color)', borderRadius: 999, padding: '4px 10px', cursor: 'pointer', color: 'var(--text-muted)' }}>+ {s}</button>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 // Recompra (FarmaQui): registra a última compra (com produto) e agenda o lembrete.
 function RecompraLead({ lead, onUpdated }: { lead: any; onUpdated: (l: any) => void }) {

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { dbService } from '../../services/db';
 import { dataApi } from '../../services/dataApi';
 import { adminApi } from '../../services/adminApi';
@@ -16,6 +17,7 @@ export function Stores() {
 
   const [stores, setStores] = useState<any[]>([]);
   const [modulos, setModulos] = useState<string[]>([]);
+  const [landingHost, setLandingHost] = useState('');
   const [lojaConfigs, setLojaConfigs] = useState<any[]>([]);
   const [counts, setCounts] = useState({ colaboradores: 0, categorias: 0, produtos: 0 });
   const [loading, setLoading] = useState(true);
@@ -27,6 +29,7 @@ export function Stores() {
       const companyDoc = (await dbService.get('companies', companyId)) as any;
       setStores(companyDoc?.stores || []);
       setModulos(companyDoc?.modulos_ativos || []);
+      setLandingHost(companyDoc?.farmaqui?.landing?.host || '');
       const [cfgs, users, cats, prods] = await Promise.all([
         dbService.getAll('loja_config', { field: 'empresaId', operator: '==', value: companyId }).catch(() => []),
         dbService.getAll('users', { field: 'companyId', operator: '==', value: companyId }).catch(() => []),
@@ -105,7 +108,9 @@ export function Stores() {
         </div>
       ) : (() => {
         const s = stores[0];
-        const operable = s.active && s.instancia_id;
+        // FarmaQui vincula a instância na própria tela (captação), não na loja.
+        const isFarma = modulos.includes('farmaqui');
+        const operable = s.active && (isFarma || s.instancia_id);
         const freteAtivo = s.frete_ativo !== false;
         const stats = [
           { label: 'Colaboradores', value: counts.colaboradores, icon: 'fa-users' },
@@ -124,7 +129,7 @@ export function Stores() {
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
                   <span className={`badge ${operable ? 'success' : 'danger'}`}>
                     <i className={`fa-solid ${operable ? 'fa-circle-check' : 'fa-circle-xmark'}`} style={{ marginRight: 4 }} />
-                    {operable ? 'Operante' : s.active ? 'Sem Instância' : 'Inativa'}
+                    {operable ? (isFarma ? 'Ativa' : 'Operante') : s.active ? 'Sem Instância' : 'Inativa'}
                   </span>
                   {mostraFrete && (
                     <span className={`badge ${freteAtivo ? 'success' : 'warning'}`}>
@@ -163,7 +168,7 @@ export function Stores() {
         );
       })()}
 
-      {isOwner && stores.length > 0 && (
+      {isOwner && stores.length > 0 && temProdutos && (
         <div className="card" style={{ marginTop: '1.25rem' }}>
           <div className="config-section-title"><i className="fa-solid fa-globe" style={{ color: 'var(--primary)' }} /> Endereço do catálogo</div>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', margin: '0 0 1rem' }}>
@@ -171,6 +176,23 @@ export function Stores() {
             Escolha um nome curto (ex.: <strong>minhaloja</strong>) e ele fica no ar em <strong>minhaloja.autoqui.com.br</strong>.
           </p>
           <StoreSubdomain store={stores[0]} onChange={(sub) => setStores((prev) => prev.map((x) => (x.id === stores[0].id ? { ...x, subdominio: sub } : x)))} />
+        </div>
+      )}
+
+      {isOwner && modulos.includes('farmaqui') && (
+        <div className="card" style={{ marginTop: '1.25rem' }}>
+          <div className="config-section-title"><i className="fa-solid fa-globe" style={{ color: 'var(--primary)' }} /> Endereço da landing page</div>
+          {landingHost ? (
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', margin: 0 }}>
+              Sua landing page está no ar em{' '}
+              <a href={`https://${landingHost}`} target="_blank" rel="noreferrer" style={{ color: 'var(--primary)', fontWeight: 600 }}>{landingHost} ↗</a>.
+              {' '}Edite o conteúdo e o endereço em <Link to="/farmaqui-settings" style={{ color: 'var(--primary)' }}>Configuração</Link>.
+            </p>
+          ) : (
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', margin: 0 }}>
+              Você ainda não publicou uma landing page. Crie o endereço e o design em <Link to="/farmaqui-settings" style={{ color: 'var(--primary)' }}>Configuração</Link>.
+            </p>
+          )}
         </div>
       )}
 

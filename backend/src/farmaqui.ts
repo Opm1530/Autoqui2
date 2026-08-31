@@ -201,6 +201,10 @@ export async function setUltimaCompra(uid: string, leadId: string, dataISO: stri
   const nowISO = new Date().toISOString();
   const upd: any = { ultimaCompra: data, cicloRecompraDias: ciclo, statusLead: 'cliente_ativo', updatedAt: nowISO, ultimoContato: nowISO };
   if (produto.trim()) upd.ultimoPedido = produto.trim();
+  // Acumula no histórico de compras do cliente (mais recente primeiro, cap 100).
+  const hist = Array.isArray((lead.data() as any).historicoCompras) ? (lead.data() as any).historicoCompras : [];
+  hist.unshift({ data, produto: produto.trim(), registradoEm: nowISO });
+  upd.historicoCompras = hist.slice(0, 100);
   await leadRef.update(upd);
 
   const company = await db.collection('companies').doc(companyId).get();
@@ -353,12 +357,18 @@ export async function sendRecompraNow(uid: string, leadId: string) {
 }
 
 // ── Ofertas no grupo do WhatsApp ──
+const groupsCache = new Map<string, { at: number; data: any }>();
 export async function groupsList(uid: string) {
   const companyId = await companyOf(uid);
   const cap = await readCapture(companyId);
   if (!cap.instancia) return { instancia: '', grupos: [] };
+  // Cache de 5 min: buscar grupos no Evolution é lento quando a conta tem muitos.
+  const hit = groupsCache.get(companyId);
+  if (hit && Date.now() - hit.at < 5 * 60 * 1000) return hit.data;
   const grupos = await fetchGroups(cap.instancia);
-  return { instancia: cap.instancia, grupos };
+  const data = { instancia: cap.instancia, grupos };
+  if (grupos.length) groupsCache.set(companyId, { at: Date.now(), data }); // só cacheia sucesso
+  return data;
 }
 
 export async function listGroupOffers(uid: string) {

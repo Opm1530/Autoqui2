@@ -255,7 +255,11 @@ function ImportLeads() {
     finally { setBusy(''); }
   }
   async function extrairAgenda() {
-    const ok = await confirm.danger('Importar agenda inteira', 'Isso adiciona TODOS os contatos salvos no WhatsApp como leads. Só faça isso com contatos que consentiram receber suas mensagens (LGPD) — importar e disparar para quem não te conhece pode causar bloqueio do número. Deseja continuar?');
+    const ok = await confirm.show({
+      title: 'Importar agenda inteira',
+      message: 'Isso adiciona TODOS os contatos salvos no WhatsApp como leads. Só faça isso com contatos que consentiram receber suas mensagens (LGPD) — importar e disparar para quem não te conhece pode causar bloqueio do número. Deseja continuar?',
+      type: 'danger', confirmText: 'Sim, importar', cancelText: 'Cancelar',
+    });
     if (!ok) return;
     setBusy('agenda');
     try { const r = await farmaquiApi.extractAgenda(); toast.success(`${r.criados} novo(s) lead(s) de ${r.total} contato(s) da agenda.`); }
