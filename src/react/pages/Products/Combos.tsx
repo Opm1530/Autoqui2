@@ -158,9 +158,9 @@ function ComboFormModal({ companyId, storeId, products, onClose, onCreated }: {
 
   return (
     <div className="modal" style={{ display: 'flex' }} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="modal-content glass" style={{ maxWidth: 480 }}>
+      <div className="modal-content glass" style={{ maxWidth: 480, display: 'flex', flexDirection: 'column', maxHeight: '90vh', overflow: 'hidden' }}>
         <span className="close-modal" onClick={onClose}>&times;</span>
-        <div style={{ display: 'flex', gap: 14, alignItems: 'center', marginBottom: 6 }}>
+        <div style={{ display: 'flex', gap: 14, alignItems: 'center', marginBottom: 6, flexShrink: 0 }}>
           <div style={{ width: 46, height: 46, borderRadius: 12, flexShrink: 0, background: 'rgba(245,158,11,0.14)', color: '#f59e0b', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem' }}>
             <i className="fa-solid fa-layer-group" />
           </div>
@@ -170,8 +170,8 @@ function ComboFormModal({ companyId, storeId, products, onClose, onCreated }: {
           </div>
         </div>
 
-        <div style={{ marginTop: 18, display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <div className="form-group" style={{ margin: 0 }}>
+        <div style={{ marginTop: 18, display: 'flex', flexDirection: 'column', gap: 14, flex: 1, minHeight: 0 }}>
+          <div className="form-group" style={{ margin: 0, flexShrink: 0 }}>
             <label>Nome do combo</label>
             <input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex: Combo Família" />
           </div>
@@ -186,18 +186,18 @@ function ComboFormModal({ companyId, storeId, products, onClose, onCreated }: {
                 onChange={(e) => { const f = e.target.files?.[0]; if (f) { setFile(f); const r = new FileReader(); r.onload = (ev) => setPreview((ev.target?.result as string) || null); r.readAsDataURL(f); } }} />
             </div>
           </div>
-          <div className="form-group" style={{ margin: 0 }}>
+          <div className="form-group" style={{ margin: 0, flexShrink: 0 }}>
             <label>Preço do combo (R$)</label>
             <input type="number" min="0" step="0.01" value={preco} onChange={(e) => setPreco(e.target.value)} placeholder="0,00" />
           </div>
-          <div className="form-group" style={{ margin: 0 }}>
-            <label>Produtos do combo <span style={{ color: 'var(--text-dim)', fontWeight: 400, textTransform: 'none' }}>(2 ou mais)</span></label>
-            <div style={{ position: 'relative', marginBottom: 8 }}>
+          <div className="form-group" style={{ margin: 0, flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+            <label style={{ flexShrink: 0 }}>Produtos do combo <span style={{ color: 'var(--text-dim)', fontWeight: 400, textTransform: 'none' }}>(2 ou mais)</span></label>
+            <div style={{ position: 'relative', marginBottom: 8, flexShrink: 0 }}>
               <i className="fa-solid fa-magnifying-glass" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)', fontSize: '0.85rem' }} />
               <input value={prodSearch} onChange={(e) => setProdSearch(e.target.value)} placeholder="Buscar produto…"
                 style={{ width: '100%', padding: '9px 12px 9px 34px', background: 'var(--surface-color)', border: '1px solid var(--border-color)', borderRadius: 8, color: 'var(--text-main)', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box' }} />
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxHeight: 200, overflowY: 'auto', background: 'var(--surface-hover)', border: '1px solid var(--border-color)', borderRadius: 8, padding: 8 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1, minHeight: 120, overflowY: 'auto', background: 'var(--surface-hover)', border: '1px solid var(--border-color)', borderRadius: 8, padding: 8 }}>
               {filtered.length === 0 ? (
                 <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem', padding: '1rem 0', margin: 0 }}>{prodSearch ? 'Nenhum produto encontrado.' : 'Nenhum produto ativo.'}</p>
               ) : filtered.map((p) => (
@@ -209,7 +209,7 @@ function ComboFormModal({ companyId, storeId, products, onClose, onCreated }: {
               ))}
             </div>
           </div>
-          <button onClick={save} disabled={saving} className="btn-primary full-width">
+          <button onClick={save} disabled={saving} className="btn-primary full-width" style={{ flexShrink: 0 }}>
             {saving ? 'Salvando…' : 'Criar combo'}
           </button>
         </div>
