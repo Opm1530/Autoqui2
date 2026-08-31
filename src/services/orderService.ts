@@ -102,11 +102,11 @@ export const orderService = {
     /**
      * Arquiva um pedido (server-side, autenticado).
      */
-    async archiveOrder(orderId: string) {
+    async archiveOrder(orderId: string, arquivado = true) {
         const resp = await fetch(`${API_BASE_URL}/api/orders/archive`, {
             method: 'POST',
             headers: await authHeaders(),
-            body: JSON.stringify({ orderId }),
+            body: JSON.stringify({ orderId, arquivado }),
         });
         if (!resp.ok) {
             const d = await resp.json().catch(() => ({}));

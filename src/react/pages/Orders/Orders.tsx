@@ -158,18 +158,17 @@ export function Orders() {
         <div className="table-container">
           <table className="data-table">
             <thead>
-              <tr><th>TAG</th><th>Loja</th><th>Cliente</th><th>Total</th><th>Status</th><th>Data/Hora</th></tr>
+              <tr><th>TAG</th><th>Cliente</th><th>Total</th><th>Status</th><th>Data/Hora</th></tr>
             </thead>
             <tbody>
               {total === 0 ? (
-                <tr><td colSpan={6} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>{q ? 'Nenhum pedido encontrado com essa busca.' : 'Seus pedidos aparecerão aqui assim que os clientes comprarem pelo seu catálogo.'}</td></tr>
+                <tr><td colSpan={5} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>{q ? 'Nenhum pedido encontrado com essa busca.' : 'Seus pedidos aparecerão aqui assim que os clientes comprarem pelo seu catálogo.'}</td></tr>
               ) : pageItems.map((order) => {
                 const status = (order.status || 'em_montagem').toLowerCase();
                 const nome = leadName(order.leadId, order.nome || order.leadName);
                 return (
                   <tr key={order.id} onClick={() => setSelected(order)} style={{ cursor: 'pointer' }}>
                     <td><span style={{ fontFamily: 'monospace', fontWeight: 600, color: 'var(--primary)' }}>#{order.id.slice(-6).toUpperCase()}</span></td>
-                    <td style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>{storeName(order.lojaId)}</td>
                     <td>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, maxWidth: 220 }}>
                         <div className="lead-avatar" style={{ width: 28, height: 28, fontSize: '0.7rem', flexShrink: 0 }}>{(nome[0] || 'C').toUpperCase()}</div>

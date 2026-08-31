@@ -114,14 +114,14 @@ export function OrderModal({ order, companyId, storeName, clientName, clientPhon
     }
   }
 
-  async function archive() {
+  async function archive(arquivar = true) {
     setBusy(true);
     try {
-      await orderService.archiveOrder(order.id);
-      toast.success('Pedido arquivado.');
+      await orderService.archiveOrder(order.id, arquivar);
+      toast.success(arquivar ? 'Pedido arquivado.' : 'Pedido desarquivado.');
       onClose();
     } catch (err: any) {
-      toast.error('Erro ao arquivar: ' + (err.message || err));
+      toast.error(`Erro ao ${arquivar ? 'arquivar' : 'desarquivar'}: ` + (err.message || err));
       setBusy(false);
     }
   }
@@ -253,8 +253,12 @@ export function OrderModal({ order, companyId, storeName, clientName, clientPhon
           </div>
 
           <div className="order-footer-right">
-            {!isOrderArchived(order) && (
-              <button className="order-icon-btn" disabled={busy} onClick={archive} title="Arquivar pedido">
+            {isOrderArchived(order) ? (
+              <button className="order-icon-btn" disabled={busy} onClick={() => archive(false)} title="Desarquivar pedido">
+                <i className="fa-solid fa-box-open" />
+              </button>
+            ) : (
+              <button className="order-icon-btn" disabled={busy} onClick={() => archive(true)} title="Arquivar pedido">
                 <i className="fa-solid fa-box-archive" />
               </button>
             )}

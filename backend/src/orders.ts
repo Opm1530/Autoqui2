@@ -330,9 +330,9 @@ export async function changeOrderStatus(
   return { ok: true, sent: result.sent };
 }
 
-export async function archiveOrder(uid: string, orderId: string): Promise<{ ok: boolean }> {
+export async function archiveOrder(uid: string, orderId: string, arquivado = true): Promise<{ ok: boolean }> {
   await assertOrderOwner(uid, orderId);
-  await db.collection('pedidos').doc(orderId).update({ arquivado: true });
+  await db.collection('pedidos').doc(orderId).update({ arquivado: !!arquivado });
   return { ok: true };
 }
 

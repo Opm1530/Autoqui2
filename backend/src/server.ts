@@ -145,9 +145,10 @@ app.post('/api/orders/status', requireAuth, async (req, res) => {
 
 app.post('/api/orders/archive', requireAuth, async (req, res) => {
   const orderId = String(req.body?.orderId || '');
+  const arquivado = req.body?.arquivado !== false; // default true
   if (!orderId) return res.status(400).json({ error: 'orderId obrigatório' });
   try {
-    const result = await archiveOrder((req as any).uid, orderId);
+    const result = await archiveOrder((req as any).uid, orderId, arquivado);
     res.json(result);
   } catch (err: any) {
     console.warn(`[orders/archive] recusado ${orderId}: ${err?.message}`);
