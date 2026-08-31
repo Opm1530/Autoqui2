@@ -2,8 +2,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { db } from '../../../firebase/config';
 import { dbService } from '../../../services/db';
-import { dataApi } from '../../../services/dataApi';
-import { toast } from '../../../services/toast';
 import { useAuth } from '../../useAuth';
 import { usePagination, Pagination } from '../../components/Pagination';
 import { SkeletonTable } from '../../components/Skeleton';
@@ -20,9 +18,7 @@ export function Orders() {
   const [orders, setOrders] = useState<any[]>([]);
   const [stores, setStores] = useState<any[]>([]);
   const [leads, setLeads] = useState<any[]>([]);
-  const [lojaConfigs, setLojaConfigs] = useState<any[]>([]);
   const [activeFilter, setActiveFilter] = useState('todos');
-  const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<any | null>(null);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [loaded, setLoaded] = useState(false);
@@ -37,14 +33,12 @@ export function Orders() {
   useEffect(() => {
     if (!companyId) return;
     (async () => {
-      const [companyDoc, leadsRaw, cfgRaw] = await Promise.all([
+      const [companyDoc, leadsRaw] = await Promise.all([
         dbService.get('companies', companyId),
         dbService.getAll('leads', { field: 'empresaId', operator: '==', value: companyId }),
-        dbService.getAll('loja_config', { field: 'empresaId', operator: '==', value: companyId }),
       ]);
       setStores(((companyDoc as any)?.stores as any[]) || []);
       setLeads(leadsRaw as any[]);
-      setLojaConfigs(cfgRaw as any[]);
     })();
   }, [companyId]);
 
@@ -77,18 +71,10 @@ export function Orders() {
       base = orders.filter((o) => !isOrderArchived(o) && !isPendingPayment(o));
       if (activeFilter !== 'todos') base = base.filter((o) => (o.status || 'em_montagem').toLowerCase() === activeFilter);
     }
-    const term = search.trim().toLowerCase();
-    if (!term) return base;
-    return base.filter((o) => {
-      const nome = leadName(o.leadId, o.nome || o.leadName).toLowerCase();
-      const phone = leadPhone(o).toLowerCase();
-      const id = (o.id || '').slice(-6).toLowerCase();
-      return nome.includes(term) || phone.includes(term) || id.includes(term);
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [orders, activeFilter, search, leads]);
+    return base;
+  }, [orders, activeFilter]);
 
-  const { page, setPage, totalPages, pageItems, total, perPage } = usePagination(visible, 20, `${activeFilter}|${search}`);
+  const { page, setPage, totalPages, pageItems, total, perPage } = usePagination(visible, 20, `${activeFilter}`);
 
   const count = (key: string) => {
     if (key === 'arquivados') return orders.filter(isOrderArchived).length;
@@ -97,28 +83,11 @@ export function Orders() {
     return base.filter((o) => (o.status || 'em_montagem').toLowerCase() === key).length;
   };
 
-  // Toggle abrir/fechar loja/entrega
-  async function toggleStore(storeId: string, field: 'lojaFechada' | 'entregaFechada', current: boolean) {
-    try {
-      const cfg = lojaConfigs.find((c) => c.lojaId === storeId);
-      const novo = !current;
-      if (cfg?.id) {
-        await dataApi.update('loja_config', cfg.id, { [field]: novo });
-        setLojaConfigs((prev) => prev.map((c) => (c.id === cfg.id ? { ...c, [field]: novo } : c)));
-      } else {
-        const { id: newId } = await dataApi.create('loja_config', { lojaId: storeId, [field]: novo });
-        setLojaConfigs((prev) => [...prev, { id: newId, empresaId: companyId, lojaId: storeId, [field]: novo }]);
-      }
-      toast.success(field === 'lojaFechada' ? (novo ? 'Loja fechada' : 'Loja aberta') : (novo ? 'Entregas pausadas' : 'Entregas ativas'));
-    } catch (err: any) {
-      toast.error('Erro: ' + (err.message || err));
-    }
-  }
 
   return (
     <div>
       {/* Filtros */}
-      <div className="leads-page-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+      <div className="leads-page-header" style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
         <div className="leads-filter-bar">
           {FILTERS.filter((f) => f.key === 'todos' || f.key === 'arquivados' || count(f.key) > 0).map((f) => (
             <button key={f.key} className={'filter-btn' + (activeFilter === f.key ? ' active' : '')} onClick={() => setActiveFilter(f.key)}>
@@ -127,38 +96,7 @@ export function Orders() {
             </button>
           ))}
         </div>
-        <div style={{ position: 'relative', flex: '1 1 240px', maxWidth: 320 }}>
-          <i className="fa-solid fa-search" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)' }} />
-          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar por cliente, telefone ou #pedido..."
-            style={{ width: '100%', padding: '10px 10px 10px 35px', background: 'var(--surface-hover)', border: '1px solid var(--border-color)', borderRadius: 12, color: 'white', outline: 'none' }} />
-        </div>
       </div>
-
-      {/* Toggles de loja */}
-      {stores.length > 0 && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, padding: '0.85rem 1rem', background: 'rgba(23, 37, 28, 0.03)', border: '1px solid rgba(23, 37, 28, 0.07)', borderRadius: 12, marginBottom: '1rem' }}>
-          {stores.map((store) => {
-            const cfg = lojaConfigs.find((c) => c.lojaId === store.id) || {};
-            const lojaFechada = cfg.lojaFechada === true;
-            const entregaFechada = cfg.entregaFechada === true;
-            return (
-              <div key={store.id} style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 200 }}>
-                <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>{store.name}</span>
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                  <button onClick={() => toggleStore(store.id, 'lojaFechada', lojaFechada)}
-                    style={{ padding: '0.3rem 0.75rem', borderRadius: 8, fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer', border: '1px solid', ...(lojaFechada ? { background: 'rgba(239,68,68,0.12)', color: '#f87171', borderColor: 'rgba(239,68,68,0.3)' } : { background: 'rgba(16,185,129,0.12)', color: '#34d399', borderColor: 'rgba(16,185,129,0.3)' }) }}>
-                    <i className={`fa-solid ${lojaFechada ? 'fa-door-closed' : 'fa-door-open'}`} /> Loja {lojaFechada ? 'Fechada' : 'Aberta'}
-                  </button>
-                  <button onClick={() => toggleStore(store.id, 'entregaFechada', entregaFechada)}
-                    style={{ padding: '0.3rem 0.75rem', borderRadius: 8, fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer', border: '1px solid', ...(entregaFechada ? { background: 'rgba(239,68,68,0.12)', color: '#f87171', borderColor: 'rgba(239,68,68,0.3)' } : { background: 'rgba(59,130,246,0.12)', color: '#60a5fa', borderColor: 'rgba(59,130,246,0.3)' }) }}>
-                    <i className={`fa-solid ${entregaFechada ? 'fa-truck-arrow-right' : 'fa-truck'}`} /> Entrega {entregaFechada ? 'Pausada' : 'Ativa'}
-                  </button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
 
       {/* Tabela */}
       {!loaded ? <SkeletonTable rows={8} cols={6} /> : (
@@ -170,7 +108,7 @@ export function Orders() {
             </thead>
             <tbody>
               {total === 0 ? (
-                <tr><td colSpan={6} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>{search.trim() ? 'Nenhum pedido encontrado com essa busca.' : 'Seus pedidos aparecerão aqui assim que os clientes comprarem pelo seu catálogo.'}</td></tr>
+                <tr><td colSpan={6} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>Seus pedidos aparecerão aqui assim que os clientes comprarem pelo seu catálogo.</td></tr>
               ) : pageItems.map((order) => {
                 const status = (order.status || 'em_montagem').toLowerCase();
                 const nome = leadName(order.leadId, order.nome || order.leadName);
