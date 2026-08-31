@@ -70,7 +70,8 @@ export function Dashboard() {
   const [checklist, setChecklist] = useState<Checklist | null>(null);
   const [vm, setVm] = useState<VitrineMetrics | null>(null);
   const [vmDays, setVmDays] = useState(30);
-  const [fm, setFm] = useState<any | null>(null);
+  const [lp, setLp] = useState<any | null>(null);
+  const [lpDays, setLpDays] = useState(30);
   const [shared, setShared] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -219,8 +220,8 @@ export function Dashboard() {
   const isFarma = modulos.includes('farmaqui');
   useEffect(() => {
     if (!isFarma) return;
-    farmaquiApi.metrics().then(setFm).catch(() => {});
-  }, [isFarma]);
+    farmaquiApi.landingMetrics(lpDays).then(setLp).catch(() => {});
+  }, [isFarma, lpDays]);
 
   const hasVenda = modulos.includes('venda') || modulos.includes('venda_catalogo');
   const copyLink = (storeId: string) => {
@@ -304,7 +305,7 @@ export function Dashboard() {
 
       {isVitrine && <VitrineBlock m={vm} days={vmDays} setDays={setVmDays} />}
 
-      {isFarma && <FarmaBlock m={fm} />}
+      {isFarma && <LandingBlock m={lp} days={lpDays} setDays={setLpDays} />}
 
       {hasVenda && salesViz && (
         <div className="dash-viz">
@@ -401,18 +402,51 @@ function VitrineBlock({ m, days, setDays }: { m: VitrineMetrics | null; days: nu
   );
 }
 
-// Bloco de métricas da FarmaQui: leads, clientes, recompras.
-function FarmaBlock({ m }: { m: any | null }) {
+// Funil da Landing Page: visitas → cliques no WhatsApp → leads.
+function LandingBlock({ m, days, setDays }: { m: any | null; days: number; setDays: (d: number) => void }) {
+  const maxV = m ? Math.max(1, ...m.serie.map((s: any) => s.views)) : 1;
   return (
     <div style={{ marginTop: '0.5rem', marginBottom: '1.5rem' }}>
-      <h3 style={{ margin: '0 0 1rem', display: 'flex', alignItems: 'center', gap: 10 }}><i className="fa-solid fa-prescription-bottle-medical" style={{ color: 'var(--primary)' }} /> FarmaQui</h3>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: '1rem' }}>
+        <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 10 }}><i className="fa-solid fa-globe" style={{ color: 'var(--primary)' }} /> Sua landing page</h3>
+        <select className="config-select" style={{ width: 'auto' }} value={days} onChange={(e) => setDays(Number(e.target.value))}>
+          <option value={7}>Últimos 7 dias</option>
+          <option value={30}>Últimos 30 dias</option>
+          <option value={90}>Últimos 90 dias</option>
+        </select>
+      </div>
       {!m ? <SkeletonBox height={110} /> : (
-        <div className="dashboard-grid">
-          <StatCard label="Leads capturados" value={fmtInt(m.leadsTotal)} />
-          <StatCard green label="Viraram clientes" value={fmtInt(m.clientes)} subtitle={`${m.conversao}% de conversão`} />
-          <StatCard label="Recompras agendadas" value={fmtInt(m.recompraAgendadas)} />
-          <StatCard label="Recompras enviadas" value={fmtInt(m.recompraEnviadas)} />
-        </div>
+        <>
+          <div className="dashboard-grid">
+            <StatCard label="Visitas na página" value={fmtInt(m.views)} subtitle={`${fmtInt(m.uniques)} visitantes únicos`} />
+            <StatCard green label="Cliques no WhatsApp" value={fmtInt(m.cliques)} subtitle={`${m.conversao}% de conversão`} />
+            <StatCard label="Leads no período" value={fmtInt(m.leadsPeriodo)} subtitle={`${fmtInt(m.leadsTotal)} no total`} />
+          </div>
+          <div className="dash-viz" style={{ marginTop: '1rem' }}>
+            <div className="dash-col" style={{ flex: 1 }}>
+              <div className="card viz-card">
+                <div className="viz-head"><h4>Visitas por dia</h4></div>
+                {m.serie.every((s: any) => s.views === 0) ? (
+                  <p style={{ color: 'var(--text-dim)', fontSize: '0.85rem', margin: '1rem 0 0' }}>Sem visitas registradas ainda. Divulgue o link da sua landing page para começar a medir.</p>
+                ) : (
+                  <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 140, marginTop: 16 }}>
+                    {m.serie.map((s: any, i: number) => (
+                      <div key={i} title={`${s.dia}: ${s.views} visitas, ${s.cliques} cliques`}
+                        style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', height: '100%', gap: 2 }}>
+                        <div style={{ height: `${(s.views / maxV) * 100}%`, minHeight: s.views ? 3 : 0, background: 'var(--primary)', borderRadius: '4px 4px 0 0' }} />
+                        <div style={{ height: `${(s.cliques / maxV) * 100}%`, minHeight: s.cliques ? 3 : 0, background: 'var(--success)', borderRadius: '4px 4px 0 0' }} />
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div style={{ display: 'flex', gap: 16, marginTop: 12, fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                  <span><i className="fa-solid fa-square" style={{ color: 'var(--primary)', marginRight: 5 }} />Visitas</span>
+                  <span><i className="fa-solid fa-square" style={{ color: 'var(--success)', marginRight: 5 }} />Cliques no WhatsApp</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
       )}
     </div>
   );

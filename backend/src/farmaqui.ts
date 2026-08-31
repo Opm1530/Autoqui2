@@ -5,7 +5,7 @@ import { Timestamp } from 'firebase-admin/firestore';
 import { db, getAll } from './firebase.js';
 import { loadUser } from './currentUser.js';
 import { PUBLIC_BASE_URL } from './config.js';
-import { setWebhook, sendText, sendToGroup, fetchGroups } from './evolution.js';
+import { setWebhook, sendText, sendToGroup, fetchGroups, fetchGroupParticipants, fetchAllContacts } from './evolution.js';
 import { assertInstanceOwner } from './waInstances.js';
 import { normalizeSubdomain, setLandingSubdomain, removeLandingSubdomain } from './domains.js';
 
@@ -69,6 +69,58 @@ export async function handleIncoming(companyId: string, payload: any): Promise<v
   const cap = await readCapture(companyId);
   if (!cap.ativa) return; // captação desligada
   await upsertLeadFromMessage(companyId, phone, name, msg, cap.origem);
+}
+
+// Cria um lead se ainda não existir (dedupe por telefone). Retorna true se criou.
+async function createLeadIfNew(companyId: string, phoneRaw: string, name: string, origem: string): Promise<boolean> {
+  let phone = phoneRaw.replace(/\D/g, '');
+  if (phone.length === 13 && phone.startsWith('55')) phone = phone.substring(2);
+  if (!phone || phone.length < 8) return false;
+  let leads = await getAll('leads', [
+    { field: 'empresaId', operator: '==', value: companyId },
+    { field: 'whatsapp', operator: '==', value: phone },
+  ]);
+  if (leads.length === 0) leads = await getAll('leads', [
+    { field: 'empresaId', operator: '==', value: companyId },
+    { field: 'telefone', operator: '==', value: phone },
+  ]);
+  if (leads.length > 0) return false;
+  const now = new Date().toISOString();
+  await db.collection('leads').add({ nome: name || phone, telefone: phone, whatsapp: phone, empresaId: companyId, origem, statusLead: 'lead', criadoEm: now });
+  return true;
+}
+
+// Extrai leads dos participantes de um grupo.
+export async function extractGroupLeads(uid: string, groupJid: string) {
+  const companyId = await companyOf(uid);
+  const cap = await readCapture(companyId);
+  if (!cap.instancia) throw new Error('sem_instancia');
+  if (!groupJid.endsWith('@g.us')) throw new Error('grupo_invalido');
+  const participantes = await fetchGroupParticipants(cap.instancia, groupJid);
+  let criados = 0;
+  for (const p of participantes) if (await createLeadIfNew(companyId, p.phone, p.name || '', 'grupo')) criados++;
+  return { ok: true, total: participantes.length, criados };
+}
+
+// Extrai leads de TODA a agenda da conta (contatos salvos).
+export async function extractAgendaLeads(uid: string) {
+  const companyId = await companyOf(uid);
+  const cap = await readCapture(companyId);
+  if (!cap.instancia) throw new Error('sem_instancia');
+  const contatos = await fetchAllContacts(cap.instancia);
+  let criados = 0;
+  for (const c of contatos) if (await createLeadIfNew(companyId, c.phone, c.name || '', 'agenda')) criados++;
+  return { ok: true, total: contatos.length, criados };
+}
+
+// Cria um lead manualmente.
+export async function createManualLead(uid: string, nome: string, telefone: string) {
+  const companyId = await companyOf(uid);
+  const phone = String(telefone || '').replace(/\D/g, '');
+  if (phone.length < 10) throw new Error('telefone_invalido');
+  const criado = await createLeadIfNew(companyId, phone, String(nome || '').trim(), 'manual');
+  if (!criado) throw new Error('ja_existe');
+  return { ok: true };
 }
 
 // ── Painel (autenticado) ──

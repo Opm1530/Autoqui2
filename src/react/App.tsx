@@ -21,6 +21,7 @@ import { Schedule } from './pages/Schedule/Schedule';
 import { ScheduleClients } from './pages/Schedule/ScheduleClients';
 import { Catalog } from './pages/Catalog/Catalog';
 import { FarmaLanding } from './pages/FarmaLanding';
+import { FarmaSettings } from './pages/FarmaSettings';
 import { QRPage } from './pages/QRPage';
 import { AdminDashboard } from './pages/Admin/AdminDashboard';
 import { Companies } from './pages/Admin/Companies';
@@ -104,6 +105,7 @@ export function App() {
             <Route path="/tools" element={<Tools />} />
             <Route path="/ecommerce" element={<Ecommerce />} />
             <Route path="/farmaqui" element={<FarmaQui />} />
+            <Route path="/farmaqui-settings" element={<FarmaSettings />} />
             <Route path="/orders" element={<Orders />} />
             <Route path="/products" element={<Products />} />
             <Route path="/categories" element={<Categories />} />

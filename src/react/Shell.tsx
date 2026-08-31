@@ -21,7 +21,7 @@ const TITLES: Record<string, string> = {
   '/dashboard': 'Dashboard', '/tools': 'Ferramentas', '/ecommerce': 'E-commerce', '/farmaqui': 'FarmaQui', '/orders': 'Pedidos', '/products': 'Produtos',
   '/leads': 'Leads', '/business': 'Negócio', '/users': 'Usuários',
   '/combos': 'Combos', '/categories': 'Categorias',
-  '/instances': 'Instâncias', '/catalog-settings': 'Configuração',
+  '/instances': 'Instâncias', '/catalog-settings': 'Configuração', '/farmaqui-settings': 'Configuração',
   '/mercado-pago': 'Mercado Pago', '/campaigns': 'Campanhas',
   '/schedule': 'Agenda', '/schedule-clients': 'Clientes',
   '/admin/dashboard': 'Dashboard', '/admin/companies': 'Clientes',
@@ -100,6 +100,7 @@ function buildNav(role: string | undefined, modulos: string[]): NavEntry[] {
   nav.push({ section: 'Geral' });
   add({ to: '/business', label: 'Negócio', icon: 'fa-store' });
   if (temLojaPropria) add({ to: '/catalog-settings', label: 'Configuração', icon: 'fa-sliders' });
+  else if (farmaqui) add({ to: '/farmaqui-settings', label: 'Configuração', icon: 'fa-sliders' });
   if (role === 'owner') add({ to: '/tools', label: 'Ferramentas', icon: 'fa-shapes' });
   // Assinatura e Alterar senha → menu do usuário (rodapé).
   // Mercado Pago → Configuração › Pagamento.

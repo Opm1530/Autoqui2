@@ -17,6 +17,7 @@ export function FarmaQui() {
   const [instances, setInstances] = useState<any[]>([]);
   const [sel, setSel] = useState('');
   const [busy, setBusy] = useState(false);
+  const [tab, setTab] = useState<'captacao' | 'importar' | 'recompra' | 'grupo'>('captacao');
 
   async function load() {
     const [st, insts] = await Promise.all([
@@ -55,8 +56,17 @@ export function FarmaQui() {
         <p>Capte leads automaticamente, lembre da recompra e faça ofertas no grupo — tudo pelo seu WhatsApp.</p>
       </div>
 
+      <div className="manage-tabs" style={{ marginBottom: 20 }}>
+        {([['captacao', 'Captação', 'fa-user-plus'], ['importar', 'Importar', 'fa-file-import'], ['recompra', 'Recompra', 'fa-pills'], ['grupo', 'Ofertas no grupo', 'fa-bullhorn']] as const).map(([k, label, icon]) => (
+          <button key={k} className={'manage-tab' + (tab === k ? ' active' : '')} onClick={() => setTab(k)}>
+            <i className={`fa-solid ${icon}`} /> <span>{label}</span>
+          </button>
+        ))}
+      </div>
+
       {/* Captura de leads */}
-      <div className="card" style={{ marginTop: '1.25rem' }}>
+      {tab === 'captacao' && (
+      <div className="card">
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 12 }}>
           <div style={{ width: 48, height: 48, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.4rem', background: status.ativa ? 'rgba(16,185,129,0.12)' : 'rgba(20,184,166,0.12)', color: status.ativa ? '#34d399' : TEAL }}>
             <i className={`fa-solid ${status.ativa ? 'fa-circle-check' : 'fa-user-plus'}`} />
@@ -94,11 +104,11 @@ export function FarmaQui() {
           Use uma instância <strong>dedicada</strong> ao FarmaQui — ao ativar, o webhook dela passa a apontar para o AutoQui.
         </p>
       </div>
+      )}
 
-      <RecompraConfig />
-      <RecompraQueue />
-      <GroupOffers />
-      <LandingBuilder />
+      {tab === 'importar' && <ImportLeads />}
+      {tab === 'recompra' && <><RecompraConfig /><RecompraQueue /></>}
+      {tab === 'grupo' && <GroupOffers />}
     </div>
   );
 }
@@ -198,6 +208,79 @@ function RecompraQueue() {
 }
 
 // ── Ofertas no grupo do WhatsApp ──
+// ── Importar leads (grupos / agenda) ──
+function ImportLeads() {
+  const [grupos, setGrupos] = useState<{ id: string; subject: string; size?: number }[] | null>(null);
+  const [temInstancia, setTemInstancia] = useState(true);
+  const [grupoJid, setGrupoJid] = useState('');
+  const [busy, setBusy] = useState('');
+
+  useEffect(() => {
+    farmaquiApi.groups().then((r) => { setTemInstancia(!!r.instancia); setGrupos(r.grupos || []); }).catch(() => setGrupos([]));
+  }, []);
+
+  async function extrairGrupo() {
+    if (!grupoJid) { toast.warning('Escolha um grupo.'); return; }
+    const nome = grupos?.find((g) => g.id === grupoJid)?.subject || 'grupo';
+    const ok = await confirm.warning('Extrair leads do grupo', `Adicionar os participantes de "${nome}" como leads? Contatos que já são leads são ignorados.`);
+    if (!ok) return;
+    setBusy('grupo');
+    try { const r = await farmaquiApi.extractGroup(grupoJid); toast.success(`${r.criados} novo(s) lead(s) de ${r.total} participante(s).`); }
+    catch (e: any) { toast.error('Erro: ' + (e.message === 'sem_instancia' ? 'Ative a captura primeiro.' : e.message || e)); }
+    finally { setBusy(''); }
+  }
+  async function extrairAgenda() {
+    const ok = await confirm.danger('Importar agenda inteira', 'Isso adiciona TODOS os contatos salvos no WhatsApp como leads. Só faça isso com contatos que consentiram receber suas mensagens (LGPD) — importar e disparar para quem não te conhece pode causar bloqueio do número. Deseja continuar?');
+    if (!ok) return;
+    setBusy('agenda');
+    try { const r = await farmaquiApi.extractAgenda(); toast.success(`${r.criados} novo(s) lead(s) de ${r.total} contato(s) da agenda.`); }
+    catch (e: any) { toast.error('Erro: ' + (e.message === 'sem_instancia' ? 'Ative a captura primeiro.' : e.message || e)); }
+    finally { setBusy(''); }
+  }
+
+  if (!temInstancia) return (
+    <div className="card">
+      <div style={{ background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: 12, padding: 14, fontSize: '0.9rem' }}>
+        <i className="fa-solid fa-triangle-exclamation" style={{ color: '#fbbf24' }} /> Ative a captura de leads na aba <strong>Captação</strong> (vincula a instância) para poder importar.
+      </div>
+    </div>
+  );
+
+  return (
+    <>
+      <div className="card">
+        <div style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}><i className="fa-solid fa-users" style={{ color: TEAL }} /> Extrair leads de um grupo</div>
+        <p style={{ margin: '0 0 14px', color: 'var(--text-muted)', fontSize: '0.85rem' }}>Adiciona os participantes de um grupo do WhatsApp como leads (ignora quem já é lead).</p>
+        {grupos === null ? <p style={{ fontSize: '0.85rem', color: 'var(--text-dim)' }}>Carregando grupos…</p>
+          : grupos.length === 0 ? <p style={{ fontSize: '0.85rem', color: 'var(--text-dim)' }}>Nenhum grupo encontrado nessa instância.</p>
+          : (
+            <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end', flexWrap: 'wrap' }}>
+              <div style={{ flex: 1, minWidth: 220 }}>
+                <label className="config-label">Grupo</label>
+                <select className="config-select" value={grupoJid} onChange={(e) => setGrupoJid(e.target.value)}>
+                  <option value="">-- Escolha um grupo --</option>
+                  {grupos.map((g) => <option key={g.id} value={g.id}>{g.subject}{g.size ? ` (${g.size})` : ''}</option>)}
+                </select>
+              </div>
+              <button className="btn-primary" style={{ background: TEAL }} disabled={busy === 'grupo' || !grupoJid} onClick={extrairGrupo}>{busy === 'grupo' ? 'Extraindo...' : <><i className="fa-solid fa-file-import" /> Extrair</>}</button>
+            </div>
+          )}
+      </div>
+
+      <div className="card" style={{ marginTop: '1.25rem' }}>
+        <div style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}><i className="fa-solid fa-address-book" style={{ color: TEAL }} /> Importar agenda inteira</div>
+        <p style={{ margin: '0 0 12px', color: 'var(--text-muted)', fontSize: '0.85rem' }}>Traz todos os contatos salvos na conta de WhatsApp como leads.</p>
+        <div style={{ background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 10, padding: 12, fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: 12 }}>
+          <i className="fa-solid fa-shield-halved" style={{ color: '#f87171', marginRight: 6 }} /> <strong>Atenção (LGPD):</strong> só dispare mensagens para quem consentiu. Importar e enviar em massa para desconhecidos pode bloquear seu número no WhatsApp.
+        </div>
+        <div style={{ textAlign: 'right' }}>
+          <button className="btn-secondary" disabled={busy === 'agenda'} onClick={extrairAgenda}>{busy === 'agenda' ? 'Importando...' : <><i className="fa-solid fa-address-book" /> Importar agenda</>}</button>
+        </div>
+      </div>
+    </>
+  );
+}
+
 function GroupOffers() {
   const [grupos, setGrupos] = useState<{ id: string; subject: string; size?: number }[] | null>(null);
   const [temInstancia, setTemInstancia] = useState(true);
@@ -297,79 +380,3 @@ function GroupOffers() {
   );
 }
 
-function LandingBuilder() {
-  const [l, setL] = useState<any>(null);
-  const [busy, setBusy] = useState(false);
-  const [sub, setSub] = useState('');
-  useEffect(() => { farmaquiApi.getLanding().then((d) => { setL(d); setSub((d.host || '').replace('.autoqui.com.br', '')); }).catch(() => {}); }, []);
-  if (!l) return null;
-
-  const set = (k: string, v: any) => setL({ ...l, [k]: v });
-  const setDest = (i: number, k: string, v: string) => { const d = [...(l.destaques || [])]; d[i] = { ...d[i], [k]: v }; set('destaques', d); };
-  const addDest = () => set('destaques', [...(l.destaques || []), { icone: '✅', texto: '' }]);
-  const delDest = (i: number) => set('destaques', l.destaques.filter((_: any, j: number) => j !== i));
-
-  async function save() {
-    setBusy(true);
-    try { const r = await farmaquiApi.saveLanding(l); setL(r.landing); toast.success('Página salva!'); }
-    catch (e: any) { toast.error('Erro: ' + (e.message || e)); }
-    finally { setBusy(false); }
-  }
-  async function bindHost() {
-    if (!sub.trim()) { toast.warning('Digite o subdomínio.'); return; }
-    setBusy(true);
-    try { const r = await farmaquiApi.setLandingHost(sub.trim()); set('host', r.host); toast.success('Subdomínio conectado: ' + r.host); }
-    catch (e: any) { toast.error(e.message === 'subdominio_em_uso' ? 'Esse subdomínio já está em uso.' : e.message === 'subdominio_invalido' ? 'Subdomínio inválido.' : 'Erro: ' + (e.message || e)); }
-    finally { setBusy(false); }
-  }
-
-  return (
-    <div className="card" style={{ marginTop: '1.25rem' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
-        <div>
-          <div style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}><i className="fa-solid fa-globe" style={{ color: TEAL }} /> Landing page (campanhas / Google Ads)</div>
-          <p style={{ margin: '2px 0 0', color: 'var(--text-muted)', fontSize: '0.85rem' }}>Uma página pronta pra divulgar, com botão que leva direto pro seu WhatsApp.</p>
-        </div>
-        <label className="cfg-switch"><input type="checkbox" checked={l.publicado} onChange={(e) => set('publicado', e.target.checked)} /><span className="cfg-slider" /></label>
-      </div>
-
-      <div style={{ marginTop: 14, display: 'grid', gap: 12 }}>
-        <div><label className="config-label">Título</label><input className="config-input" value={l.titulo} onChange={(e) => set('titulo', e.target.value)} /></div>
-        <div><label className="config-label">Subtítulo</label><textarea className="config-input" style={{ minHeight: 60, resize: 'vertical', fontFamily: 'inherit' }} value={l.subtitulo} onChange={(e) => set('subtitulo', e.target.value)} /></div>
-        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-          <div><label className="config-label">Cor principal</label><input type="color" className="config-input" style={{ width: 60, padding: 4, height: 40 }} value={l.corPrimaria} onChange={(e) => set('corPrimaria', e.target.value)} /></div>
-          <div style={{ flex: 1, minWidth: 180 }}><label className="config-label">WhatsApp (só números, com DDD)</label><input className="config-input" placeholder="11999998888" value={l.whatsapp} onChange={(e) => set('whatsapp', e.target.value)} /></div>
-        </div>
-        <div><label className="config-label">URL do logo (opcional)</label><input className="config-input" value={l.logoUrl} onChange={(e) => set('logoUrl', e.target.value)} /></div>
-        <div><label className="config-label">Texto do botão</label><input className="config-input" value={l.ctaTexto} onChange={(e) => set('ctaTexto', e.target.value)} /></div>
-        <div><label className="config-label">Endereço (opcional)</label><input className="config-input" value={l.endereco} onChange={(e) => set('endereco', e.target.value)} /></div>
-
-        <div>
-          <label className="config-label">Destaques</label>
-          <div style={{ display: 'grid', gap: 8 }}>
-            {(l.destaques || []).map((d: any, i: number) => (
-              <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                <input className="config-input" style={{ width: 56, textAlign: 'center' }} value={d.icone} onChange={(e) => setDest(i, 'icone', e.target.value)} />
-                <input className="config-input" style={{ flex: 1 }} value={d.texto} onChange={(e) => setDest(i, 'texto', e.target.value)} placeholder="Ex.: Entrega rápida" />
-                <button className="action-btn" onClick={() => delDest(i)} title="Remover"><i className="fa-solid fa-trash" /></button>
-              </div>
-            ))}
-            {(l.destaques || []).length < 6 && <button className="btn-secondary" style={{ justifySelf: 'start' }} onClick={addDest}>+ Adicionar destaque</button>}
-          </div>
-        </div>
-      </div>
-
-      <div style={{ textAlign: 'right', marginTop: 14 }}><button className="btn-primary" disabled={busy} onClick={save} style={{ background: TEAL }}>{busy ? 'Salvando...' : 'Salvar página'}</button></div>
-
-      <div style={{ marginTop: 18, borderTop: '1px solid var(--border-color)', paddingTop: 16 }}>
-        <label className="config-label">Endereço da página (subdomínio)</label>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-          <input className="config-input" style={{ flex: 1, minWidth: 160 }} placeholder="minhafarmacia" value={sub} onChange={(e) => setSub(e.target.value)} />
-          <span style={{ color: 'var(--text-muted)' }}>.autoqui.com.br</span>
-          <button className="btn-primary" disabled={busy} onClick={bindHost} style={{ background: TEAL }}>Conectar</button>
-        </div>
-        {l.host && <p style={{ fontSize: '0.82rem', marginTop: 8 }}><i className="fa-solid fa-circle-check" style={{ color: '#34d399', marginRight: 4 }} /> No ar em <a href={`https://${l.host}`} target="_blank" rel="noreferrer" style={{ color: TEAL }}>{l.host}</a></p>}
-      </div>
-    </div>
-  );
-}

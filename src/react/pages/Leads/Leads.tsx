@@ -8,6 +8,9 @@ import { usePagination, Pagination } from '../../components/Pagination';
 import { SkeletonTable } from '../../components/Skeleton';
 import { LeadStatusBadge, AtendimentoBadge, formatDate, normAtend, filterLeads } from './helpers';
 import { LeadModal } from './LeadModal';
+import { farmaquiApi } from '../../../services/farmaquiApi';
+import { confirm } from '../../../services/confirm';
+import { toast } from '../../../services/toast';
 
 export function Leads() {
   const { user } = useAuth();
@@ -29,7 +32,8 @@ export function Leads() {
     (async () => {
       const company = (await dbService.get('companies', companyId)) as any;
       const modulos = company?.modulos_ativos || [];
-      setIsOnlyCatalog(modulos.includes('venda_catalogo') && !modulos.includes('atendimento'));
+      // Sem IA de atendimento não há "bot/humano": esconde a coluna e os filtros de atendimento.
+      setIsOnlyCatalog(!modulos.includes('atendimento'));
       setHasFarmaqui(modulos.includes('farmaqui'));
     })();
   }, [companyId]);
@@ -75,6 +79,17 @@ export function Leads() {
 
   const { page, setPage, totalPages, pageItems, total, perPage } = usePagination(visible, 20, `${activeFilter}|${search}`);
 
+  async function novoLead() {
+    const tel = await confirm.prompt({ title: 'Novo lead', message: 'WhatsApp do lead (DDD + número):', placeholder: '11999998888', confirmText: 'Continuar' });
+    if (tel === null) return;
+    const phone = tel.replace(/\D/g, '');
+    if (phone.length < 10) { toast.error('Número inválido.'); return; }
+    const nome = await confirm.prompt({ title: 'Novo lead', message: 'Nome do lead (opcional):', placeholder: 'Ex: Maria', confirmText: 'Criar lead' });
+    if (nome === null) return;
+    try { await farmaquiApi.manualLead(nome.trim(), phone); toast.success('Lead criado!'); }
+    catch (e: any) { toast.error(e.message === 'ja_existe' ? 'Já existe um lead com esse número.' : e.message === 'telefone_invalido' ? 'Número inválido.' : 'Erro ao criar lead.'); }
+  }
+
   const FILTERS = [
     { key: 'todos', label: 'Todos', icon: '', count: counts.todos, always: true },
     { key: 'bot', label: 'Bot', icon: 'fa-robot', count: counts.bot, always: false },
@@ -93,6 +108,7 @@ export function Leads() {
             </button>
           ))}
         </div>
+        {isOwner && <button className="btn-add" style={{ marginLeft: 'auto' }} onClick={novoLead}>Novo lead<span className="btn-add-icon"><i className="fa-solid fa-plus" /></span></button>}
       </div>
 
       {!loaded ? <SkeletonTable rows={8} cols={isOnlyCatalog ? 3 : 4} /> : (

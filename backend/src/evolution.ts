@@ -68,6 +68,40 @@ export async function fetchGroups(instanceName: string): Promise<{ id: string; s
   }
 }
 
+// Participantes de um grupo (números). Usado para extrair leads do grupo.
+export async function fetchGroupParticipants(instanceName: string, groupJid: string): Promise<{ phone: string; name?: string }[]> {
+  try {
+    const response = await fetch(`${EVOLUTION_API_URL}/group/participants/${instanceName}?groupJid=${encodeURIComponent(groupJid)}`, {
+      method: 'GET', headers: headers(true),
+    });
+    if (!response.ok) return [];
+    const data = await response.json().catch(() => ({}));
+    const arr = Array.isArray(data?.participants) ? data.participants : Array.isArray(data) ? data : [];
+    return arr.map((p: any) => ({ phone: String(p.id || p.jid || '').split('@')[0], name: p.name || p.pushName || undefined })).filter((p: any) => p.phone);
+  } catch (error) {
+    console.error('[evolution] fetchGroupParticipants exceção:', error);
+    return [];
+  }
+}
+
+// Todos os contatos salvos na conta (agenda do WhatsApp).
+export async function fetchAllContacts(instanceName: string): Promise<{ phone: string; name?: string }[]> {
+  try {
+    const response = await fetch(`${EVOLUTION_API_URL}/chat/findContacts/${instanceName}`, {
+      method: 'POST', headers: headers(true), body: JSON.stringify({ where: {} }),
+    });
+    if (!response.ok) return [];
+    const data = await response.json().catch(() => []);
+    const arr = Array.isArray(data) ? data : (data?.contacts || []);
+    return arr
+      .map((c: any) => ({ phone: String(c.id || c.remoteJid || c.jid || '').split('@')[0], name: c.pushName || c.name || undefined }))
+      .filter((c: any) => c.phone && /^\d{8,15}$/.test(c.phone)); // ignora JIDs de grupo/serviço
+  } catch (error) {
+    console.error('[evolution] fetchAllContacts exceção:', error);
+    return [];
+  }
+}
+
 export async function createInstance(instanceName: string): Promise<any> {
   const response = await fetch(`${EVOLUTION_API_URL}/instance/create`, {
     method: 'POST',
