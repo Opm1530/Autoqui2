@@ -213,6 +213,17 @@ export async function mySubscription(uid: string): Promise<any> {
   return { ...computeAccess(company, tolerancia), assinatura: a, toleranciaDias: tolerancia, maxLojas: a?.maxLojas || company?.limite_lojas || 1 };
 }
 
+// Bloqueio de assinatura para enforcement no backend (rotas de escrita).
+// Admin nunca é bloqueado; erro transitório = fail-open (não trava o painel).
+export async function isCompanyBlocked(uid: string): Promise<boolean> {
+  const user = await getUser(uid);
+  if (!user?.companyId || user.role === 'admin') return false;
+  const company = await getDoc('companies', user.companyId);
+  const a = (company as any)?.assinatura || null;
+  const tolerancia = a?.planId ? (await getDoc('planos', a.planId) as any)?.toleranciaDias ?? 5 : 5;
+  return computeAccess(company, tolerancia).bloqueada;
+}
+
 // Decide o acesso da empresa. Ordem: isento → livre; sem plano → livre (clientes
 // atuais sem plano seguem funcionando); authorized → livre; dentro do teste →
 // livre (mesmo se cancelou — o teste de 7 dias sempre roda até o fim); depois do

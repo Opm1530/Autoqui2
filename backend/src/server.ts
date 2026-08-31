@@ -18,8 +18,9 @@ import {
 import {
   connectPlatformMp, platformMpStatus, disconnectPlatformMp,
   savePlan, deletePlan, subscribe, cancelSubscription, mySubscription,
-  handleSubscriptionWebhook, provisionSignup, listPublicPlans,
+  handleSubscriptionWebhook, provisionSignup, listPublicPlans, isCompanyBlocked,
 } from './subscriptions.js';
+import { startCampaignJobs } from './campaigns.js';
 import { createDoc, updateDoc, deleteDoc } from './collections.js';
 import { loadUser } from './currentUser.js';
 import { assertInstanceOwner, assertCanCreate, shareQr, qrByToken, statusByToken } from './waInstances.js';
@@ -30,6 +31,15 @@ import { storefrontPublicRouter, storefrontAuthRouter } from './ecommerce/storef
 import { handleIncoming, activateCapture, deactivateCapture, captureStatus, getConfig, saveRecompra, saveAutomacoes, saveFidelidade, sendFidelidade, sendLeadMessage, setUltimaCompra, startFarmaquiJobs, getLanding, saveLanding, setLandingHost, publicLanding, farmaMetrics, listRecompra, cancelRecompra, sendRecompraNow, groupsList, listGroupOffers, createGroupOffer, deleteGroupOffer, extractGroupLeads, extractAgendaLeads, createManualLead, numberHealth } from "./farmaqui.js";
 import { trackEvent, getVitrineMetrics, getLandingMetrics } from './vitrineMetrics.js';
 import { setStoreSubdomain, removeStoreSubdomain, storeByHost } from './domains.js';
+
+// Enforcement de assinatura no backend: bloqueia escrita se inadimplente além
+// da tolerância. Roda depois de requireAuth (usa req.uid). Fail-open em erro.
+async function requireActiveSubscription(req: any, res: any, next: any) {
+  try {
+    if (await isCompanyBlocked(req.uid)) return res.status(402).json({ error: 'subscription_blocked' });
+  } catch (e: any) { console.error('[sub-guard] erro (fail-open):', e?.message); }
+  next();
+}
 
 // Empresa do usuário logado (a partir do doc users/{uid}).
 async function companyOf(uid: string): Promise<string> {
@@ -131,7 +141,7 @@ app.post('/api/orders', rateLimit(15, 60_000), async (req, res) => {
 });
 
 // ── Mudança de status do pedido (autenticado; painel) ──
-app.post('/api/orders/status', requireAuth, async (req, res) => {
+app.post('/api/orders/status', requireAuth, requireActiveSubscription, async (req, res) => {
   const { orderId, newStatus, reason, extraUpdates } = req.body || {};
   if (!orderId || !newStatus) return res.status(400).json({ error: 'orderId e newStatus obrigatórios' });
   try {
@@ -144,7 +154,7 @@ app.post('/api/orders/status', requireAuth, async (req, res) => {
   }
 });
 
-app.post('/api/orders/archive', requireAuth, async (req, res) => {
+app.post('/api/orders/archive', requireAuth, requireActiveSubscription, async (req, res) => {
   const orderId = String(req.body?.orderId || '');
   const arquivado = req.body?.arquivado !== false; // default true
   if (!orderId) return res.status(400).json({ error: 'orderId obrigatório' });
@@ -170,7 +180,7 @@ app.post('/api/orders/comprovante', rateLimit(20, 60_000), async (req, res) => {
 });
 
 // ── Gestão de produtos (autenticado; valida dono) ──
-app.post('/api/products/save', requireAuth, async (req, res) => {
+app.post('/api/products/save', requireAuth, requireActiveSubscription, async (req, res) => {
   const { id, data, companyId } = req.body || {};
   if (!data) return res.status(400).json({ error: 'data obrigatório' });
   try {
@@ -183,7 +193,7 @@ app.post('/api/products/save', requireAuth, async (req, res) => {
   }
 });
 
-app.post('/api/products/delete', requireAuth, async (req, res) => {
+app.post('/api/products/delete', requireAuth, requireActiveSubscription, async (req, res) => {
   const id = String(req.body?.id || '');
   if (!id) return res.status(400).json({ error: 'id obrigatório' });
   try {
@@ -196,7 +206,7 @@ app.post('/api/products/delete', requireAuth, async (req, res) => {
   }
 });
 
-app.post('/api/products/update-fields', requireAuth, async (req, res) => {
+app.post('/api/products/update-fields', requireAuth, requireActiveSubscription, async (req, res) => {
   const { id, fields } = req.body || {};
   if (!id || !fields) return res.status(400).json({ error: 'id e fields obrigatórios' });
   try {
@@ -303,9 +313,9 @@ app.get('/api/subscription/mine', requireAuth, wrap((req) => mySubscription(req.
 app.post('/api/orders/intervene', requireAuth, wrap((req) => sendIntervention(req.uid, String(req.body?.orderId), String(req.body?.message || ''))));
 
 // ── CRUD genérico (grupo 2/3): categorias, combos, loja_config, leads, clientes, agendamentos, campanhas, instancias ──
-app.post('/api/data/create', requireAuth, wrap((req) => createDoc(req.uid, String(req.body?.collection), req.body?.data || {})));
-app.post('/api/data/update', requireAuth, wrap((req) => updateDoc(req.uid, String(req.body?.collection), String(req.body?.id), req.body?.fields || {})));
-app.post('/api/data/delete', requireAuth, wrap((req) => deleteDoc(req.uid, String(req.body?.collection), String(req.body?.id))));
+app.post('/api/data/create', requireAuth, requireActiveSubscription, wrap((req) => createDoc(req.uid, String(req.body?.collection), req.body?.data || {})));
+app.post('/api/data/update', requireAuth, requireActiveSubscription, wrap((req) => updateDoc(req.uid, String(req.body?.collection), String(req.body?.id), req.body?.fields || {})));
+app.post('/api/data/delete', requireAuth, requireActiveSubscription, wrap((req) => deleteDoc(req.uid, String(req.body?.collection), String(req.body?.id))));
 
 // Webhook do MP para assinaturas (sem auth — o MP chama direto).
 app.post('/api/mp/subscription-webhook', async (req, res) => {
@@ -440,4 +450,5 @@ app.listen(PORT, () => {
   console.log(`[autoqui-backend] ouvindo na porta ${PORT}`);
   startEcommerceJobs();
   startFarmaquiJobs();
+  startCampaignJobs();
 });
