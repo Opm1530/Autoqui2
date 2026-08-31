@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { db } from '../../../firebase/config';
 import { dbService } from '../../../services/db';
@@ -66,12 +67,23 @@ export function Orders() {
   const leadName = (leadId: string, fallback?: string) => fallback || lead(leadId)?.nome || lead(leadId)?.name || 'Cliente';
   const leadPhone = (o: any) => (o.clientPhone || lead(o.leadId)?.telefone || '').split('@')[0];
 
+  const [searchParams] = useSearchParams();
+  const q = (searchParams.get('q') || '').trim().toLowerCase();
+
   const visible = useMemo(() => {
     let base: any[];
     if (activeFilter === 'arquivados') base = orders.filter(isOrderArchived);
     else {
       base = orders.filter((o) => !isOrderArchived(o) && !isPendingPayment(o));
       if (activeFilter !== 'todos') base = base.filter((o) => (o.status || 'em_montagem').toLowerCase() === activeFilter);
+    }
+    if (q) {
+      base = base.filter((o) => {
+        const nome = leadName(o.leadId, o.nome || o.leadName).toLowerCase();
+        const phone = leadPhone(o).toLowerCase();
+        const id = (o.id || '').slice(-6).toLowerCase();
+        return nome.includes(q) || phone.includes(q) || id.includes(q);
+      });
     }
     if (dateFrom || dateTo) {
       const min = dateFrom ? new Date(dateFrom + 'T00:00:00').getTime() : -Infinity;
@@ -82,9 +94,10 @@ export function Orders() {
       });
     }
     return base;
-  }, [orders, activeFilter, dateFrom, dateTo]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orders, activeFilter, dateFrom, dateTo, q, leads]);
 
-  const { page, setPage, totalPages, pageItems, total, perPage } = usePagination(visible, 20, `${activeFilter}|${dateFrom}|${dateTo}`);
+  const { page, setPage, totalPages, pageItems, total, perPage } = usePagination(visible, 20, `${activeFilter}|${dateFrom}|${dateTo}|${q}`);
 
   const count = (key: string) => {
     if (key === 'arquivados') return orders.filter(isOrderArchived).length;
@@ -138,7 +151,7 @@ export function Orders() {
             </thead>
             <tbody>
               {total === 0 ? (
-                <tr><td colSpan={6} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>Seus pedidos aparecerão aqui assim que os clientes comprarem pelo seu catálogo.</td></tr>
+                <tr><td colSpan={6} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>{q ? 'Nenhum pedido encontrado com essa busca.' : 'Seus pedidos aparecerão aqui assim que os clientes comprarem pelo seu catálogo.'}</td></tr>
               ) : pageItems.map((order) => {
                 const status = (order.status || 'em_montagem').toLowerCase();
                 const nome = leadName(order.leadId, order.nome || order.leadName);

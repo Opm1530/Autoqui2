@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { db } from '../../../firebase/config';
 import { dbService } from '../../../services/db';
@@ -18,7 +19,8 @@ export function Leads() {
   const [isOnlyCatalog, setIsOnlyCatalog] = useState(false);
   const [hasFarmaqui, setHasFarmaqui] = useState(false);
   const [activeFilter, setActiveFilter] = useState('todos');
-  const [search, setSearch] = useState('');
+  const [searchParams] = useSearchParams();
+  const search = searchParams.get('q') || '';
   const [selected, setSelected] = useState<any | null>(null);
   const [loaded, setLoaded] = useState(false);
 
@@ -82,18 +84,14 @@ export function Leads() {
 
   return (
     <div>
-      <div className="leads-page-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+      <div className="page-heading"><h1>Leads</h1><p>Seus contatos e o status de cada atendimento.</p></div>
+      <div className="leads-page-header" style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
         <div className="leads-filter-bar">
           {FILTERS.filter((f) => f.always || !isOnlyCatalog).map((f) => (
             <button key={f.key} className={'filter-btn' + (activeFilter === f.key ? ' active' : '')} onClick={() => setActiveFilter(f.key)}>
               {f.icon && <i className={`fa-solid ${f.icon}`} />} {f.label} <span className="filter-count">{f.count}</span>
             </button>
           ))}
-        </div>
-        <div style={{ position: 'relative', flex: '1 1 240px', maxWidth: 320 }}>
-          <i className="fa-solid fa-search" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)' }} />
-          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar por nome ou telefone..."
-            style={{ width: '100%', padding: '10px 10px 10px 35px', background: 'var(--surface-hover)', border: '1px solid var(--border-color)', borderRadius: 12, color: 'white', outline: 'none' }} />
         </div>
       </div>
 

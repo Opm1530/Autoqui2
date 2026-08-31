@@ -1,7 +1,8 @@
 // Shell do painel: sidebar + topbar + área de conteúdo (Outlet).
 // O menu é montado conforme o papel (owner/employee) e os módulos ativos da empresa.
 import { useEffect, useRef, useState } from 'react';
-import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import { NavLink, Outlet, useLocation, useSearchParams } from 'react-router-dom';
+import { GlobalSearch } from './GlobalSearch';
 import { authService } from '../services/auth';
 import { dbService } from '../services/db';
 import { orderNotification } from '../services/orderNotification';
@@ -167,6 +168,18 @@ export function Shell() {
 
   const title = TITLES[location.pathname] || 'Painel';
   useEffect(() => { document.title = `AutoQui · ${title}`; }, [title]);
+
+  // Busca do topo via ?q= (contextual nas telas de lista; geral nas demais).
+  const [searchParams, setSearchParams] = useSearchParams();
+  const q = searchParams.get('q') || '';
+  const setQ = (val: string) => {
+    const next = new URLSearchParams(searchParams);
+    if (val) next.set('q', val); else next.delete('q');
+    setSearchParams(next, { replace: true });
+  };
+  const SEARCH_HINT: Record<string, string> = { '/orders': 'Buscar pedidos…', '/leads': 'Buscar leads…', '/products': 'Buscar produtos…' };
+  const isListSearch = location.pathname in SEARCH_HINT;
+  const searchPlaceholder = SEARCH_HINT[location.pathname] || 'Buscar em pedidos, produtos, leads…';
   const nav = buildNav(user?.role, modulos || []);
   const mobile = mobileNav(nav);
   const isEmployee = user?.role === 'employee';
@@ -239,7 +252,10 @@ export function Shell() {
         <div className="topbar">
           <div className="topbar-search">
             <i className="fa-solid fa-magnifying-glass" />
-            <input placeholder="Buscar no AutoQui..." />
+            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={searchPlaceholder} />
+            {q && !isListSearch && user?.companyId && (
+              <GlobalSearch q={q} companyId={user.companyId} onPick={() => setQ('')} />
+            )}
           </div>
           <div className="topbar-right">
             <button className="topbar-icon-btn" title="Notificações"><i className="fa-solid fa-bell" /></button>

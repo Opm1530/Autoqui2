@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { ref, deleteObject } from 'firebase/storage';
 import { storage } from '../../../firebase/config';
 import { dbService } from '../../../services/db';
@@ -25,7 +26,8 @@ export function Products() {
   const [loading, setLoading] = useState(true);
 
   const [storeFilter, setStoreFilter] = useState('all');
-  const [search, setSearch] = useState('');
+  const [searchParams] = useSearchParams();
+  const search = searchParams.get('q') || '';
   const [catFilter, setCatFilter] = useState('all');
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkCat, setBulkCat] = useState('');
@@ -141,7 +143,7 @@ export function Products() {
   }
 
   // Categorias usadas no filtro (inclui "uncategorized" só se houver)
-  const inputBase: React.CSSProperties = { padding: 10, background: 'var(--surface-hover)', border: '1px solid var(--border-color)', borderRadius: 12, color: 'white', outline: 'none' };
+  const inputBase: React.CSSProperties = { padding: 10, background: 'var(--surface-hover)', border: '1px solid var(--border-color)', borderRadius: 12, color: 'var(--text-main)', outline: 'none' };
 
   if (loading) return <SkeletonTable rows={8} cols={7} />;
   if (!enabled) {
@@ -194,11 +196,7 @@ export function Products() {
             </div>
           </div>
         )}
-        <div style={{ display: 'flex', gap: 12, flex: 1, minWidth: 300 }}>
-          <div style={{ flex: 2, position: 'relative' }}>
-            <i className="fa-solid fa-search" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)' }} />
-            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={`Pesquisar ${labelPlural.toLowerCase()}...`} style={{ ...inputBase, width: '100%', padding: '10px 10px 10px 35px' }} />
-          </div>
+        <div style={{ display: 'flex', gap: 12, flex: 1, minWidth: 200, maxWidth: 260 }}>
           <div style={{ flex: 1 }}>
             <select value={catFilter} onChange={(e) => setCatFilter(e.target.value)} style={{ ...inputBase, width: '100%' }}>
               <option value="all">Todas Categorias</option>

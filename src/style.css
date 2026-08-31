@@ -1002,6 +1002,35 @@ ul {
   transition: var(--transition);
 }
 .topbar-search input::placeholder { color: var(--text-dim); }
+
+/* Dropdown da busca geral */
+.gsearch {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0; right: 0;
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  padding: 8px;
+  max-height: 60vh;
+  overflow-y: auto;
+  z-index: 60;
+}
+.gsearch-empty { padding: 1rem; text-align: center; color: var(--text-muted); font-size: 0.88rem; }
+.gsearch-group + .gsearch-group { margin-top: 6px; border-top: 1px solid var(--border-color); padding-top: 6px; }
+.gsearch-title { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-dim); padding: 6px 10px 4px; }
+.gsearch-item {
+  display: flex; align-items: center; gap: 10px;
+  width: 100%; text-align: left;
+  padding: 0.55rem 0.7rem; border-radius: 9px;
+  background: transparent; border: none; cursor: pointer;
+  color: var(--text-main); font-family: inherit; font-size: 0.9rem;
+}
+.gsearch-item i { color: var(--text-dim); width: 18px; text-align: center; }
+.gsearch-item span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gsearch-item:hover { background: var(--surface-hover); }
+.gsearch-item:hover i { color: var(--primary); }
 .topbar-search input:focus {
   outline: none;
   border-color: var(--primary);
