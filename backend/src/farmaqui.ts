@@ -22,6 +22,9 @@ async function readCapture(companyId: string): Promise<{ ativa: boolean; instanc
   return { ativa: !!f.capturaAtiva, instancia: f.capturaInstancia || '', origem: 'whatsapp' };
 }
 
+// Palavras que indicam pedido de descadastro (LGPD / opt-out).
+const OPT_OUT_RE = /\b(sair|parar|pare|cancelar|descadastr\w*|remover|stop|n[aã]o quero(?: mais)? receber|me tira|me remove)\b/i;
+
 // Cria/atualiza um lead a partir de uma mensagem recebida. Dedupe por telefone.
 async function upsertLeadFromMessage(companyId: string, phone: string, name: string, message: string, origem = 'whatsapp') {
   let cleanPhone = phone.replace(/\D/g, '');
@@ -29,6 +32,7 @@ async function upsertLeadFromMessage(companyId: string, phone: string, name: str
   if (!cleanPhone) return;
 
   const now = new Date().toISOString();
+  const optOut = OPT_OUT_RE.test(message || '');
   let leads = await getAll('leads', [
     { field: 'empresaId', operator: '==', value: companyId },
     { field: 'whatsapp', operator: '==', value: cleanPhone },
@@ -41,10 +45,13 @@ async function upsertLeadFromMessage(companyId: string, phone: string, name: str
   }
   const existing = leads[0];
   if (existing) {
-    await db.collection('leads').doc(existing.id).update({ ultimaMensagem: message.slice(0, 500), ultimoContato: now, updatedAt: now });
+    const upd: any = { ultimaMensagem: message.slice(0, 500), ultimoContato: now, updatedAt: now };
+    if (optOut) upd.descadastrado = true; // opt-out por mensagem
+    await db.collection('leads').doc(existing.id).update(upd);
     return;
   }
   await db.collection('leads').add({
+    descadastrado: optOut,
     nome: name || cleanPhone,
     telefone: cleanPhone,
     whatsapp: cleanPhone,
@@ -173,13 +180,24 @@ export async function captureStatus(uid: string) {
 }
 
 const DEFAULT_RECOMPRA = { enabled: false, mensagem: 'Olá {{nome}}! 💊 Já faz um tempinho da sua última compra. Precisa repor algum remédio? É só me chamar por aqui!', cicloDiasPadrao: 30 };
+const DEFAULT_AUTOMACOES = {
+  aniversario: { enabled: false, mensagem: 'Feliz aniversário, {{nome}}! 🎉 Passa aqui na farmácia pra ganhar um mimo especial. Um abraço!' },
+  reativacao: { enabled: false, dias: 60, mensagem: 'Oi {{nome}}! Faz um tempo que a gente não se fala. Precisa de algum medicamento ou tem alguma dúvida? Estamos aqui pra ajudar. 💚' },
+};
 
 export async function getConfig(uid: string) {
   const companyId = await companyOf(uid);
   const doc = await db.collection('companies').doc(companyId).get();
   const f = (doc.data() as any)?.farmaqui || {};
   const cap = await readCapture(companyId);
-  return { capturaAtiva: cap.ativa, capturaInstancia: cap.instancia, recompra: { ...DEFAULT_RECOMPRA, ...(f.recompra || {}) } };
+  return {
+    capturaAtiva: cap.ativa, capturaInstancia: cap.instancia,
+    recompra: { ...DEFAULT_RECOMPRA, ...(f.recompra || {}) },
+    automacoes: {
+      aniversario: { ...DEFAULT_AUTOMACOES.aniversario, ...(f.automacoes?.aniversario || {}) },
+      reativacao: { ...DEFAULT_AUTOMACOES.reativacao, ...(f.automacoes?.reativacao || {}) },
+    },
+  };
 }
 
 export async function saveRecompra(uid: string, body: any) {
@@ -187,6 +205,16 @@ export async function saveRecompra(uid: string, body: any) {
   const recompra = { enabled: body?.enabled !== false, mensagem: String(body?.mensagem || ''), cicloDiasPadrao: Number(body?.cicloDiasPadrao) || 30 };
   if (recompra.enabled && !recompra.mensagem.trim()) throw new Error('mensagem_obrigatoria');
   await db.collection('companies').doc(companyId).set({ farmaqui: { recompra } }, { merge: true });
+  return { ok: true };
+}
+
+export async function saveAutomacoes(uid: string, body: any) {
+  const companyId = await companyOf(uid);
+  const aniversario = { enabled: body?.aniversario?.enabled === true, mensagem: String(body?.aniversario?.mensagem || '') };
+  const reativacao = { enabled: body?.reativacao?.enabled === true, dias: Math.max(15, Number(body?.reativacao?.dias) || 60), mensagem: String(body?.reativacao?.mensagem || '') };
+  if (aniversario.enabled && !aniversario.mensagem.trim()) throw new Error('mensagem_aniversario_obrigatoria');
+  if (reativacao.enabled && !reativacao.mensagem.trim()) throw new Error('mensagem_reativacao_obrigatoria');
+  await db.collection('companies').doc(companyId).set({ farmaqui: { automacoes: { aniversario, reativacao } } }, { merge: true });
   return { ok: true };
 }
 
@@ -292,12 +320,64 @@ async function processRecompra() {
       const company = await db.collection('companies').doc(s.companyId).get();
       const f = (company.data() as any)?.farmaqui || {};
       const cap = await readCapture(s.companyId);
-      if (f.recompra?.enabled && cap.instancia && s.phone) {
+      // Não envia para quem pediu descadastro (LGPD).
+      const leadDoc = s.leadId ? await db.collection('leads').doc(s.leadId).get() : null;
+      const optOut = leadDoc?.exists && (leadDoc.data() as any).descadastrado;
+      if (f.recompra?.enabled && cap.instancia && s.phone && !optOut) {
         const msg = String(f.recompra.mensagem || '').replace(/\{\{nome\}\}/gi, s.nome || 'tudo bem');
         await sendText(cap.instancia, String(s.phone).replace(/\D/g, ''), msg);
       }
       await doc.ref.update({ done: true });
     } catch (e: any) { console.error('[farmaqui] recompra erro:', e?.message); }
+  }
+}
+
+// Cron diário: aniversário e reativação (win-back) de clientes inativos.
+async function processAutomacoes() {
+  const hoje = new Date();
+  const mmdd = `${String(hoje.getMonth() + 1).padStart(2, '0')}-${String(hoje.getDate()).padStart(2, '0')}`;
+  const anoAtual = hoje.getFullYear();
+  // Empresas com FarmaQui e alguma automação ligada.
+  const companies = await getAll('companies', []).catch(() => []);
+  for (const c of companies) {
+    const f = (c as any).farmaqui || {};
+    const auto = f.automacoes || {};
+    if (!auto.aniversario?.enabled && !auto.reativacao?.enabled) continue;
+    const cap = await readCapture(c.id);
+    if (!cap.instancia) continue;
+    const leads = await getAll('leads', [{ field: 'empresaId', operator: '==', value: c.id }]).catch(() => []);
+    for (const lead of leads) {
+      if (lead.descadastrado || lead.statusLead === 'bloqueado') continue;
+      const phone = String(lead.telefone || lead.whatsapp || '').replace(/\D/g, '');
+      if (!phone) continue;
+      const primeiroNome = String(lead.nome || '').split(' ')[0] || 'tudo bem';
+
+      // Aniversário (uma vez por ano).
+      if (auto.aniversario?.enabled && lead.aniversario) {
+        const aniv = String(lead.aniversario).slice(5, 10); // MM-DD
+        if (aniv === mmdd && lead.ultimoAniversarioEnviado !== anoAtual) {
+          try {
+            await sendText(cap.instancia, phone, String(auto.aniversario.mensagem || '').replace(/\{\{nome\}\}/gi, primeiroNome));
+            await db.collection('leads').doc(lead.id).update({ ultimoAniversarioEnviado: anoAtual });
+          } catch (e: any) { console.error('[farmaqui] aniversario erro:', e?.message); }
+          continue; // não manda reativação no mesmo dia
+        }
+      }
+
+      // Reativação (inativo há X dias; no máximo 1x a cada 30 dias).
+      if (auto.reativacao?.enabled) {
+        const dias = Math.max(15, Number(auto.reativacao.dias) || 60);
+        const ultAtividade = new Date(lead.ultimoContato || lead.updatedAt || lead.criadoEm || 0).getTime();
+        const ultReativacao = lead.ultimaReativacao ? new Date(lead.ultimaReativacao).getTime() : 0;
+        const inativoMs = dias * 86400000;
+        if (ultAtividade > 0 && Date.now() - ultAtividade >= inativoMs && Date.now() - ultReativacao >= 30 * 86400000) {
+          try {
+            await sendText(cap.instancia, phone, String(auto.reativacao.mensagem || '').replace(/\{\{nome\}\}/gi, primeiroNome));
+            await db.collection('leads').doc(lead.id).update({ ultimaReativacao: new Date().toISOString() });
+          } catch (e: any) { console.error('[farmaqui] reativacao erro:', e?.message); }
+        }
+      }
+    }
   }
 }
 
@@ -431,5 +511,7 @@ async function processGroupOffers() {
 export function startFarmaquiJobs() {
   cron.schedule('0 * * * *', () => processRecompra().catch((e) => console.error('[farmaqui/jobs]', e?.message)));
   cron.schedule('*/5 * * * *', () => processGroupOffers().catch((e) => console.error('[farmaqui/jobs grupo]', e?.message)));
-  console.log('[farmaqui] jobs iniciados (recompra + ofertas de grupo)');
+  // Automações (aniversário + reativação): 1x por dia às 9h.
+  cron.schedule('0 9 * * *', () => processAutomacoes().catch((e) => console.error('[farmaqui/jobs automacoes]', e?.message)));
+  console.log('[farmaqui] jobs iniciados (recompra + ofertas de grupo + automacoes)');
 }

@@ -27,7 +27,7 @@ import { rateLimit, verifyMpSignature } from './security.js';
 import { ecommerceRouter } from './ecommerce/router.js';
 import { startEcommerceJobs } from './ecommerce/jobs.js';
 import { storefrontPublicRouter, storefrontAuthRouter } from './ecommerce/storefront.js';
-import { handleIncoming, activateCapture, deactivateCapture, captureStatus, getConfig, saveRecompra, setUltimaCompra, startFarmaquiJobs, getLanding, saveLanding, setLandingHost, publicLanding, farmaMetrics, listRecompra, cancelRecompra, sendRecompraNow, groupsList, listGroupOffers, createGroupOffer, deleteGroupOffer, extractGroupLeads, extractAgendaLeads, createManualLead } from './farmaqui.js';
+import { handleIncoming, activateCapture, deactivateCapture, captureStatus, getConfig, saveRecompra, saveAutomacoes, setUltimaCompra, startFarmaquiJobs, getLanding, saveLanding, setLandingHost, publicLanding, farmaMetrics, listRecompra, cancelRecompra, sendRecompraNow, groupsList, listGroupOffers, createGroupOffer, deleteGroupOffer, extractGroupLeads, extractAgendaLeads, createManualLead } from './farmaqui.js';
 import { trackEvent, getVitrineMetrics, getLandingMetrics } from './vitrineMetrics.js';
 import { setStoreSubdomain, removeStoreSubdomain, storeByHost } from './domains.js';
 
@@ -267,6 +267,7 @@ app.post('/api/farmaqui/extract-group', requireAuth, wrap((req) => extractGroupL
 app.post('/api/farmaqui/extract-agenda', requireAuth, wrap((req) => extractAgendaLeads(req.uid)));
 app.post('/api/farmaqui/manual-lead', requireAuth, wrap((req) => createManualLead(req.uid, String(req.body?.nome || ''), String(req.body?.telefone || ''))));
 app.post('/api/farmaqui/recompra', requireAuth, wrap((req) => saveRecompra(req.uid, req.body || {})));
+app.post('/api/farmaqui/automacoes', requireAuth, wrap((req) => saveAutomacoes(req.uid, req.body || {})));
 app.post('/api/farmaqui/ultima-compra', requireAuth, wrap((req) => setUltimaCompra(req.uid, String(req.body?.leadId || ''), String(req.body?.data || ''), Number(req.body?.cicloDias) || 30, String(req.body?.produto || ''))));
 app.get('/api/farmaqui/landing', requireAuth, wrap((req) => getLanding(req.uid)));
 app.post('/api/farmaqui/landing', requireAuth, wrap((req) => saveLanding(req.uid, req.body || {})));

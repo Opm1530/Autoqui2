@@ -95,6 +95,10 @@ export function LeadModal({ lead, isOnlyCatalog, farmaqui, onClose, onUpdated }:
               {menuOpen && (
                 <div className="lead-dropdown" style={{ position: 'absolute', right: 0, top: 'calc(100% + 4px)', zIndex: 30, background: 'var(--surface-color)', border: '1px solid var(--border-color)', borderRadius: 8, boxShadow: '0 10px 30px rgba(0,0,0,0.4)', minWidth: 190, padding: 6 }}>
                   <button className="lead-dropdown-item" style={dropItem} onClick={() => { setMenuOpen(false); setMode('edit'); }}><i className="fa-solid fa-pen-to-square" /> Editar Lead</button>
+                  {farmaqui && (lead.descadastrado
+                    ? <button className="lead-dropdown-item" style={dropItem} onClick={() => { setMenuOpen(false); update({ descadastrado: false }, 'Contato reativado.'); }}><i className="fa-solid fa-bell" /> Reativar contato</button>
+                    : <button className="lead-dropdown-item" style={dropItem} onClick={() => { setMenuOpen(false); update({ descadastrado: true }, 'Contato descadastrado.'); }}><i className="fa-solid fa-bell-slash" /> Descadastrar contato</button>
+                  )}
                   {isBloqueado ? (
                     <button className="lead-dropdown-item" style={dropItem} onClick={() => { setMenuOpen(false); desbloquear(); }}><i className="fa-solid fa-unlock" /> Desbloquear Lead</button>
                   ) : (
@@ -126,6 +130,12 @@ export function LeadModal({ lead, isOnlyCatalog, farmaqui, onClose, onUpdated }:
                   {lead.aniversario && <div className="lead-info-item"><span className="lead-info-label">Aniversário</span><span className="lead-info-value">{String(lead.aniversario).slice(0, 10).split('-').reverse().join('/')}</span></div>}
                   {lead.endereco && <div className="lead-info-item" style={{ gridColumn: '1 / -1' }}><span className="lead-info-label">Endereço</span><span className="lead-info-value">{lead.endereco}</span></div>}
                 </div>
+                {lead.descadastrado && (
+                  <div className="lead-alert" style={{ marginTop: 12, background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.25)', color: 'var(--text-main)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '0.85rem' }}><i className="fa-solid fa-ban" style={{ color: '#f87171', marginRight: 6 }} />Pediu descadastro — não recebe automações nem campanhas.</span>
+                    <button className="btn-secondary" style={{ padding: '4px 12px', fontSize: '0.82rem' }} disabled={busy} onClick={() => update({ descadastrado: false }, 'Contato reativado.')}>Reativar contato</button>
+                  </div>
+                )}
                 <TagsEditor lead={lead} onUpdated={onUpdated} />
                 <RecompraLead lead={lead} onUpdated={onUpdated} />
                 {isBloqueado && (

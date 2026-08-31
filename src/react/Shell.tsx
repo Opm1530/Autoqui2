@@ -86,7 +86,7 @@ function buildNav(role: string | undefined, modulos: string[]): NavEntry[] {
   } else if (farmaqui) {
     add({ label: 'FarmaQui', icon: 'fa-prescription-bottle-medical', children: [
       { to: '/farmaqui', label: 'Ajustes', icon: 'fa-sliders' },
-      { to: '/farmaqui/recompra', label: 'Recompra', icon: 'fa-pills' },
+      { to: '/farmaqui/recompra', label: 'Automações', icon: 'fa-wand-magic-sparkles' },
       { to: '/farmaqui/grupo', label: 'Ofertas no grupo', icon: 'fa-bullhorn' },
     ] });
     add({ to: '/leads', label: 'Clientes', icon: 'fa-people-group' });

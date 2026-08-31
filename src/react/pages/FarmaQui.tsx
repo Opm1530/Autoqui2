@@ -111,16 +111,92 @@ export function FarmaQui() {
   );
 }
 
-// Página: Recompra (menu FarmaQui › Recompra).
+// Página: Automações (menu FarmaQui › Automações) — recompra, aniversário e reativação.
 export function FarmaQuiRecompra() {
   return (
     <div>
       <div className="page-heading">
-        <h1>FarmaQui · Recompra</h1>
-        <p>Lembre seus clientes de repor os medicamentos no tempo certo, automaticamente.</p>
+        <h1>FarmaQui · Automações</h1>
+        <p>Mensagens automáticas que mantêm o cliente por perto: recompra, aniversário e reativação.</p>
       </div>
       <RecompraConfig />
+      <Automacoes />
       <RecompraQueue />
+    </div>
+  );
+}
+
+// Automações de relacionamento: aniversário e reativação (win-back).
+function Automacoes() {
+  const [aniv, setAniv] = useState({ enabled: false, mensagem: '' });
+  const [reat, setReat] = useState({ enabled: false, dias: 60, mensagem: '' });
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    farmaquiApi.config().then((c) => { if (c.automacoes) { setAniv(c.automacoes.aniversario); setReat(c.automacoes.reativacao); } setLoading(false); }).catch(() => setLoading(false));
+  }, []);
+
+  async function save() {
+    if (aniv.enabled && !aniv.mensagem.trim()) { toast.warning('Escreva a mensagem de aniversário.'); return; }
+    if (reat.enabled && !reat.mensagem.trim()) { toast.warning('Escreva a mensagem de reativação.'); return; }
+    setBusy(true);
+    try { await farmaquiApi.saveAutomacoes({ aniversario: aniv, reativacao: reat }); toast.success('Automações salvas!'); }
+    catch (e: any) { toast.error('Erro: ' + (e.message || e)); }
+    finally { setBusy(false); }
+  }
+  if (loading) return null;
+
+  return (
+    <div className="card" style={{ marginTop: '1.25rem' }}>
+      <div style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}><i className="fa-solid fa-wand-magic-sparkles" style={{ color: TEAL }} /> Automações de relacionamento</div>
+      <p style={{ margin: '0 0 16px', color: 'var(--text-muted)', fontSize: '0.85rem' }}>Disparadas sozinhas todo dia. Só valem para quem não pediu descadastro.</p>
+
+      {/* Aniversário */}
+      <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: 14 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+          <div>
+            <div style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}><i className="fa-solid fa-cake-candles" style={{ color: TEAL }} /> Aniversário</div>
+            <p style={{ margin: '2px 0 0', color: 'var(--text-muted)', fontSize: '0.85rem' }}>Manda uma mensagem no dia do aniversário do cliente (precisa ter a data cadastrada).</p>
+          </div>
+          <label className="cfg-switch"><input type="checkbox" checked={aniv.enabled} onChange={(e) => setAniv({ ...aniv, enabled: e.target.checked })} /><span className="cfg-slider" /></label>
+        </div>
+        {aniv.enabled && (
+          <div style={{ marginTop: 12 }}>
+            <label className="config-label">Mensagem</label>
+            <textarea className="config-input" style={{ minHeight: 80, resize: 'vertical', fontFamily: 'inherit' }} value={aniv.mensagem} onChange={(e) => setAniv({ ...aniv, mensagem: e.target.value })} />
+            <small style={{ color: 'var(--text-dim)' }}>Use {'{{nome}}'} para o nome do cliente.</small>
+          </div>
+        )}
+      </div>
+
+      {/* Reativação */}
+      <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: 14, marginTop: 14 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+          <div>
+            <div style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}><i className="fa-solid fa-heart-pulse" style={{ color: TEAL }} /> Reativação (win-back)</div>
+            <p style={{ margin: '2px 0 0', color: 'var(--text-muted)', fontSize: '0.85rem' }}>Reconquista quem sumiu: manda uma mensagem para clientes inativos há um tempo.</p>
+          </div>
+          <label className="cfg-switch"><input type="checkbox" checked={reat.enabled} onChange={(e) => setReat({ ...reat, enabled: e.target.checked })} /><span className="cfg-slider" /></label>
+        </div>
+        {reat.enabled && (
+          <div style={{ marginTop: 12, display: 'grid', gap: 12 }}>
+            <div style={{ maxWidth: 240 }}>
+              <label className="config-label">Inativo há</label>
+              <select className="config-select" style={{ width: '100%' }} value={reat.dias} onChange={(e) => setReat({ ...reat, dias: Number(e.target.value) })}>
+                <option value={30}>30 dias</option><option value={45}>45 dias</option><option value={60}>60 dias</option><option value={90}>90 dias</option>
+              </select>
+            </div>
+            <div>
+              <label className="config-label">Mensagem</label>
+              <textarea className="config-input" style={{ minHeight: 80, resize: 'vertical', fontFamily: 'inherit' }} value={reat.mensagem} onChange={(e) => setReat({ ...reat, mensagem: e.target.value })} />
+              <small style={{ color: 'var(--text-dim)' }}>Use {'{{nome}}'} para o nome do cliente. Enviada no máximo 1x por mês por cliente.</small>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div style={{ textAlign: 'right', marginTop: 16 }}><button className="btn-primary" disabled={busy} onClick={save} style={{ background: TEAL }}>{busy ? 'Salvando...' : 'Salvar automações'}</button></div>
     </div>
   );
 }

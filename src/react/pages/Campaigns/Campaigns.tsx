@@ -91,6 +91,8 @@ function NovaCampanha({ company, instances, allLeads, loaded }: { company: any; 
   const [scheduleDt, setScheduleDt] = useState('');
   const [busy, setBusy] = useState(false);
 
+  const optOutCount = useMemo(() => allLeads.filter((l) => l.descadastrado).length, [allLeads]);
+
   // Todas as tags existentes na base (para o filtro).
   const allTags = useMemo(() => {
     const s = new Set<string>();
@@ -103,6 +105,7 @@ function NovaCampanha({ company, instances, allLeads, loaded }: { company: any; 
     const days = parseInt(activityFilter || '0');
     const cutoff = days > 0 ? Date.now() - days * 86400000 : null;
     return allLeads.filter((l) => {
+      if (l.descadastrado) return false; // LGPD: quem pediu descadastro não recebe campanha
       const matchSearch = !term || (l.nome || '').toLowerCase().includes(term) || (l.telefone || '').includes(term);
       const matchStore = !storeFilter || l.lojaId === storeFilter;
       const matchStatus = !statusFilter || (l.statusLead || 'novo') === statusFilter;
@@ -202,6 +205,7 @@ function NovaCampanha({ company, instances, allLeads, loaded }: { company: any; 
             <select value={activityFilter} onChange={(e) => setActivityFilter(e.target.value)} className="form-control"><option value="">Qualquer atividade</option><option value="7">Últimos 7 dias</option><option value="15">Últimos 15 dias</option><option value="30">Últimos 30 dias</option><option value="90">Últimos 90 dias</option></select>
             {allTags.length > 0 && <select value={tagFilter} onChange={(e) => setTagFilter(e.target.value)} className="form-control"><option value="">Todas as tags</option>{allTags.map((t) => <option key={t} value={t}>{t}</option>)}</select>}
           </div>
+          {optOutCount > 0 && <p style={{ fontSize: '0.78rem', color: 'var(--text-dim)', margin: '2px 0 8px' }}><i className="fa-solid fa-shield-halved" style={{ marginRight: 5 }} />{optOutCount} contato(s) que pediram descadastro estão ocultos e não recebem campanhas (LGPD).</p>}
           <div className="leads-table-content">
             <table className="cmp-leads-table">
               <thead><tr><th style={{ width: 40 }}><input type="checkbox" checked={allPageChecked} onChange={(e) => toggleAllPage(e.target.checked)} /></th><th>Nome</th><th>WhatsApp</th><th>Status</th><th>Última Atividade</th></tr></thead>
