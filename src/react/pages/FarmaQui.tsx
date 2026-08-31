@@ -161,13 +161,11 @@ function Automacoes() {
           </div>
           <label className="cfg-switch"><input type="checkbox" checked={aniv.enabled} onChange={(e) => setAniv({ ...aniv, enabled: e.target.checked })} /><span className="cfg-slider" /></label>
         </div>
-        {aniv.enabled && (
-          <div style={{ marginTop: 12 }}>
-            <label className="config-label">Mensagem</label>
-            <textarea className="config-input" style={{ minHeight: 80, resize: 'vertical', fontFamily: 'inherit' }} value={aniv.mensagem} onChange={(e) => setAniv({ ...aniv, mensagem: e.target.value })} />
-            <small style={{ color: 'var(--text-dim)' }}>Use {'{{nome}}'} para o nome do cliente.</small>
-          </div>
-        )}
+        <div style={{ marginTop: 12 }}>
+          <label className="config-label">Mensagem</label>
+          <textarea className="config-input" style={{ minHeight: 80, resize: 'vertical', fontFamily: 'inherit' }} value={aniv.mensagem} onChange={(e) => setAniv({ ...aniv, mensagem: e.target.value })} placeholder="Ex: Feliz aniversário, {{nome}}! 🎉" />
+          <VarHint onInsert={(v) => setAniv({ ...aniv, mensagem: (aniv.mensagem || '') + v })} />
+        </div>
       </div>
 
       {/* Reativação */}
@@ -179,24 +177,33 @@ function Automacoes() {
           </div>
           <label className="cfg-switch"><input type="checkbox" checked={reat.enabled} onChange={(e) => setReat({ ...reat, enabled: e.target.checked })} /><span className="cfg-slider" /></label>
         </div>
-        {reat.enabled && (
-          <div style={{ marginTop: 12, display: 'grid', gap: 12 }}>
-            <div style={{ maxWidth: 240 }}>
-              <label className="config-label">Inativo há</label>
-              <select className="config-select" style={{ width: '100%' }} value={reat.dias} onChange={(e) => setReat({ ...reat, dias: Number(e.target.value) })}>
-                <option value={30}>30 dias</option><option value={45}>45 dias</option><option value={60}>60 dias</option><option value={90}>90 dias</option>
-              </select>
-            </div>
-            <div>
-              <label className="config-label">Mensagem</label>
-              <textarea className="config-input" style={{ minHeight: 80, resize: 'vertical', fontFamily: 'inherit' }} value={reat.mensagem} onChange={(e) => setReat({ ...reat, mensagem: e.target.value })} />
-              <small style={{ color: 'var(--text-dim)' }}>Use {'{{nome}}'} para o nome do cliente. Enviada no máximo 1x por mês por cliente.</small>
-            </div>
+        <div style={{ marginTop: 12, display: 'grid', gap: 12 }}>
+          <div style={{ maxWidth: 240 }}>
+            <label className="config-label">Inativo há</label>
+            <select className="config-select" style={{ width: '100%' }} value={reat.dias} onChange={(e) => setReat({ ...reat, dias: Number(e.target.value) })}>
+              <option value={30}>30 dias</option><option value={45}>45 dias</option><option value={60}>60 dias</option><option value={90}>90 dias</option>
+            </select>
           </div>
-        )}
+          <div>
+            <label className="config-label">Mensagem</label>
+            <textarea className="config-input" style={{ minHeight: 80, resize: 'vertical', fontFamily: 'inherit' }} value={reat.mensagem} onChange={(e) => setReat({ ...reat, mensagem: e.target.value })} placeholder="Ex: Oi {{nome}}, faz um tempo que não se fala..." />
+            <VarHint onInsert={(v) => setReat({ ...reat, mensagem: (reat.mensagem || '') + v })} note="Enviada no máximo 1x por mês por cliente." />
+          </div>
+        </div>
       </div>
 
       <div style={{ textAlign: 'right', marginTop: 16 }}><button className="btn-primary" disabled={busy} onClick={save} style={{ background: TEAL }}>{busy ? 'Salvando...' : 'Salvar automações'}</button></div>
+    </div>
+  );
+}
+
+// Atalho de variáveis para personalizar mensagens (clica e insere no texto).
+function VarHint({ onInsert, note }: { onInsert: (v: string) => void; note?: string }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginTop: 6 }}>
+      <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>Inserir:</span>
+      <button type="button" onClick={() => onInsert('{{nome}}')} style={{ fontSize: '0.72rem', fontWeight: 600, background: 'rgba(132,204,22,0.12)', color: 'var(--primary-hover)', border: '1px solid rgba(132,204,22,0.3)', borderRadius: 999, padding: '2px 9px', cursor: 'pointer' }}>{'{{nome}}'}</button>
+      {note && <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)', marginLeft: 4 }}>· {note}</span>}
     </div>
   );
 }
@@ -236,21 +243,19 @@ function RecompraConfig() {
         </div>
         <label className="cfg-switch"><input type="checkbox" checked={r.enabled} onChange={(e) => setR({ ...r, enabled: e.target.checked })} /><span className="cfg-slider" /></label>
       </div>
-      {r.enabled && (
-        <div style={{ marginTop: 14, display: 'grid', gap: 12 }}>
-          <div style={{ maxWidth: 220 }}>
-            <label className="config-label">Ciclo padrão (dias)</label>
-            <select className="config-select" value={r.cicloDiasPadrao} onChange={(e) => setR({ ...r, cicloDiasPadrao: Number(e.target.value) })}>
-              <option value={30}>30 dias</option><option value={60}>60 dias</option><option value={90}>90 dias</option>
-            </select>
-          </div>
-          <div>
-            <label className="config-label">Mensagem</label>
-            <textarea className="config-input" style={{ minHeight: 90, resize: 'vertical', fontFamily: 'inherit' }} value={r.mensagem} onChange={(e) => setR({ ...r, mensagem: e.target.value })} />
-            <small style={{ color: 'var(--text-dim)' }}>Use {'{{nome}}'} para o nome do cliente.</small>
-          </div>
+      <div style={{ marginTop: 14, display: 'grid', gap: 12 }}>
+        <div style={{ maxWidth: 220 }}>
+          <label className="config-label">Ciclo padrão (dias)</label>
+          <select className="config-select" value={r.cicloDiasPadrao} onChange={(e) => setR({ ...r, cicloDiasPadrao: Number(e.target.value) })}>
+            <option value={30}>30 dias</option><option value={60}>60 dias</option><option value={90}>90 dias</option>
+          </select>
         </div>
-      )}
+        <div>
+          <label className="config-label">Mensagem</label>
+          <textarea className="config-input" style={{ minHeight: 90, resize: 'vertical', fontFamily: 'inherit' }} value={r.mensagem} onChange={(e) => setR({ ...r, mensagem: e.target.value })} placeholder="Ex: Olá {{nome}}! Já faz um tempinho da sua última compra..." />
+          <VarHint onInsert={(v) => setR({ ...r, mensagem: (r.mensagem || '') + v })} />
+        </div>
+      </div>
       <div style={{ textAlign: 'right', marginTop: 14 }}><button className="btn-primary" disabled={busy} onClick={save} style={{ background: TEAL }}>{busy ? 'Salvando...' : 'Salvar'}</button></div>
     </div>
   );

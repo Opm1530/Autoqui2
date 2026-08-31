@@ -122,6 +122,22 @@ function NovaCampanha({ company, instances, allLeads, loaded }: { company: any; 
   const start = (page - 1) * PAGE_SIZE;
   const pageLeads = filtered.slice(start, start + PAGE_SIZE);
 
+  // Segmentos automáticos (seleção rápida). Ignora descadastrados (LGPD).
+  const mesAtual = new Date().getMonth(), anoAtual = new Date().getFullYear();
+  const SEGMENTS: { key: string; label: string; icon: string; pred: (l: any) => boolean }[] = [
+    { key: 'recuperar', label: 'A recuperar (60+ dias)', icon: 'fa-heart-pulse', pred: (l) => { const ms = resolveTimestampMs(l.ultimoContato || l.updatedAt || l.criadoEm); return ms !== null && Date.now() - ms >= 60 * 86400000; } },
+    { key: 'aniversariantes', label: 'Aniversariantes do mês', icon: 'fa-cake-candles', pred: (l) => !!l.aniversario && Number(String(l.aniversario).slice(5, 7)) === mesAtual + 1 },
+    { key: 'compraram_mes', label: 'Compraram este mês', icon: 'fa-bag-shopping', pred: (l) => { if (!l.ultimaCompra) return false; const d = new Date(l.ultimaCompra); return d.getMonth() === mesAtual && d.getFullYear() === anoAtual; } },
+    { key: 'nunca', label: 'Nunca compraram', icon: 'fa-user-clock', pred: (l) => !l.ultimaCompra },
+    { key: 'ativos', label: 'Clientes ativos', icon: 'fa-user-check', pred: (l) => (l.statusLead || '') === 'cliente_ativo' },
+  ];
+  function selectSegment(pred: (l: any) => boolean) {
+    const ids = allLeads.filter((l) => !l.descadastrado && pred(l)).map((l) => l.id);
+    setSelected(new Set(ids));
+    if (ids.length) toast.success(`${ids.length} lead(s) selecionado(s).`);
+    else toast.warning('Nenhum lead nesse segmento.');
+  }
+
   const toggleLead = (id: string) => setSelected((prev) => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
   const allPageChecked = pageLeads.length > 0 && pageLeads.every((l) => selected.has(l.id));
   const toggleAllPage = (check: boolean) => setSelected((prev) => { const n = new Set(prev); pageLeads.forEach((l) => check ? n.add(l.id) : n.delete(l.id)); return n; });
@@ -206,6 +222,14 @@ function NovaCampanha({ company, instances, allLeads, loaded }: { company: any; 
             {allTags.length > 0 && <select value={tagFilter} onChange={(e) => setTagFilter(e.target.value)} className="form-control"><option value="">Todas as tags</option>{allTags.map((t) => <option key={t} value={t}>{t}</option>)}</select>}
           </div>
           {optOutCount > 0 && <p style={{ fontSize: '0.78rem', color: 'var(--text-dim)', margin: '2px 0 8px' }}><i className="fa-solid fa-shield-halved" style={{ marginRight: 5 }} />{optOutCount} contato(s) que pediram descadastro estão ocultos e não recebem campanhas (LGPD).</p>}
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', margin: '4px 0 10px' }}>
+            <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 600 }}>Seleção rápida:</span>
+            {SEGMENTS.map((s) => (
+              <button key={s.key} type="button" className="filter-btn" style={{ fontSize: '0.78rem', padding: '5px 12px' }} onClick={() => selectSegment(s.pred)}>
+                <i className={`fa-solid ${s.icon}`} style={{ marginRight: 5 }} />{s.label}
+              </button>
+            ))}
+          </div>
           <div className="leads-table-content">
             <table className="cmp-leads-table">
               <thead><tr><th style={{ width: 40 }}><input type="checkbox" checked={allPageChecked} onChange={(e) => toggleAllPage(e.target.checked)} /></th><th>Nome</th><th>WhatsApp</th><th>Status</th><th>Última Atividade</th></tr></thead>
