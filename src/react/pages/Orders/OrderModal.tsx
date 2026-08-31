@@ -221,45 +221,47 @@ export function OrderModal({ order, companyId, storeName, clientName, clientPhon
         )}
 
         {/* Ações */}
-        <div className="lead-modal-footer" style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          {!isTerminal && action && (
-            <button className="btn-lead-action" disabled={busy} onClick={() => advance(action.target)}>
-              <i className={`fa-solid ${action.icon}`} /> {busy ? '...' : action.label}
-            </button>
-          )}
-          {!isTerminal && (status === 'em_montagem' || status === 'aguardando_pagamento') && (
-            <button className="btn-lead-action danger" disabled={busy} onClick={cancel}>
-              <i className="fa-solid fa-xmark" /> {order.pago ? 'Recusar e Estornar' : 'Cancelar Pedido'}
-            </button>
-          )}
+        <div className="lead-modal-footer order-footer">
+          <div className="order-footer-left">
+            {!isTerminal && action && (
+              <button className="btn-lead-action" disabled={busy} onClick={() => advance(action.target)}>
+                <i className={`fa-solid ${action.icon}`} /> {busy ? '...' : action.label}
+              </button>
+            )}
+            {!isTerminal && (status === 'em_montagem' || status === 'aguardando_pagamento') && (
+              <button className="btn-lead-action danger" disabled={busy} onClick={cancel}>
+                <i className="fa-solid fa-xmark" /> {order.pago ? 'Recusar e Estornar' : 'Cancelar Pedido'}
+              </button>
+            )}
+            {!isTerminal && !isCatalog && (
+              <button className="btn-lead-action ghost" disabled={busy} onClick={() => setIntervirOpen((o) => !o)}>
+                <i className="fa-solid fa-comment-dots" /> Intervir
+              </button>
+            )}
+            {!isTerminal && !isCatalog && order.leadId && (
+              <button className="btn-lead-action ghost" disabled={busy} onClick={humanSupport}
+                style={{ color: '#d97706', borderColor: 'rgba(245,158,11,0.4)' }}>
+                <i className="fa-solid fa-user" /> Atend. Humano
+              </button>
+            )}
+            {!isOrderArchived(order) && (
+              <button className="btn-lead-action ghost" disabled={busy} onClick={archive}>
+                <i className="fa-solid fa-box-archive" /> Arquivar
+              </button>
+            )}
+            {isPlatformAdmin && (
+              <button className="btn-lead-action danger" disabled={busy} onClick={removeOrder}
+                title="Exclusão definitiva — apenas admin da plataforma">
+                <i className="fa-solid fa-trash" /> Excluir
+              </button>
+            )}
+          </div>
+
           {!isTerminal && (
             <a href={`https://wa.me/${(clientPhone || '').replace(/\D/g, '')}`} target="_blank" rel="noreferrer"
-              className="btn-lead-action" style={{ background: 'rgba(37,211,102,0.15)', borderColor: 'rgba(37,211,102,0.4)', color: '#25d366', textDecoration: 'none' }}>
-              <i className="fa-brands fa-whatsapp" /> WhatsApp
+              className="order-footer-wa" title="Abrir conversa no WhatsApp">
+              <i className="fa-brands fa-whatsapp" />
             </a>
-          )}
-          {!isTerminal && !isCatalog && (
-            <button className="btn-lead-action" disabled={busy} onClick={() => setIntervirOpen((o) => !o)}
-              style={{ background: 'rgba(132, 204, 22,0.12)', borderColor: 'rgba(132, 204, 22,0.35)' }}>
-              <i className="fa-solid fa-comment-dots" /> Intervir
-            </button>
-          )}
-          {!isTerminal && !isCatalog && order.leadId && (
-            <button className="btn-lead-action" disabled={busy} onClick={humanSupport}
-              style={{ background: 'rgba(245,158,11,0.12)', borderColor: 'rgba(245,158,11,0.35)', color: '#fbbf24' }}>
-              <i className="fa-solid fa-user" /> Atend. Humano
-            </button>
-          )}
-          {!isOrderArchived(order) && (
-            <button className="btn-lead-action" disabled={busy} onClick={archive}>
-              <i className="fa-solid fa-box-archive" /> Arquivar
-            </button>
-          )}
-          {isPlatformAdmin && (
-            <button className="btn-lead-action danger" disabled={busy} onClick={removeOrder}
-              title="Exclusão definitiva — apenas admin da plataforma">
-              <i className="fa-solid fa-trash" /> Excluir
-            </button>
           )}
         </div>
       </div>

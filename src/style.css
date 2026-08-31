@@ -2226,19 +2226,45 @@ ul {
   flex-shrink: 0;
 }
 
+/* Footer do modal de pedido: ações à esquerda, WhatsApp (ícone) à direita */
+.order-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.order-footer-left { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.order-footer .btn-lead-action { width: auto; }
+
+.order-footer-wa {
+  width: 52px; height: 52px; flex-shrink: 0;
+  border-radius: var(--radius-md);
+  background: rgba(37, 211, 102, 0.14);
+  border: 1px solid rgba(37, 211, 102, 0.4);
+  color: #25d366;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 1.5rem; text-decoration: none;
+  transition: var(--transition);
+}
+.order-footer-wa:hover { background: #25d366; color: #fff; transform: translateY(-1px); }
+
 .btn-lead-action {
+  display: inline-flex; align-items: center; gap: 8px;
   width: 100%;
-  padding: 0.85rem 1.5rem;
+  padding: 0.8rem 1.3rem;
   border-radius: var(--radius-md);
   background: var(--primary);
-  color: white;
-  font-size: 0.95rem;
+  color: #fff;
+  font-size: 0.92rem;
   font-weight: 600;
   cursor: pointer;
-  border: none;
+  border: 1px solid transparent;
   transition: var(--transition);
   box-shadow: 0 4px 14px var(--primary-glow);
 }
+/* Variante contornada (Arquivar, Intervir…) */
+.btn-lead-action.ghost {
+  background: var(--surface-color);
+  color: var(--text-main);
+  border-color: var(--border-color);
+  box-shadow: none;
+}
+.btn-lead-action.ghost:hover { background: var(--surface-hover); border-color: var(--text-dim); }
 
 .btn-lead-action:hover {
   background: var(--primary-hover);
