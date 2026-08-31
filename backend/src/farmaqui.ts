@@ -263,14 +263,21 @@ export async function sendFidelidade(uid: string, leadId: string) {
   if (!lead.exists || (lead.data() as any).empresaId !== companyId) throw new Error('lead_nao_encontrado');
   const l = lead.data() as any;
   if (l.descadastrado) return { ok: false, reason: 'descadastrado' };
+  // Idempotência: só premia ao cruzar um NOVO patamar (evita reenvio ao reeditar compra).
+  const meta = Math.max(2, Number(fid.meta) || 10);
+  const compras = Array.isArray(l.historicoCompras) ? l.historicoCompras.length : 0;
+  const premiosDevidos = Math.floor(compras / meta);
+  const premiosEnviados = Number(l.premiosFidelidadeEnviados || 0);
+  if (premiosDevidos <= premiosEnviados) return { ok: false, reason: 'ja_enviado' };
   const cap = await readCapture(companyId);
   const phone = String(l.telefone || l.whatsapp || '').replace(/\D/g, '');
   if (!cap.instancia || !phone) return { ok: false, reason: 'sem_instancia' };
   const msg = String(fid.mensagem || '')
     .replace(/\{\{nome\}\}/gi, String(l.nome || '').split(' ')[0] || 'tudo bem')
-    .replace(/\{\{meta\}\}/gi, String(fid.meta))
+    .replace(/\{\{meta\}\}/gi, String(meta))
     .replace(/\{\{premio\}\}/gi, fid.premio);
   const ok = await sendText(cap.instancia, phone, msg);
+  if (ok) await leadRef.update({ premiosFidelidadeEnviados: premiosDevidos });
   return { ok };
 }
 
@@ -399,11 +406,17 @@ async function processRecompra() {
       // Não envia para quem pediu descadastro (LGPD).
       const leadDoc = s.leadId ? await db.collection('leads').doc(s.leadId).get() : null;
       const optOut = leadDoc?.exists && (leadDoc.data() as any).descadastrado;
-      if (f.recompra?.enabled && cap.instancia && s.phone && !optOut) {
-        const msg = String(f.recompra.mensagem || '').replace(/\{\{nome\}\}/gi, s.nome || 'tudo bem');
-        await sendText(cap.instancia, String(s.phone).replace(/\D/g, ''), msg);
+      // Descadastrado ou recompra desligada: encerra sem enviar (não é falha de envio).
+      if (!f.recompra?.enabled || optOut || !cap.instancia || !s.phone) { await doc.ref.update({ done: true }); continue; }
+      const msg = String(f.recompra.mensagem || '').replace(/\{\{nome\}\}/gi, s.nome || 'tudo bem');
+      const ok = await sendText(cap.instancia, String(s.phone).replace(/\D/g, ''), msg);
+      if (ok) {
+        await doc.ref.update({ done: true });
+      } else {
+        // Envio falhou (ex.: instância offline): tenta de novo depois, até 5x.
+        const tent = (s.tentativas || 0) + 1;
+        await doc.ref.update(tent >= 5 ? { done: true, ultimoErro: 'falha_envio' } : { tentativas: tent, runAt: Timestamp.fromMillis(Date.now() + 3600000) });
       }
-      await doc.ref.update({ done: true });
     } catch (e: any) { console.error('[farmaqui] recompra erro:', e?.message); }
   }
 }

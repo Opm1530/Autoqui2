@@ -72,6 +72,7 @@ export function Dashboard() {
   const [vmDays, setVmDays] = useState(30);
   const [lp, setLp] = useState<any | null>(null);
   const [lpDays, setLpDays] = useState(30);
+  const [fkpi, setFkpi] = useState<any | null>(null);
   const [shared, setShared] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -222,6 +223,10 @@ export function Dashboard() {
     if (!isFarma) return;
     farmaquiApi.landingMetrics(lpDays).then(setLp).catch(() => {});
   }, [isFarma, lpDays]);
+  useEffect(() => {
+    if (!isFarma) return;
+    farmaquiApi.metrics().then(setFkpi).catch(() => {});
+  }, [isFarma]);
 
   const hasVenda = modulos.includes('venda') || modulos.includes('venda_catalogo');
   const copyLink = (storeId: string) => {
@@ -304,6 +309,20 @@ export function Dashboard() {
       </div>
 
       {isVitrine && <VitrineBlock m={vm} days={vmDays} setDays={setVmDays} />}
+
+      {isFarma && (
+        <div style={{ marginTop: '0.5rem', marginBottom: '1.5rem' }}>
+          <h3 style={{ margin: '0 0 1rem', display: 'flex', alignItems: 'center', gap: 10 }}><i className="fa-solid fa-prescription-bottle-medical" style={{ color: 'var(--primary)' }} /> Seu CRM</h3>
+          {!fkpi ? <SkeletonBox height={110} /> : (
+            <div className="dashboard-grid">
+              <StatCard label="Leads capturados" value={fmtInt(fkpi.leadsTotal)} />
+              <StatCard green label="Viraram clientes" value={fmtInt(fkpi.clientes)} subtitle={`${fkpi.conversao}% de conversão`} />
+              <StatCard label="Recompras agendadas" value={fmtInt(fkpi.recompraAgendadas)} />
+              <StatCard label="Recompras enviadas" value={fmtInt(fkpi.recompraEnviadas)} />
+            </div>
+          )}
+        </div>
+      )}
 
       {isFarma && <LandingBlock m={lp} days={lpDays} setDays={setLpDays} />}
 
