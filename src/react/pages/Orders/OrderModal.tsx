@@ -5,7 +5,7 @@ import { adminApi } from '../../../services/adminApi';
 import { toast } from '../../../services/toast';
 import { confirm } from '../../../services/confirm';
 import { useAuth } from '../../useAuth';
-import { StatusBadge, DeliveryBadge, PaymentBadge, nextAction, isOrderArchived } from './helpers';
+import { StatusBadge, DeliveryBadge, PaymentBadge, nextAction } from './helpers';
 
 interface Props {
   order: any;
@@ -253,7 +253,7 @@ export function OrderModal({ order, companyId, storeName, clientName, clientPhon
           </div>
 
           <div className="order-footer-right">
-            {isOrderArchived(order) ? (
+            {order.arquivado ? (
               <button className="order-icon-btn" disabled={busy} onClick={() => archive(false)} title="Desarquivar pedido">
                 <i className="fa-solid fa-box-open" />
               </button>
