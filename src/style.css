@@ -89,21 +89,26 @@ ul {
 
 /* Scrollbar */
 ::-webkit-scrollbar {
-  width: 8px;
+  width: 10px;
+  height: 10px;
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--bg-color);
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--border-color);
-  border-radius: 10px;
+  background: rgba(23, 37, 28, 0.18);
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: padding-box;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--text-dim);
+  background: rgba(23, 37, 28, 0.32);
+  background-clip: padding-box;
 }
+* { scrollbar-width: thin; scrollbar-color: rgba(23, 37, 28, 0.22) transparent; }
 
 /* Layout Utilities */
 .app-container {
