@@ -86,6 +86,7 @@ export function Orders() {
 
   return (
     <div>
+      <div className="page-heading"><h1>Pedidos</h1><p>Acompanhe e gerencie os pedidos do seu catálogo.</p></div>
       {/* Filtros */}
       <div className="leads-page-header" style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
         <div className="leads-filter-bar">
