@@ -9,6 +9,7 @@ import { SkeletonCards } from '../../components/Skeleton';
 import { Appearance } from './Appearance';
 import { Messages } from './Messages';
 import { Payment } from './Payment';
+import { Delivery } from './Delivery';
 import { MercadoPago } from '../MercadoPago';
 
 export function CatalogSettings() {
@@ -23,8 +24,8 @@ export function CatalogSettings() {
   const [hasMercadoPago, setHasMercadoPago] = useState(false);
   const [activeStoreId, setActiveStoreId] = useState('');
   const [params] = useSearchParams();
-  const initialSection = (['design', 'mensagens', 'pagamento'] as const).find((s) => s === params.get('sec')) || 'design';
-  const [section, setSection] = useState<'design' | 'mensagens' | 'pagamento'>(initialSection);
+  const initialSection = (['design', 'mensagens', 'entrega', 'pagamento'] as const).find((s) => s === params.get('sec')) || 'design';
+  const [section, setSection] = useState<'design' | 'mensagens' | 'entrega' | 'pagamento'>(initialSection);
   const [isVitrine, setIsVitrine] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -126,6 +127,7 @@ export function CatalogSettings() {
       <div style={{ marginBottom: 28 }} />
 
       {section === 'design' && <Appearance key={`ap-${activeStoreId}`} companyId={companyId} storeId={activeStoreId} design={design} vitrine={isVitrine} onSave={save} />}
+      {section === 'entrega' && !isVitrine && <Delivery config={config} onSave={save} />}
       {section === 'mensagens' && !isVitrine && (
         <>
           <div className="card" style={{ marginBottom: '1.5rem' }}>
@@ -155,6 +157,7 @@ export function CatalogSettings() {
 const SECTIONS = [
   { key: 'design', label: 'Design', icon: 'fa-palette' },
   { key: 'mensagens', label: 'Mensagens', icon: 'fa-message' },
+  { key: 'entrega', label: 'Entrega', icon: 'fa-truck' },
   { key: 'pagamento', label: 'Pagamento', icon: 'fa-credit-card' },
 ];
 
