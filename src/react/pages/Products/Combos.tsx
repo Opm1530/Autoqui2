@@ -52,8 +52,8 @@ export function Combos() {
 
   return (
     <div>
-      <div className="page-heading"><h1>Combos</h1><p>Kits de produtos com preço especial.</p></div>
-      <div className="page-header" style={{ justifyContent: 'flex-end' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, flexWrap: 'wrap', marginBottom: '1.75rem' }}>
+        <div className="page-heading" style={{ marginBottom: 0 }}><h1>Combos</h1><p>Kits de produtos com preço especial.</p></div>
         <button className="btn-add" onClick={() => setModalOpen(true)}>
           Novo combo<span className="btn-add-icon"><i className="fa-solid fa-plus" /></span>
         </button>
@@ -118,6 +118,7 @@ function ComboFormModal({ companyId, storeId, products, onClose, onCreated }: {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
+  const [prodSearch, setProdSearch] = useState('');
   const [saving, setSaving] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -127,6 +128,11 @@ function ComboFormModal({ companyId, storeId, products, onClose, onCreated }: {
     const ids = p.storeIds || (p.storeId ? [p.storeId] : []);
     return ids.length === 0 || ids.includes(storeId);
   }), [products, storeId]);
+
+  const filtered = useMemo(() => {
+    const t = prodSearch.trim().toLowerCase();
+    return t ? ativos.filter((p) => (p.name || '').toLowerCase().includes(t)) : ativos;
+  }, [ativos, prodSearch]);
 
   const toggle = (id: string) => setSelectedIds((prev) => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
 
@@ -186,10 +192,15 @@ function ComboFormModal({ companyId, storeId, products, onClose, onCreated }: {
           </div>
           <div className="form-group" style={{ margin: 0 }}>
             <label>Produtos do combo <span style={{ color: 'var(--text-dim)', fontWeight: 400, textTransform: 'none' }}>(2 ou mais)</span></label>
+            <div style={{ position: 'relative', marginBottom: 8 }}>
+              <i className="fa-solid fa-magnifying-glass" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)', fontSize: '0.85rem' }} />
+              <input value={prodSearch} onChange={(e) => setProdSearch(e.target.value)} placeholder="Buscar produto…"
+                style={{ width: '100%', padding: '9px 12px 9px 34px', background: 'var(--surface-color)', border: '1px solid var(--border-color)', borderRadius: 8, color: 'var(--text-main)', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box' }} />
+            </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxHeight: 200, overflowY: 'auto', background: 'var(--surface-hover)', border: '1px solid var(--border-color)', borderRadius: 8, padding: 8 }}>
-              {ativos.length === 0 ? (
-                <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem', padding: '1rem 0', margin: 0 }}>Nenhum produto ativo.</p>
-              ) : ativos.map((p) => (
+              {filtered.length === 0 ? (
+                <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem', padding: '1rem 0', margin: 0 }}>{prodSearch ? 'Nenhum produto encontrado.' : 'Nenhum produto ativo.'}</p>
+              ) : filtered.map((p) => (
                 <label key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', padding: '6px 8px', borderRadius: 6 }}>
                   <input type="checkbox" checked={selectedIds.has(p.id)} onChange={() => toggle(p.id)} style={{ width: 16, height: 16, accentColor: 'var(--primary)' }} />
                   <span style={{ flex: 1, fontSize: '0.87rem' }}>{p.name}</span>

@@ -49,8 +49,8 @@ export function Categories() {
 
   return (
     <div>
-      <div className="page-heading"><h1>Categorias</h1><p>Organize seus {labelPlural.toLowerCase()} em categorias.</p></div>
-      <div className="page-header" style={{ justifyContent: 'flex-end' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, flexWrap: 'wrap', marginBottom: '1.75rem' }}>
+        <div className="page-heading" style={{ marginBottom: 0 }}><h1>Categorias</h1><p>Organize seus {labelPlural.toLowerCase()} em categorias.</p></div>
         <button className="btn-add" onClick={() => { setEditing(null); setModalOpen(true); }}>
           Nova categoria<span className="btn-add-icon"><i className="fa-solid fa-plus" /></span>
         </button>
