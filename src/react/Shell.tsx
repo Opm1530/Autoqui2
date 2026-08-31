@@ -18,7 +18,7 @@ type NavEntry = NavItem | { divider: true } | { section: string };
 const HELP_WA = 'https://wa.me/5564999983832'; // atendimento da plataforma (item "Ajuda")
 
 const TITLES: Record<string, string> = {
-  '/dashboard': 'Dashboard', '/tools': 'Ferramentas', '/ecommerce': 'E-commerce', '/farmaqui': 'FarmaQui', '/orders': 'Pedidos', '/products': 'Produtos',
+  '/dashboard': 'Dashboard', '/tools': 'Ferramentas', '/ecommerce': 'E-commerce', '/farmaqui': 'FarmaQui', '/farmaqui/recompra': 'FarmaQui', '/farmaqui/grupo': 'FarmaQui', '/orders': 'Pedidos', '/products': 'Produtos',
   '/leads': 'Leads', '/business': 'Negócio', '/users': 'Usuários',
   '/combos': 'Combos', '/categories': 'Categorias',
   '/instances': 'Instâncias', '/catalog-settings': 'Configuração', '/farmaqui-settings': 'Configuração',
@@ -84,7 +84,11 @@ function buildNav(role: string | undefined, modulos: string[]): NavEntry[] {
   } else if (ecommerce) {
     add({ to: '/ecommerce', label: 'E-commerce', icon: 'fa-store' });
   } else if (farmaqui) {
-    add({ to: '/farmaqui', label: 'FarmaQui', icon: 'fa-prescription-bottle-medical' });
+    add({ label: 'FarmaQui', icon: 'fa-prescription-bottle-medical', children: [
+      { to: '/farmaqui', label: 'Ajustes', icon: 'fa-sliders' },
+      { to: '/farmaqui/recompra', label: 'Recompra', icon: 'fa-pills' },
+      { to: '/farmaqui/grupo', label: 'Ofertas no grupo', icon: 'fa-bullhorn' },
+    ] });
     add({ to: '/leads', label: 'Clientes', icon: 'fa-people-group' });
   }
 

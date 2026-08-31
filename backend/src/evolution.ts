@@ -102,6 +102,21 @@ export async function fetchAllContacts(instanceName: string): Promise<{ phone: s
   }
 }
 
+// Nome salvo/perfil de um contato pelo número (para preencher o nome do lead).
+export async function fetchContactName(instanceName: string, phone: string): Promise<string> {
+  try {
+    const jid = `${phone}@s.whatsapp.net`;
+    const response = await fetch(`${EVOLUTION_API_URL}/chat/findContacts/${instanceName}`, {
+      method: 'POST', headers: headers(true), body: JSON.stringify({ where: { id: jid } }),
+    });
+    if (!response.ok) return '';
+    const data = await response.json().catch(() => []);
+    const arr = Array.isArray(data) ? data : (data?.contacts || []);
+    const c = arr[0];
+    return c ? String(c.pushName || c.name || '') : '';
+  } catch { return ''; }
+}
+
 export async function createInstance(instanceName: string): Promise<any> {
   const response = await fetch(`${EVOLUTION_API_URL}/instance/create`, {
     method: 'POST',

@@ -33,7 +33,7 @@ import { Billing } from './pages/Billing';
 import { ChangePassword } from './pages/ChangePassword';
 import { Tools } from './pages/Tools';
 import { Ecommerce } from './pages/Ecommerce';
-import { FarmaQui } from './pages/FarmaQui';
+import { FarmaQui, FarmaQuiRecompra, FarmaQuiGrupo } from './pages/FarmaQui';
 import { LandingPage } from './pages/Landing/LandingPage';
 
 function Protected() {
@@ -105,6 +105,8 @@ export function App() {
             <Route path="/tools" element={<Tools />} />
             <Route path="/ecommerce" element={<Ecommerce />} />
             <Route path="/farmaqui" element={<FarmaQui />} />
+            <Route path="/farmaqui/recompra" element={<FarmaQuiRecompra />} />
+            <Route path="/farmaqui/grupo" element={<FarmaQuiGrupo />} />
             <Route path="/farmaqui-settings" element={<FarmaSettings />} />
             <Route path="/orders" element={<Orders />} />
             <Route path="/products" element={<Products />} />

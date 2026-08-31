@@ -17,7 +17,7 @@ export function FarmaQui() {
   const [instances, setInstances] = useState<any[]>([]);
   const [sel, setSel] = useState('');
   const [busy, setBusy] = useState(false);
-  const [tab, setTab] = useState<'captacao' | 'importar' | 'recompra' | 'grupo'>('captacao');
+  const [tab, setTab] = useState<'captacao' | 'importar'>('captacao');
 
   async function load() {
     const [st, insts] = await Promise.all([
@@ -52,12 +52,12 @@ export function FarmaQui() {
   return (
     <div style={{ maxWidth: 760 }}>
       <div className="page-heading">
-        <h1>FarmaQui · Relacionamento</h1>
-        <p>Capte leads automaticamente, lembre da recompra e faça ofertas no grupo — tudo pelo seu WhatsApp.</p>
+        <h1>FarmaQui · Ajustes</h1>
+        <p>Configure a captura automática de leads e importe contatos de grupos ou da agenda.</p>
       </div>
 
       <div className="manage-tabs" style={{ marginBottom: 20 }}>
-        {([['captacao', 'Captação', 'fa-user-plus'], ['importar', 'Importar', 'fa-file-import'], ['recompra', 'Recompra', 'fa-pills'], ['grupo', 'Ofertas no grupo', 'fa-bullhorn']] as const).map(([k, label, icon]) => (
+        {([['captacao', 'Captação', 'fa-user-plus'], ['importar', 'Importar', 'fa-file-import']] as const).map(([k, label, icon]) => (
           <button key={k} className={'manage-tab' + (tab === k ? ' active' : '')} onClick={() => setTab(k)}>
             <i className={`fa-solid ${icon}`} /> <span>{label}</span>
           </button>
@@ -107,8 +107,33 @@ export function FarmaQui() {
       )}
 
       {tab === 'importar' && <ImportLeads />}
-      {tab === 'recompra' && <><RecompraConfig /><RecompraQueue /></>}
-      {tab === 'grupo' && <GroupOffers />}
+    </div>
+  );
+}
+
+// Página: Recompra (menu FarmaQui › Recompra).
+export function FarmaQuiRecompra() {
+  return (
+    <div>
+      <div className="page-heading">
+        <h1>FarmaQui · Recompra</h1>
+        <p>Lembre seus clientes de repor os medicamentos no tempo certo, automaticamente.</p>
+      </div>
+      <RecompraConfig />
+      <RecompraQueue />
+    </div>
+  );
+}
+
+// Página: Ofertas no grupo (menu FarmaQui › Ofertas no grupo).
+export function FarmaQuiGrupo() {
+  return (
+    <div style={{ maxWidth: 760 }}>
+      <div className="page-heading">
+        <h1>FarmaQui · Ofertas no grupo</h1>
+        <p>Envie ofertas para um grupo do WhatsApp agora ou agende para depois.</p>
+      </div>
+      <GroupOffers />
     </div>
   );
 }
@@ -320,7 +345,8 @@ function GroupOffers() {
   }
 
   return (
-    <div className="card" style={{ marginTop: '1.25rem' }}>
+    <>
+    <div className="card">
       <div style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}><i className="fa-solid fa-bullhorn" style={{ color: TEAL }} /> Ofertas no grupo do WhatsApp</div>
       <p style={{ margin: '2px 0 14px', color: 'var(--text-muted)', fontSize: '0.85rem' }}>Envie uma oferta para um grupo agora ou agende para depois. Usa a mesma instância da captura.</p>
 
@@ -359,24 +385,29 @@ function GroupOffers() {
         </div>
       )}
 
-      {offers.length > 0 && (
-        <div style={{ marginTop: 16, borderTop: '1px solid var(--border-color)', paddingTop: 14 }}>
-          <div style={{ fontSize: '0.85rem', fontWeight: 700, marginBottom: 8, color: 'var(--text-muted)' }}>Histórico / agendadas</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {offers.map((o) => (
-              <div key={o.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '10px 12px', background: 'rgba(23, 37, 28, 0.03)', border: '1px solid var(--border-color)', borderRadius: 10 }}>
-                <div style={{ minWidth: 0, flex: 1 }}>
-                  <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{o.grupoNome || 'Grupo'} <span className={`badge ${o.done ? 'success' : 'warning'}`} style={{ marginLeft: 6 }}>{o.done ? 'Enviada' : 'Agendada'}</span></div>
-                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.mensagem}</div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>{o.runAt ? new Date(o.runAt).toLocaleString('pt-BR') : ''}</div>
-                </div>
-                {!o.done && <button className="btn-secondary" style={{ padding: '6px 10px', color: '#f87171', borderColor: 'rgba(239,68,68,0.35)' }} disabled={busy} onClick={() => del(o.id)}><i className="fa-solid fa-xmark" /></button>}
+    </div>
+
+    {/* Lista de ofertas programadas / enviadas */}
+    <div className="card" style={{ marginTop: '1.25rem' }}>
+      <div style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}><i className="fa-solid fa-list-check" style={{ color: TEAL }} /> Ofertas programadas</div>
+      {offers.length === 0 ? (
+        <p style={{ fontSize: '0.85rem', color: 'var(--text-dim)' }}>Nenhuma oferta programada ou enviada ainda.</p>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {offers.map((o) => (
+            <div key={o.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '10px 12px', background: 'rgba(23, 37, 28, 0.03)', border: '1px solid var(--border-color)', borderRadius: 10 }}>
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{o.grupoNome || 'Grupo'} <span className={`badge ${o.done ? 'success' : 'warning'}`} style={{ marginLeft: 6 }}>{o.done ? 'Enviada' : 'Agendada'}</span></div>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.mensagem}</div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>{o.runAt ? new Date(o.runAt).toLocaleString('pt-BR') : ''}</div>
               </div>
-            ))}
-          </div>
+              {!o.done && <button className="btn-secondary" style={{ padding: '6px 10px', color: '#f87171', borderColor: 'rgba(239,68,68,0.35)' }} disabled={busy} onClick={() => del(o.id)}><i className="fa-solid fa-xmark" /></button>}
+            </div>
+          ))}
         </div>
       )}
     </div>
+    </>
   );
 }
 

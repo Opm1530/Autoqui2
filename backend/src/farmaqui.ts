@@ -5,7 +5,7 @@ import { Timestamp } from 'firebase-admin/firestore';
 import { db, getAll } from './firebase.js';
 import { loadUser } from './currentUser.js';
 import { PUBLIC_BASE_URL } from './config.js';
-import { setWebhook, sendText, sendToGroup, fetchGroups, fetchGroupParticipants, fetchAllContacts } from './evolution.js';
+import { setWebhook, sendText, sendToGroup, fetchGroups, fetchGroupParticipants, fetchAllContacts, fetchContactName } from './evolution.js';
 import { assertInstanceOwner } from './waInstances.js';
 import { normalizeSubdomain, setLandingSubdomain, removeLandingSubdomain } from './domains.js';
 
@@ -97,8 +97,16 @@ export async function extractGroupLeads(uid: string, groupJid: string) {
   if (!cap.instancia) throw new Error('sem_instancia');
   if (!groupJid.endsWith('@g.us')) throw new Error('grupo_invalido');
   const participantes = await fetchGroupParticipants(cap.instancia, groupJid);
+  // Participantes de grupo raramente trazem nome; cruza com a agenda para preencher.
+  const contatos = await fetchAllContacts(cap.instancia).catch(() => []);
+  const nomePorFone = new Map<string, string>();
+  for (const c of contatos) if (c.name) nomePorFone.set(c.phone.replace(/\D/g, ''), c.name);
   let criados = 0;
-  for (const p of participantes) if (await createLeadIfNew(companyId, p.phone, p.name || '', 'grupo')) criados++;
+  for (const p of participantes) {
+    const fone = p.phone.replace(/\D/g, '');
+    const nome = p.name || nomePorFone.get(fone) || nomePorFone.get(fone.replace(/^55/, '')) || '';
+    if (await createLeadIfNew(companyId, p.phone, nome, 'grupo')) criados++;
+  }
   return { ok: true, total: participantes.length, criados };
 }
 
@@ -118,9 +126,15 @@ export async function createManualLead(uid: string, nome: string, telefone: stri
   const companyId = await companyOf(uid);
   const phone = String(telefone || '').replace(/\D/g, '');
   if (phone.length < 10) throw new Error('telefone_invalido');
-  const criado = await createLeadIfNew(companyId, phone, String(nome || '').trim(), 'manual');
+  let finalNome = String(nome || '').trim();
+  // Sem nome informado → tenta puxar o nome salvo/perfil do WhatsApp.
+  if (!finalNome) {
+    const cap = await readCapture(companyId);
+    if (cap.instancia) finalNome = (await fetchContactName(cap.instancia, phone).catch(() => '')) || '';
+  }
+  const criado = await createLeadIfNew(companyId, phone, finalNome, 'manual');
   if (!criado) throw new Error('ja_existe');
-  return { ok: true };
+  return { ok: true, nome: finalNome };
 }
 
 // ── Painel (autenticado) ──
@@ -176,7 +190,7 @@ export async function saveRecompra(uid: string, body: any) {
 }
 
 // Registra a última compra do lead e agenda o lembrete de recompra.
-export async function setUltimaCompra(uid: string, leadId: string, dataISO: string, cicloDias: number) {
+export async function setUltimaCompra(uid: string, leadId: string, dataISO: string, cicloDias: number, produto = '') {
   const companyId = await companyOf(uid);
   const leadRef = db.collection('leads').doc(leadId);
   const lead = await leadRef.get();
@@ -184,7 +198,10 @@ export async function setUltimaCompra(uid: string, leadId: string, dataISO: stri
   const ciclo = Number(cicloDias) || 30;
   const dataMs = dataISO ? new Date(dataISO).getTime() : Date.now();
   const data = new Date(dataMs).toISOString();
-  await leadRef.update({ ultimaCompra: data, cicloRecompraDias: ciclo, statusLead: 'cliente_ativo', updatedAt: new Date().toISOString() });
+  const nowISO = new Date().toISOString();
+  const upd: any = { ultimaCompra: data, cicloRecompraDias: ciclo, statusLead: 'cliente_ativo', updatedAt: nowISO, ultimoContato: nowISO };
+  if (produto.trim()) upd.ultimoPedido = produto.trim();
+  await leadRef.update(upd);
 
   const company = await db.collection('companies').doc(companyId).get();
   const f = (company.data() as any)?.farmaqui || {};

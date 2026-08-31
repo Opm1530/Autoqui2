@@ -84,7 +84,7 @@ export function Leads() {
     if (tel === null) return;
     const phone = tel.replace(/\D/g, '');
     if (phone.length < 10) { toast.error('Número inválido.'); return; }
-    const nome = await confirm.prompt({ title: 'Novo lead', message: 'Nome do lead (opcional):', placeholder: 'Ex: Maria', confirmText: 'Criar lead' });
+    const nome = await confirm.prompt({ title: 'Novo lead', message: 'Nome do lead (opcional — deixe vazio para puxar o nome do WhatsApp):', placeholder: 'Ex: Maria', confirmText: 'Criar lead' });
     if (nome === null) return;
     try { await farmaquiApi.manualLead(nome.trim(), phone); toast.success('Lead criado!'); }
     catch (e: any) { toast.error(e.message === 'ja_existe' ? 'Já existe um lead com esse número.' : e.message === 'telefone_invalido' ? 'Número inválido.' : 'Erro ao criar lead.'); }

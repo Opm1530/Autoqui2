@@ -17,7 +17,7 @@ export const farmaquiApi = {
   deactivate: () => req('/api/farmaqui/deactivate', 'POST'),
   config: (): Promise<{ capturaAtiva: boolean; capturaInstancia: string; recompra: { enabled: boolean; mensagem: string; cicloDiasPadrao: number } }> => req('/api/farmaqui/config', 'GET'),
   saveRecompra: (r: { enabled: boolean; mensagem: string; cicloDiasPadrao: number }) => req('/api/farmaqui/recompra', 'POST', r),
-  setUltimaCompra: (leadId: string, data: string, cicloDias: number) => req('/api/farmaqui/ultima-compra', 'POST', { leadId, data, cicloDias }),
+  setUltimaCompra: (leadId: string, data: string, cicloDias: number, produto = '') => req('/api/farmaqui/ultima-compra', 'POST', { leadId, data, cicloDias, produto }),
   metrics: (): Promise<{ leadsTotal: number; clientes: number; conversao: number; recompraAgendadas: number; recompraEnviadas: number }> => req('/api/farmaqui/metrics', 'GET'),
   landingMetrics: (days = 30): Promise<{ days: number; views: number; uniques: number; cliques: number; leadsPeriodo: number; leadsTotal: number; conversao: number; serie: { dia: string; views: number; cliques: number }[] }> => req(`/api/farmaqui/landing-metrics?days=${days}`, 'GET'),
   recompraList: (): Promise<{ items: { leadId: string; nome: string; phone: string; runAt: number }[] }> => req('/api/farmaqui/recompra/list', 'GET'),
