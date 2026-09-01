@@ -567,7 +567,6 @@ const FUNNEL_STAGES = [
 function CatalogFunnel({ f }: { f: any | null }) {
   if (!f) return <div className="card viz-card"><SkeletonBox width={170} height={18} /><SkeletonBox height={180} style={{ marginTop: 16 }} /></div>;
   const vals = FUNNEL_STAGES.map((s) => Number(f[s.key] || 0));
-  const max = Math.max(1, ...vals);
   const vazio = vals.every((v) => v === 0);
   return (
     <div className="card viz-card">
@@ -576,15 +575,29 @@ function CatalogFunnel({ f }: { f: any | null }) {
         <p style={{ color: 'var(--text-dim)', fontSize: '0.85rem', margin: '1rem 0 0' }}>Ainda sem dados. As etapas do carrinho ao pagamento começam a contar conforme os clientes usam o catálogo.</p>
       ) : (
         <>
-          {/* Funil (trapézios centralizados) */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, margin: '16px 0 14px' }}>
-            {FUNNEL_STAGES.map((s, i) => (
-              <div key={s.key} title={`${s.label}: ${vals[i]}`}
-                style={{ width: `${Math.max(16, (vals[i] / max) * 100)}%`, margin: '0 auto', height: 30, background: s.color, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800, fontSize: '0.85rem', minWidth: 40, transition: 'width .4s' }}>
-                {vals[i]}
-              </div>
-            ))}
-          </div>
+          {/* Funil fixo (fatias afuniladas em SVG) */}
+          {(() => {
+            const W = [94, 78, 62, 46, 32, 22]; // larguras das bordas (6 pontos = 5 fatias)
+            const SH = 32, GAP = 3;             // altura e espaço entre fatias
+            const H = FUNNEL_STAGES.length * (SH + GAP);
+            return (
+              <svg viewBox={`0 0 100 ${H}`} style={{ width: '100%', height: 190, margin: '14px 0 12px', display: 'block' }}>
+                {FUNNEL_STAGES.map((s, i) => {
+                  const y = i * (SH + GAP);
+                  const tw = W[i], bw = W[i + 1];
+                  const pts = `${50 - tw / 2},${y} ${50 + tw / 2},${y} ${50 + bw / 2},${y + SH} ${50 - bw / 2},${y + SH}`;
+                  return (
+                    <g key={s.key}>
+                      <polygon points={pts} fill={s.color}>
+                        <title>{`${s.label}: ${vals[i]}`}</title>
+                      </polygon>
+                      <text x="50" y={y + SH / 2} fill="#fff" fontSize="10" fontWeight="800" textAnchor="middle" dominantBaseline="central">{vals[i]}</text>
+                    </g>
+                  );
+                })}
+              </svg>
+            );
+          })()}
           {/* Legenda com conversão de cada etapa */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
             {FUNNEL_STAGES.map((s, i) => {
