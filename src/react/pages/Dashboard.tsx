@@ -275,7 +275,7 @@ export function Dashboard() {
               <i className="fa-solid fa-triangle-exclamation" style={{ color: '#f59e0b', fontSize: '1.05rem' }} />
               <div style={{ lineHeight: 1.3 }}>
                 <div style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--text-main)' }}>
-                  Plano gratuito · {sub.diasRestantesTrial === 1 ? 'resta 1 dia' : `restam ${sub.diasRestantesTrial} dias`}
+                  Plano gratuito · {sub.diasRestantesTrial === 1 ? 'Resta 1 dia' : `Restam ${sub.diasRestantesTrial} dias`}
                 </div>
                 <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Depois disso, seu catálogo irá parar de funcionar. Toque para assinar.</div>
               </div>

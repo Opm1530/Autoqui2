@@ -165,7 +165,11 @@ export async function subscribe(uid: string, planId: string): Promise<{ init_poi
     }),
   });
   const data = await resp.json().catch(() => ({}));
-  if (!resp.ok || !data?.init_point) { console.error('[sub] erro criar assinatura:', resp.status, data); throw new Error('mp_erro_assinatura'); }
+  if (!resp.ok || !data?.init_point) {
+    console.error('[sub] erro criar assinatura:', resp.status, JSON.stringify(data));
+    const detalhe = data?.message || (Array.isArray(data?.cause) && data.cause[0]?.description) || `HTTP ${resp.status}`;
+    throw new Error(`mp_erro_assinatura: ${detalhe}`);
+  }
 
   const company = await getDoc('companies', user.companyId);
   await db.collection('companies').doc(user.companyId).set({
