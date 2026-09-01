@@ -130,6 +130,7 @@ export function OrderModal({ order, companyId, storeName, clientName, clientPhon
   }
 
   return (
+    <>
     <div className="modal" style={{ display: 'flex' }} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="modal-content glass lead-modal-content order-modal-wide">
         {/* Header */}
@@ -280,30 +281,32 @@ export function OrderModal({ order, companyId, storeName, clientName, clientPhon
           </div>
         </div>
       </div>
+    </div>
 
-      {/* Popup do comprovante (dentro do sistema) */}
-      {viewComprovante && order.comprovanteUrl && (
-        <div onClick={() => setViewComprovante(false)}
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-          <div onClick={(e) => e.stopPropagation()}
-            style={{ background: 'var(--surface, #1e293b)', borderRadius: 16, maxWidth: 560, width: '100%', maxHeight: '90vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', borderBottom: '1px solid var(--border-color)' }}>
-              <span style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}><i className="fa-solid fa-receipt" style={{ color: 'var(--primary)' }} /> Comprovante de pagamento</span>
-              <button onClick={() => setViewComprovante(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.4rem', color: 'var(--text-muted)', lineHeight: 1 }}>&times;</button>
-            </div>
-            <div style={{ padding: 12, overflow: 'auto', display: 'flex', justifyContent: 'center', alignItems: 'center', background: '#0f172a' }}>
-              {order.comprovanteUrl.toLowerCase().includes('.pdf')
-                ? <iframe title="Comprovante" src={order.comprovanteUrl} style={{ width: '100%', height: '70vh', border: 'none', background: 'white' }} />
-                : <img src={order.comprovanteUrl} alt="Comprovante" style={{ maxWidth: '100%', maxHeight: '75vh', objectFit: 'contain', borderRadius: 8 }} />}
-            </div>
-            <div style={{ padding: '10px 16px', borderTop: '1px solid var(--border-color)', textAlign: 'right' }}>
-              <a href={order.comprovanteUrl} target="_blank" rel="noreferrer" style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
-                <i className="fa-solid fa-up-right-from-square" /> Abrir em nova aba
-              </a>
-            </div>
+    {/* Popup do comprovante — overlay próprio (fora do .modal) */}
+    {viewComprovante && order.comprovanteUrl && (
+      <div onClick={() => setViewComprovante(false)}
+        style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.8)', zIndex: 12000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+        <div onClick={(e) => e.stopPropagation()}
+          style={{ background: '#ffffff', color: '#16251c', borderRadius: 16, maxWidth: 520, width: '100%', maxHeight: '88vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 20px 60px rgba(0,0,0,0.4)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 18px', borderBottom: '1px solid #e5e7eb', flexShrink: 0 }}>
+            <span style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8, color: '#16251c' }}><i className="fa-solid fa-receipt" style={{ color: '#65a30d' }} /> Comprovante de pagamento</span>
+            <button onClick={() => setViewComprovante(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.5rem', color: '#64748b', lineHeight: 1, padding: 0 }}>&times;</button>
+          </div>
+          <div style={{ padding: 14, overflow: 'auto', display: 'flex', justifyContent: 'center', alignItems: 'flex-start', background: '#f1f5f9', flex: 1, minHeight: 0 }}>
+            {order.comprovanteUrl.toLowerCase().includes('.pdf')
+              ? <iframe title="Comprovante" src={order.comprovanteUrl} style={{ width: '100%', height: '70vh', border: 'none', background: '#fff', borderRadius: 8 }} />
+              : <img src={order.comprovanteUrl} alt="Comprovante" style={{ maxWidth: '100%', maxHeight: '72vh', objectFit: 'contain', borderRadius: 8, boxShadow: '0 2px 12px rgba(0,0,0,0.15)' }} />}
+          </div>
+          <div style={{ padding: '12px 18px', borderTop: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+            <a href={order.comprovanteUrl} target="_blank" rel="noreferrer" style={{ fontSize: '0.82rem', color: '#64748b', textDecoration: 'none' }}>
+              <i className="fa-solid fa-up-right-from-square" /> Abrir em nova aba
+            </a>
+            <button onClick={() => setViewComprovante(false)} style={{ padding: '8px 18px', borderRadius: 10, background: '#84cc16', color: '#12250f', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: '0.88rem' }}>Fechar</button>
           </div>
         </div>
-      )}
-    </div>
+      </div>
+    )}
+    </>
   );
 }
