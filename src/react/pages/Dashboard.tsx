@@ -558,6 +558,7 @@ function LandingBlock({ m, days, setDays }: { m: any | null; days: number; setDa
 
 // Funil de conversão do catálogo (substitui "pedidos por bairro").
 const FUNNEL_STAGES = [
+  { key: 'acessou', label: 'Acessou o catálogo', color: '#bef264' },
   { key: 'carrinho', label: 'Adicionou ao carrinho', color: '#a3e635' },
   { key: 'checkout', label: 'Entrou no checkout', color: '#84cc16' },
   { key: 'pagamento', label: 'Iniciou o pagamento', color: '#65a30d' },
@@ -577,8 +578,8 @@ function CatalogFunnel({ f }: { f: any | null }) {
         <>
           {/* Funil fixo (fatias afuniladas em SVG) */}
           {(() => {
-            const W = [94, 78, 62, 46, 32, 22]; // larguras das bordas (6 pontos = 5 fatias)
-            const SH = 32, GAP = 3;             // altura e espaço entre fatias
+            const W = [96, 82, 68, 54, 40, 28, 18]; // larguras das bordas (7 pontos = 6 fatias)
+            const SH = 28, GAP = 3;                 // altura e espaço entre fatias
             const H = FUNNEL_STAGES.length * (SH + GAP);
             return (
               <svg viewBox={`0 0 100 ${H}`} style={{ width: '100%', height: 190, margin: '14px 0 12px', display: 'block' }}>

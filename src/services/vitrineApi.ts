@@ -11,7 +11,7 @@ export interface VitrineMetrics {
 }
 
 export interface CatalogFunnel {
-  days: number; carrinho: number; checkout: number; pagamento: number; comprou: number; recomprou: number;
+  days: number; acessou: number; carrinho: number; checkout: number; pagamento: number; comprou: number; recomprou: number;
 }
 
 export const vitrineApi = {

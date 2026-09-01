@@ -121,8 +121,8 @@ export function Catalog({ storeId: storeIdProp }: { storeId?: string } = {}) {
           flatBairros, taxaGenerica, cuponsList,
         });
 
-        // Métrica: visita da vitrine (uma vez por carga).
-        if (modulos.includes('vitrine') && trackedView.current !== storeId) {
+        // Métrica: visita (topo do funil — catálogo e vitrine), uma vez por carga.
+        if (trackedView.current !== storeId) {
           trackedView.current = storeId;
           trackVitrine('view', company.id, storeId);
         }
