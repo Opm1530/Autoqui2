@@ -1,5 +1,6 @@
 import { API_BASE_URL } from './api';
 import { auth } from '../firebase/config';
+import { cachedMetric, METRICS_TTL } from './metricsCache';
 
 export interface VitrineMetrics {
   days: number;
@@ -16,21 +17,25 @@ export interface CatalogFunnel {
 
 export const vitrineApi = {
   async catalogFunnel(range: string = '30'): Promise<CatalogFunnel> {
-    const user = auth.currentUser;
-    const headers: Record<string, string> = {};
-    if (user) { try { headers['Authorization'] = `Bearer ${await user.getIdToken()}`; } catch { /* ignore */ } }
-    const resp = await fetch(`${API_BASE_URL}/api/catalog/funnel?range=${encodeURIComponent(range)}`, { headers });
-    const data = await resp.json().catch(() => ({}));
-    if (!resp.ok) throw new Error(data.error || 'erro');
-    return data;
+    return cachedMetric(`funnel:${range}`, METRICS_TTL, async () => {
+      const user = auth.currentUser;
+      const headers: Record<string, string> = {};
+      if (user) { try { headers['Authorization'] = `Bearer ${await user.getIdToken()}`; } catch { /* ignore */ } }
+      const resp = await fetch(`${API_BASE_URL}/api/catalog/funnel?range=${encodeURIComponent(range)}`, { headers });
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok) throw new Error(data.error || 'erro');
+      return data;
+    });
   },
   async metrics(days = 30): Promise<VitrineMetrics> {
-    const user = auth.currentUser;
-    const headers: Record<string, string> = {};
-    if (user) { try { headers['Authorization'] = `Bearer ${await user.getIdToken()}`; } catch { /* ignore */ } }
-    const resp = await fetch(`${API_BASE_URL}/api/vitrine/metrics?days=${days}`, { headers });
-    const data = await resp.json().catch(() => ({}));
-    if (!resp.ok) throw new Error(data.error || 'erro');
-    return data;
+    return cachedMetric(`vitrine:${days}`, METRICS_TTL, async () => {
+      const user = auth.currentUser;
+      const headers: Record<string, string> = {};
+      if (user) { try { headers['Authorization'] = `Bearer ${await user.getIdToken()}`; } catch { /* ignore */ } }
+      const resp = await fetch(`${API_BASE_URL}/api/vitrine/metrics?days=${days}`, { headers });
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok) throw new Error(data.error || 'erro');
+      return data;
+    });
   },
 };

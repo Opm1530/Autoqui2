@@ -1,5 +1,6 @@
 import { API_BASE_URL } from './api';
 import { auth } from '../firebase/config';
+import { cachedMetric, METRICS_TTL } from './metricsCache';
 
 async function req(path: string, method: 'GET' | 'POST', body?: any) {
   const user = auth.currentUser;
@@ -21,8 +22,8 @@ export const farmaquiApi = {
   saveRecompra: (r: { enabled: boolean; mensagem: string; cicloDiasPadrao: number }) => req('/api/farmaqui/recompra', 'POST', r),
   saveAutomacoes: (a: { aniversario: { enabled: boolean; mensagem: string }; reativacao: { enabled: boolean; dias: number; mensagem: string }; usoContinuo: { enabled: boolean; mensagem: string } }) => req('/api/farmaqui/automacoes', 'POST', a),
   setUltimaCompra: (leadId: string, data: string, cicloDias: number, produto = '') => req('/api/farmaqui/ultima-compra', 'POST', { leadId, data, cicloDias, produto }),
-  metrics: (): Promise<{ leadsTotal: number; clientes: number; conversao: number; recompraAgendadas: number; recompraEnviadas: number }> => req('/api/farmaqui/metrics', 'GET'),
-  landingMetrics: (days = 30): Promise<{ days: number; views: number; uniques: number; cliques: number; leadsPeriodo: number; leadsTotal: number; conversao: number; serie: { dia: string; views: number; cliques: number }[] }> => req(`/api/farmaqui/landing-metrics?days=${days}`, 'GET'),
+  metrics: (): Promise<{ leadsTotal: number; clientes: number; conversao: number; recompraAgendadas: number; recompraEnviadas: number }> => cachedMetric('farma:metrics', METRICS_TTL, () => req('/api/farmaqui/metrics', 'GET')),
+  landingMetrics: (days = 30): Promise<{ days: number; views: number; uniques: number; cliques: number; leadsPeriodo: number; leadsTotal: number; conversao: number; serie: { dia: string; views: number; cliques: number }[] }> => cachedMetric(`farma:landing:${days}`, METRICS_TTL, () => req(`/api/farmaqui/landing-metrics?days=${days}`, 'GET')),
   recompraList: (): Promise<{ items: { leadId: string; nome: string; phone: string; runAt: number }[] }> => req('/api/farmaqui/recompra/list', 'GET'),
   recompraCancel: (leadId: string) => req('/api/farmaqui/recompra/cancel', 'POST', { leadId }),
   recompraSendNow: (leadId: string) => req('/api/farmaqui/recompra/send-now', 'POST', { leadId }),
