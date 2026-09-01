@@ -201,7 +201,9 @@ export function Catalog({ storeId: storeIdProp }: { storeId?: string } = {}) {
 
   const { store, design, themeId, logoUrl, bannerUrl, bannerMobileUrl, whatsappNumber, hasVendaCatalogo, isVitrine, config } = data;
   const status = storeStatusLabel(config, store);
-  const permitirEntrega = isFreteAbertoAgora(config, store);
+  // Loja faz entrega se tem bairros cadastrados ou uma taxa única definida.
+  const fazEntrega = (data.flatBairros?.length || 0) > 0 || (data.taxaGenerica || 0) > 0;
+  const permitirEntrega = isFreteAbertoAgora(config, store) && fazEntrega;
 
   // Tema claro por padrão, na identidade do sistema (lime). Loja pode personalizar.
   const primaryCat = design.primaryColor || '#5aa513';

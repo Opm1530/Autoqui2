@@ -60,12 +60,16 @@ export function CheckoutModals({ cart, subtotal, storeId, companyId, data, onClo
   const comprovanteRef = useRef<HTMLInputElement>(null);
 
   const store = data.store;
-  const permitirEntrega = isFreteAbertoAgora(config, store);
+  // Entrega disponível = horário de entrega aberto E a loja faz entrega
+  // (tem bairros cadastrados OU uma taxa única). Sem nenhum dos dois = só retirada.
+  const fazEntrega = flatBairros.length > 0 || taxaGenerica > 0;
+  const permitirEntrega = isFreteAbertoAgora(config, store); // só horário
+  const entregaDisponivel = permitirEntrega && fazEntrega;   // horário + faz entrega
 
   // Bairro/taxa resolvidos
   const resolvedBairro = useMemo(() => {
     if (deliveryType !== 'entrega') return { nome: '', preco: 0 };
-    if (flatBairros.length === 0) return { nome: '', preco: 0 };
+    if (flatBairros.length === 0) return { nome: '', preco: taxaGenerica };
     if (bairroSel === '__outro__') return { nome: bairroOutro.trim(), preco: taxaGenerica };
     const found = flatBairros.find((b: any) => b.nome === bairroSel);
     return { nome: bairroSel, preco: found ? found.preco : taxaGenerica };
@@ -218,10 +222,10 @@ export function CheckoutModals({ cart, subtotal, storeId, companyId, data, onClo
     <div style={MODAL_CARD}>
       <Header title={<><i className="fa-solid fa-box" /> Como deseja receber?</>} onX={onClose} />
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
-        <div className="delivery-card" onClick={() => { if (permitirEntrega !== false && flatBairros.length > 0) setDeliveryType('entrega'); }}
-          style={{ padding: 18, borderRadius: 16, border: `2px solid ${deliveryType === 'entrega' ? 'var(--primary-cat)' : 'rgba(255,255,255,0.1)'}`, background: deliveryType === 'entrega' ? 'rgba(132, 204, 22,0.08)' : 'transparent', cursor: permitirEntrega !== false && flatBairros.length > 0 ? 'pointer' : 'not-allowed', opacity: permitirEntrega !== false && flatBairros.length > 0 ? 1 : 0.5, display: 'flex', alignItems: 'center', gap: 16 }}>
+        <div className="delivery-card" onClick={() => { if (entregaDisponivel) setDeliveryType('entrega'); }}
+          style={{ padding: 18, borderRadius: 16, border: `2px solid ${deliveryType === 'entrega' ? 'var(--primary-cat)' : 'rgba(255,255,255,0.1)'}`, background: deliveryType === 'entrega' ? 'rgba(132, 204, 22,0.08)' : 'transparent', cursor: entregaDisponivel ? 'pointer' : 'not-allowed', opacity: entregaDisponivel ? 1 : 0.5, display: 'flex', alignItems: 'center', gap: 16 }}>
           <div style={{ width: 48, height: 48, borderRadius: 12, background: 'rgba(132, 204, 22,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><i className="fa-solid fa-truck" style={{ fontSize: '1.3rem', color: 'var(--primary-cat)' }} /></div>
-          <div><p style={{ margin: 0, fontWeight: 700 }}>Entrega</p><p style={{ margin: '4px 0 0', color: permitirEntrega !== false && flatBairros.length > 0 ? '#94a3b8' : '#ef4444', fontSize: '0.85rem' }}>{permitirEntrega !== false && flatBairros.length > 0 ? 'Receber no endereço informado' : 'Entrega indisponível no momento'}</p></div>
+          <div><p style={{ margin: 0, fontWeight: 700 }}>Entrega</p><p style={{ margin: '4px 0 0', color: entregaDisponivel ? '#94a3b8' : '#ef4444', fontSize: '0.85rem' }}>{entregaDisponivel ? 'Receber no endereço informado' : (fazEntrega ? 'Entrega indisponível no momento' : 'Esta loja faz apenas retirada')}</p></div>
         </div>
         <div className="delivery-card" onClick={() => setDeliveryType('retirada')}
           style={{ padding: 18, borderRadius: 16, border: `2px solid ${deliveryType === 'retirada' ? 'var(--primary-cat)' : 'rgba(255,255,255,0.1)'}`, background: deliveryType === 'retirada' ? 'rgba(132, 204, 22,0.08)' : 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 16 }}>
