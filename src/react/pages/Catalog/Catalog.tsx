@@ -197,6 +197,78 @@ export function Catalog({ storeId: storeIdProp }: { storeId?: string } = {}) {
     setCartOpen(false); setCheckoutOpen(true);
   }
 
+  // Componentes memoizados (identidade estável entre renders p/ não remontar a grade
+  // e recarregar as imagens ao mexer no carrinho). DEVEM ficar antes dos early returns
+  // abaixo — hooks não podem ser condicionais (React #310). Referências a `data` são
+  // null-safe porque só são de fato renderizados após os dados carregarem.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const ProductCard = useCallback(({ p, usePromo = false }: { p: any; usePromo?: boolean }) => {
+    const iv = !!data?.isVitrine;
+    const title = usePromo ? (p.promotionalName || p.name) : p.name;
+    const price = usePromo ? (p.promotionalPrice || p.price) : p.price;
+    const original = usePromo ? p.price : null;
+    const out = p.stock === 0;
+    const openDetail = () => { setDetail(p); setDetailImg(0); if (iv) trackVitrine('produto', data?.company?.id, storeId, p.id); };
+    return (
+      <div className="product-card" style={{ ...(out ? { opacity: 0.6 } : undefined), ...(iv ? { cursor: 'pointer' } : undefined) }} onClick={iv ? openDetail : undefined}>
+        <div className="card-image">
+          <img src={getImageUrl(p)} alt={title} loading="lazy" />
+          {usePromo && <div className="promo-tag">OFERTA</div>}
+          {out && <div className="promo-tag" style={{ background: '#ef4444', left: 15, right: 'auto' }}>ESGOTADO</div>}
+        </div>
+        <div className="card-info">
+          <h3>{title}</h3>
+          {(iv || data?.modulos?.includes('agendamento')) && p.observation && <p style={{ fontSize: '0.8rem', color: '#94a3b8', margin: '4px 0 8px', lineHeight: 1.4 }}>{p.observation}</p>}
+          {p.priceOnRequest
+            ? <div className="price-container"><span className="price" style={{ fontSize: '1rem' }}>Sob consulta</span></div>
+            : <div className="price-container"><span className="price">R$ {price?.toFixed(2)}</span>{original && <span className="original-price">R$ {original.toFixed(2)}</span>}</div>}
+          {p.stock != null && !out && p.stock <= 10 && <p style={{ fontSize: '0.75rem', color: '#eab308', margin: '6px 0 0' }}>⚠️ Apenas {p.stock} restante{p.stock !== 1 ? 's' : ''}</p>}
+          {data?.hasVendaCatalogo && (
+            <button disabled={out} onClick={() => addProduct(p)}
+              style={{ marginTop: 12, width: '100%', padding: 10, borderRadius: 10, background: out ? 'rgba(255,255,255,0.05)' : 'var(--primary-cat)', color: out ? '#94a3b8' : 'white', border: 'none', cursor: out ? 'not-allowed' : 'pointer', fontWeight: 700, fontSize: '0.9rem' }}>
+              {out ? 'Esgotado' : '+ Adicionar'}
+            </button>
+          )}
+          {iv && (
+            <button onClick={openDetail} style={{ marginTop: 12, width: '100%', padding: 10, borderRadius: 10, background: 'var(--product-bg)', color: 'var(--text)', border: '1px solid rgba(255,255,255,0.15)', cursor: 'pointer', fontWeight: 700, fontSize: '0.9rem' }}>
+              Ver detalhes
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }, [data, storeId]);
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const ComboCard = useCallback(({ c }: { c: any }) => {
+    const precoOriginal = (c.produtos || []).reduce((s: number, p: any) => s + (p.price || 0), 0);
+    const economia = precoOriginal > 0 ? precoOriginal - parseFloat(c.preco || 0) : 0;
+    const hasImg = (c.imagemPath && c.downloadToken) || c.imageUrl;
+    return (
+      <div className="product-card" onClick={() => addCombo(c)} style={{ cursor: 'pointer', position: 'relative', border: '1.5px solid rgba(245,158,11,0.3)' }}>
+        <div className="card-image" style={hasImg ? undefined : { background: 'linear-gradient(135deg,rgba(245,158,11,0.15),rgba(251,191,36,0.05))', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 120 }}>
+          {hasImg ? <img src={getImageUrl(c)} alt={c.nome} loading="lazy" /> : <i className="fa-solid fa-layer-group" style={{ fontSize: '2.5rem', color: 'var(--primary-cat)', opacity: 0.8 }} />}
+          <div className="promo-tag" style={{ background: 'var(--primary-cat)' }}>COMBO</div>
+        </div>
+        <div className="card-info">
+          <h3 style={{ fontWeight: 800 }}>{c.nome}</h3>
+          <p style={{ fontSize: '0.75rem', color: '#94a3b8', margin: '4px 0 8px', lineHeight: 1.4 }}>{(c.produtos || []).map((p: any) => p.name).join(' + ')}</p>
+          <div className="price-container"><span className="price" style={{ color: 'var(--primary-cat)' }}>R$ {parseFloat(c.preco || 0).toFixed(2)}</span>{precoOriginal > 0 && economia > 0 && <span className="original-price">R$ {precoOriginal.toFixed(2)}</span>}</div>
+          {economia > 0 && <p style={{ fontSize: '0.75rem', color: '#10b981', margin: '4px 0 0', fontWeight: 700 }}>✓ Economize R$ {economia.toFixed(2)}</p>}
+          <button style={{ marginTop: 12, width: '100%', padding: 10, borderRadius: 10, background: 'var(--primary-cat)', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: '0.9rem' }}>+ Adicionar Combo</button>
+        </div>
+      </div>
+    );
+  }, [data]);
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const CombosSection = useCallback(() => (data?.combos?.length || 0) === 0 ? null : (
+    <>
+      <div className="section-title" style={{ marginTop: 40 }}><i className="fa-solid fa-layer-group" style={{ color: 'var(--primary-cat)' }} /><span>Combos Especiais</span><div className="line" style={{ background: 'linear-gradient(to right,var(--primary-cat),transparent)' }} /></div>
+      <div className="product-grid">{(data?.combos || []).map((c: any) => <ComboCard key={c.id} c={c} />)}</div>
+    </>
+  ), [data, ComboCard]);
+
   if (loading) return <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f6f9f2', color: '#16251c' }}><i className="fa-solid fa-spinner fa-spin fa-2x" /></div>;
   if (!data || data.notFound) return (
     <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f6f9f2', color: '#16251c', fontFamily: 'sans-serif' }}>
@@ -248,79 +320,9 @@ export function Catalog({ storeId: storeIdProp }: { storeId?: string } = {}) {
     return `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(msg)}`;
   };
 
-  // useCallback mantém a IDENTIDADE do componente estável entre renders. Sem isso,
-  // cada setCart recriava ProductCard/ComboCard e o React remontava a grade inteira,
-  // fazendo TODAS as imagens recarregarem ao adicionar um item (bug no mobile).
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const ProductCard = useCallback(({ p, usePromo = false }: { p: any; usePromo?: boolean }) => {
-    const title = usePromo ? (p.promotionalName || p.name) : p.name;
-    const price = usePromo ? (p.promotionalPrice || p.price) : p.price;
-    const original = usePromo ? p.price : null;
-    const out = p.stock === 0;
-    const openDetail = () => { setDetail(p); setDetailImg(0); if (isVitrine) trackVitrine('produto', data.company.id, storeId, p.id); };
-    return (
-      <div className="product-card" style={{ ...(out ? { opacity: 0.6 } : undefined), ...(isVitrine ? { cursor: 'pointer' } : undefined) }} onClick={isVitrine ? openDetail : undefined}>
-        <div className="card-image">
-          <img src={getImageUrl(p)} alt={title} loading="lazy" />
-          {usePromo && <div className="promo-tag">OFERTA</div>}
-          {out && <div className="promo-tag" style={{ background: '#ef4444', left: 15, right: 'auto' }}>ESGOTADO</div>}
-        </div>
-        <div className="card-info">
-          <h3>{title}</h3>
-          {(isVitrine || data.modulos.includes('agendamento')) && p.observation && <p style={{ fontSize: '0.8rem', color: '#94a3b8', margin: '4px 0 8px', lineHeight: 1.4 }}>{p.observation}</p>}
-          {p.priceOnRequest
-            ? <div className="price-container"><span className="price" style={{ fontSize: '1rem' }}>Sob consulta</span></div>
-            : <div className="price-container"><span className="price">R$ {price?.toFixed(2)}</span>{original && <span className="original-price">R$ {original.toFixed(2)}</span>}</div>}
-          {p.stock != null && !out && p.stock <= 10 && <p style={{ fontSize: '0.75rem', color: '#eab308', margin: '6px 0 0' }}>⚠️ Apenas {p.stock} restante{p.stock !== 1 ? 's' : ''}</p>}
-          {hasVendaCatalogo && (
-            <button disabled={out} onClick={() => addProduct(p)}
-              style={{ marginTop: 12, width: '100%', padding: 10, borderRadius: 10, background: out ? 'rgba(255,255,255,0.05)' : 'var(--primary-cat)', color: out ? '#94a3b8' : 'white', border: 'none', cursor: out ? 'not-allowed' : 'pointer', fontWeight: 700, fontSize: '0.9rem' }}>
-              {out ? 'Esgotado' : '+ Adicionar'}
-            </button>
-          )}
-          {isVitrine && (
-            <button onClick={openDetail} style={{ marginTop: 12, width: '100%', padding: 10, borderRadius: 10, background: 'var(--product-bg)', color: 'var(--text)', border: '1px solid rgba(255,255,255,0.15)', cursor: 'pointer', fontWeight: 700, fontSize: '0.9rem' }}>
-              Ver detalhes
-            </button>
-          )}
-        </div>
-      </div>
-    );
-  }, [data, isVitrine, hasVendaCatalogo, storeId]);
-
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const ComboCard = useCallback(({ c }: { c: any }) => {
-    const precoOriginal = (c.produtos || []).reduce((s: number, p: any) => s + (p.price || 0), 0);
-    const economia = precoOriginal > 0 ? precoOriginal - parseFloat(c.preco || 0) : 0;
-    const hasImg = (c.imagemPath && c.downloadToken) || c.imageUrl;
-    return (
-      <div className="product-card" onClick={() => addCombo(c)} style={{ cursor: 'pointer', position: 'relative', border: '1.5px solid rgba(245,158,11,0.3)' }}>
-        <div className="card-image" style={hasImg ? undefined : { background: 'linear-gradient(135deg,rgba(245,158,11,0.15),rgba(251,191,36,0.05))', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 120 }}>
-          {hasImg ? <img src={getImageUrl(c)} alt={c.nome} loading="lazy" /> : <i className="fa-solid fa-layer-group" style={{ fontSize: '2.5rem', color: 'var(--primary-cat)', opacity: 0.8 }} />}
-          <div className="promo-tag" style={{ background: 'var(--primary-cat)' }}>COMBO</div>
-        </div>
-        <div className="card-info">
-          <h3 style={{ fontWeight: 800 }}>{c.nome}</h3>
-          <p style={{ fontSize: '0.75rem', color: '#94a3b8', margin: '4px 0 8px', lineHeight: 1.4 }}>{(c.produtos || []).map((p: any) => p.name).join(' + ')}</p>
-          <div className="price-container"><span className="price" style={{ color: 'var(--primary-cat)' }}>R$ {parseFloat(c.preco || 0).toFixed(2)}</span>{precoOriginal > 0 && economia > 0 && <span className="original-price">R$ {precoOriginal.toFixed(2)}</span>}</div>
-          {economia > 0 && <p style={{ fontSize: '0.75rem', color: '#10b981', margin: '4px 0 0', fontWeight: 700 }}>✓ Economize R$ {economia.toFixed(2)}</p>}
-          <button style={{ marginTop: 12, width: '100%', padding: 10, borderRadius: 10, background: 'var(--primary-cat)', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: '0.9rem' }}>+ Adicionar Combo</button>
-        </div>
-      </div>
-    );
-  }, [data]);
-
   const SectionTitle = ({ icon, label, promo }: { icon: string; label: string; promo?: boolean }) => (
     <div className={'section-title' + (promo ? ' promo' : '')}><i className={`fa-solid ${icon}`} /><span className={promo ? 'promo-highlight' : undefined}>{label}</span><div className="line" /></div>
   );
-
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const CombosSection = useCallback(() => data.combos.length === 0 ? null : (
-    <>
-      <div className="section-title" style={{ marginTop: 40 }}><i className="fa-solid fa-layer-group" style={{ color: 'var(--primary-cat)' }} /><span>Combos Especiais</span><div className="line" style={{ background: 'linear-gradient(to right,var(--primary-cat),transparent)' }} /></div>
-      <div className="product-grid">{data.combos.map((c: any) => <ComboCard key={c.id} c={c} />)}</div>
-    </>
-  ), [data, ComboCard]);
 
   // Filtro (clássico/moderno) por categoria + busca
   const matchesSearch = (p: any) => !search.trim() || (p.name || '').toLowerCase().includes(search.trim().toLowerCase());
