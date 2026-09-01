@@ -51,6 +51,7 @@ export function CheckoutModals({ cart, subtotal, storeId, companyId, data, onClo
   const [busy, setBusy] = useState('');
   const [orderId, setOrderId] = useState('');
   const [mpData, setMpData] = useState<any>(null);
+  const [orderTotal, setOrderTotal] = useState(0); // total do pedido criado (o carrinho é limpo depois)
   const [comprovanteFile, setComprovanteFile] = useState<File | null>(null);
   const [comprovantePreview, setComprovantePreview] = useState<string | null>(null);
   const comprovanteRef = useRef<HTMLInputElement>(null);
@@ -162,8 +163,8 @@ export function CheckoutModals({ cart, subtotal, storeId, companyId, data, onClo
     if (!guardOpen()) return;
     setBusy('pixManual');
     try {
-      const { orderId } = await postOrder('pix_manual');
-      setOrderId(orderId); onClearCart(); setStep('pixManual');
+      const { orderId, total: t } = await postOrder('pix_manual');
+      setOrderTotal(t); setOrderId(orderId); onClearCart(); setStep('pixManual');
     } catch (err: any) { toast.error('Erro ao gerar pedido PIX: ' + (err.message || 'Erro de conexão') + '. Tente novamente.'); }
     finally { setBusy(''); }
   }
@@ -188,7 +189,7 @@ export function CheckoutModals({ cart, subtotal, storeId, companyId, data, onClo
     setBusy('mp');
     try {
       const res = await postOrder('pix_mercadopago');
-      setOrderId(res.orderId); onClearCart();
+      setOrderTotal(res.total); setOrderId(res.orderId); onClearCart();
       if (res.mpData?.qr_code_base64 || res.mpData?.qr_code_text) { setMpData(res.mpData); setStep('mpPix'); }
       else setStep('confirmation');
     } catch (err: any) { toast.error('Erro ao gerar PIX Mercado Pago: ' + (err.message || 'Erro de resposta') + '. Tente novamente.'); }
@@ -327,7 +328,7 @@ export function CheckoutModals({ cart, subtotal, storeId, companyId, data, onClo
   if (step === 'pixManual') return backdrop(
     <div style={MODAL_CARD}>
       <Header title={<><i className="fa-brands fa-pix" /> Pagamento via PIX</>} onX={onClose} />
-      <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: 14, marginBottom: 16, fontSize: '0.9rem' }}><OrderSummary /></div>
+      <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: 14, marginBottom: 16, fontSize: '0.9rem', display: 'flex', justifyContent: 'space-between', fontWeight: 800 }}><span>Total</span><span style={{ color: 'var(--primary-cat)' }}>R$ {orderTotal.toFixed(2)}</span></div>
       <div style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: 14, padding: 16, marginBottom: 16 }}>
         <p style={{ margin: '0 0 6px', fontWeight: 700, fontSize: '0.9rem', color: '#10b981' }}><i className="fa-brands fa-pix" /> Chave PIX:</p>
         <p style={{ margin: '0 0 12px', fontFamily: 'monospace', fontSize: '1rem', color: 'white', wordBreak: 'break-all' }}>{pixKey}</p>
@@ -350,7 +351,7 @@ export function CheckoutModals({ cart, subtotal, storeId, companyId, data, onClo
   if (step === 'mpPix') return backdrop(
     <div style={MODAL_CARD}>
       <Header title={<><i className="fa-solid fa-qrcode" /> PIX — Mercado Pago</>} onX={onClose} />
-      <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: 14, marginBottom: 16, fontSize: '0.9rem' }}><OrderSummary /></div>
+      <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: 14, marginBottom: 16, fontSize: '0.9rem', display: 'flex', justifyContent: 'space-between', fontWeight: 800 }}><span>Total</span><span style={{ color: 'var(--primary-cat)' }}>R$ {orderTotal.toFixed(2)}</span></div>
       <div style={{ textAlign: 'center', marginBottom: 16 }}>
         {mpData?.qr_code_base64 && <img src={`data:image/png;base64,${mpData.qr_code_base64}`} style={{ width: 180, height: 180, borderRadius: 12, background: 'white', padding: 8, display: 'block', margin: '0 auto 12px' }} />}
         <p style={{ color: '#94a3b8', fontSize: '0.85rem', marginBottom: 12 }}>Ou copie o código abaixo:</p>

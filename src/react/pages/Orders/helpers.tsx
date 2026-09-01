@@ -2,7 +2,7 @@
 import type { ReactNode } from 'react';
 
 export const STATUS_CONFIG: Record<string, { label: string; cls: string; icon: string }> = {
-  em_montagem: { label: 'Em Montagem', cls: 'badge warning', icon: 'fa-cart-shopping' },
+  em_montagem: { label: 'Em Montagem', cls: 'badge primary', icon: 'fa-cart-shopping' },
   aguardando_pagamento: { label: 'Aguard. Pagamento', cls: 'badge info', icon: 'fa-credit-card' },
   em_preparo: { label: 'Em Preparo', cls: 'badge primary', icon: 'fa-utensils' },
   pedido_pronto: { label: 'Pronto p/ Retirada', cls: 'badge success', icon: 'fa-box' },
