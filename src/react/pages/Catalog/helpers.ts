@@ -45,14 +45,12 @@ const nowMinutes = () => { const a = new Date(); return a.getHours() * 60 + a.ge
 const toMin = (s: string) => { const [h, m] = s.split(':').map(Number); return h * 60 + m; };
 
 export function isStoreOpen(config: any, store: any): boolean {
-  if (config.lojaFechada === true) return false;
   const hs = getStoreHorario(config, store, getDiaSemana());
   if (!hs.ativo) return false;
   const n = nowMinutes();
   return n >= toMin(hs.inicio) && n <= toMin(hs.fim);
 }
 export function isFreteAbertoAgora(config: any, store: any): boolean {
-  if (config.entregaFechada === true) return false;
   const hf = getStoreFrete(config, store, getDiaSemana());
   if (!hf.ativo) return false;
   const n = nowMinutes();
