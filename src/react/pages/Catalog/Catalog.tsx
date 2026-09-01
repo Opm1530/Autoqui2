@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { dbService } from '../../../services/db';
 import { toast } from '../../../services/toast';
@@ -248,7 +248,11 @@ export function Catalog({ storeId: storeIdProp }: { storeId?: string } = {}) {
     return `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(msg)}`;
   };
 
-  const ProductCard = ({ p, usePromo = false }: { p: any; usePromo?: boolean }) => {
+  // useCallback mantém a IDENTIDADE do componente estável entre renders. Sem isso,
+  // cada setCart recriava ProductCard/ComboCard e o React remontava a grade inteira,
+  // fazendo TODAS as imagens recarregarem ao adicionar um item (bug no mobile).
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const ProductCard = useCallback(({ p, usePromo = false }: { p: any; usePromo?: boolean }) => {
     const title = usePromo ? (p.promotionalName || p.name) : p.name;
     const price = usePromo ? (p.promotionalPrice || p.price) : p.price;
     const original = usePromo ? p.price : null;
@@ -282,9 +286,10 @@ export function Catalog({ storeId: storeIdProp }: { storeId?: string } = {}) {
         </div>
       </div>
     );
-  };
+  }, [data, isVitrine, hasVendaCatalogo, storeId]);
 
-  const ComboCard = ({ c }: { c: any }) => {
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const ComboCard = useCallback(({ c }: { c: any }) => {
     const precoOriginal = (c.produtos || []).reduce((s: number, p: any) => s + (p.price || 0), 0);
     const economia = precoOriginal > 0 ? precoOriginal - parseFloat(c.preco || 0) : 0;
     const hasImg = (c.imagemPath && c.downloadToken) || c.imageUrl;
@@ -303,18 +308,19 @@ export function Catalog({ storeId: storeIdProp }: { storeId?: string } = {}) {
         </div>
       </div>
     );
-  };
+  }, [data]);
 
   const SectionTitle = ({ icon, label, promo }: { icon: string; label: string; promo?: boolean }) => (
     <div className={'section-title' + (promo ? ' promo' : '')}><i className={`fa-solid ${icon}`} /><span className={promo ? 'promo-highlight' : undefined}>{label}</span><div className="line" /></div>
   );
 
-  const CombosSection = () => data.combos.length === 0 ? null : (
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const CombosSection = useCallback(() => data.combos.length === 0 ? null : (
     <>
       <div className="section-title" style={{ marginTop: 40 }}><i className="fa-solid fa-layer-group" style={{ color: 'var(--primary-cat)' }} /><span>Combos Especiais</span><div className="line" style={{ background: 'linear-gradient(to right,var(--primary-cat),transparent)' }} /></div>
       <div className="product-grid">{data.combos.map((c: any) => <ComboCard key={c.id} c={c} />)}</div>
     </>
-  );
+  ), [data, ComboCard]);
 
   // Filtro (clássico/moderno) por categoria + busca
   const matchesSearch = (p: any) => !search.trim() || (p.name || '').toLowerCase().includes(search.trim().toLowerCase());
