@@ -576,23 +576,19 @@ function CatalogFunnel({ f }: { f: any | null }) {
         <p style={{ color: 'var(--text-dim)', fontSize: '0.85rem', margin: '1rem 0 0' }}>Ainda sem dados. As etapas do carrinho ao pagamento começam a contar conforme os clientes usam o catálogo.</p>
       ) : (
         <>
-          {/* Funil fixo (fatias afuniladas em SVG) */}
+          {/* Funil deitado (fatias afuniladas da esquerda p/ direita) */}
           {(() => {
-            const W = [96, 82, 68, 54, 40, 28, 18]; // larguras das bordas (7 pontos = 6 fatias)
-            const SH = 28, GAP = 3;                 // altura e espaço entre fatias
-            const H = FUNNEL_STAGES.length * (SH + GAP);
+            const HB = [42, 36, 30, 24, 18, 12, 8]; // alturas das bordas (7 pontos = 6 fatias)
+            const SW = 20, GAP = 1, CY = 24;        // largura da fatia e centro vertical
             return (
-              <svg viewBox={`0 0 100 ${H}`} style={{ width: '100%', height: 190, margin: '14px 0 12px', display: 'block' }}>
+              <svg viewBox={`0 0 ${FUNNEL_STAGES.length * SW} 48`} style={{ width: '100%', height: 84, margin: '14px 0 12px', display: 'block' }}>
                 {FUNNEL_STAGES.map((s, i) => {
-                  const y = i * (SH + GAP);
-                  const tw = W[i], bw = W[i + 1];
-                  const pts = `${50 - tw / 2},${y} ${50 + tw / 2},${y} ${50 + bw / 2},${y + SH} ${50 - bw / 2},${y + SH}`;
+                  const x = i * SW, lh = HB[i], rh = HB[i + 1];
+                  const pts = `${x},${CY - lh / 2} ${x + SW - GAP},${CY - rh / 2} ${x + SW - GAP},${CY + rh / 2} ${x},${CY + lh / 2}`;
                   return (
                     <g key={s.key}>
-                      <polygon points={pts} fill={s.color}>
-                        <title>{`${s.label}: ${vals[i]}`}</title>
-                      </polygon>
-                      <text x="50" y={y + SH / 2} fill="#fff" fontSize="10" fontWeight="800" textAnchor="middle" dominantBaseline="central">{vals[i]}</text>
+                      <polygon points={pts} fill={s.color}><title>{`${s.label}: ${vals[i]}`}</title></polygon>
+                      <text x={x + (SW - GAP) / 2} y={CY} fill="#fff" fontSize="6.5" fontWeight="800" textAnchor="middle" dominantBaseline="central">{vals[i]}</text>
                     </g>
                   );
                 })}
