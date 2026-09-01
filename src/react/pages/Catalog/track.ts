@@ -19,7 +19,7 @@ function firstToday(): boolean {
   } catch { return false; }
 }
 
-export function trackVitrine(tipo: 'view' | 'produto' | 'whatsapp', empresaId: string, lojaId: string, produtoId?: string) {
+export function trackVitrine(tipo: 'view' | 'produto' | 'whatsapp' | 'cart_add' | 'checkout' | 'pay_start', empresaId: string, lojaId: string, produtoId?: string) {
   if (!empresaId) return;
   try {
     const body: any = { empresaId, lojaId, tipo, visitorId: visitorId() };

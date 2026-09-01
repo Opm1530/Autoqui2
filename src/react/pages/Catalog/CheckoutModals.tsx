@@ -6,6 +6,7 @@ import { notifications } from '../../../services/notifications';
 import { toast } from '../../../services/toast';
 import { confirm } from '../../../services/confirm';
 import { isStoreOpen, isFreteAbertoAgora } from './helpers';
+import { trackVitrine } from './track';
 
 type Step = 'delivery' | 'customer' | 'payment' | 'pixManual' | 'mpPix' | 'confirmation';
 
@@ -52,6 +53,8 @@ export function CheckoutModals({ cart, subtotal, storeId, companyId, data, onClo
   const [orderId, setOrderId] = useState('');
   const [mpData, setMpData] = useState<any>(null);
   const [orderTotal, setOrderTotal] = useState(0); // total do pedido criado (o carrinho é limpo depois)
+  const payTracked = useRef(false);
+  const trackPay = () => { if (payTracked.current || !companyId) return; payTracked.current = true; trackVitrine('pay_start', companyId, storeId); };
   const [comprovanteFile, setComprovanteFile] = useState<File | null>(null);
   const [comprovantePreview, setComprovantePreview] = useState<string | null>(null);
   const comprovanteRef = useRef<HTMLInputElement>(null);
@@ -151,7 +154,7 @@ export function CheckoutModals({ cart, subtotal, storeId, companyId, data, onClo
 
   async function payDelivery() {
     if (!guardOpen()) return;
-    setBusy('delivery');
+    setBusy('delivery'); trackPay();
     try {
       const { orderId } = await postOrder('na_entrega', { paymentSubMethod: subMethod, troco: subMethod === 'dinheiro' && troco ? parseFloat(troco) : null });
       setOrderId(orderId); onClearCart(); setStep('confirmation');
@@ -161,7 +164,7 @@ export function CheckoutModals({ cart, subtotal, storeId, companyId, data, onClo
 
   async function payPixManual() {
     if (!guardOpen()) return;
-    setBusy('pixManual');
+    setBusy('pixManual'); trackPay();
     try {
       const { orderId, total: t } = await postOrder('pix_manual');
       setOrderTotal(t); setOrderId(orderId); onClearCart(); setStep('pixManual');
@@ -186,7 +189,7 @@ export function CheckoutModals({ cart, subtotal, storeId, companyId, data, onClo
 
   async function payPixMp() {
     if (!guardOpen()) return;
-    setBusy('mp');
+    setBusy('mp'); trackPay();
     try {
       const res = await postOrder('pix_mercadopago');
       setOrderTotal(res.total); setOrderId(res.orderId); onClearCart();

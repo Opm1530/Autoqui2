@@ -32,6 +32,16 @@ export function Catalog({ storeId: storeIdProp }: { storeId?: string } = {}) {
   const [vitrineCat, setVitrineCat] = useState('');                 // categoria selecionada no carrossel (vitrine); '' = todas
   const gridRef = useRef<HTMLDivElement>(null);                     // âncora do botão do banner (vitrine)
   const trackedView = useRef('');                                   // evita duplicar a métrica de visita
+  const trackedCart = useRef(false);                                // funil: 1x por sessão
+  const trackedCheckout = useRef(false);
+
+  // Funil de conversão do catálogo (1 evento por etapa por sessão).
+  const funnelTrack = (tipo: 'cart_add' | 'checkout') => {
+    if (!data?.company?.id) return;
+    if (tipo === 'cart_add') { if (trackedCart.current) return; trackedCart.current = true; }
+    if (tipo === 'checkout') { if (trackedCheckout.current) return; trackedCheckout.current = true; }
+    trackVitrine(tipo, data.company.id, storeId);
+  };
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [closedAlert, setClosedAlert] = useState<'store' | 'delivery' | null>(null);
   const [storeInfoOpen, setStoreInfoOpen] = useState(false);
@@ -137,6 +147,7 @@ export function Catalog({ storeId: storeIdProp }: { storeId?: string } = {}) {
 
   function addProduct(p: any) {
     if (p.stock === 0) return;
+    funnelTrack('cart_add');
     setCart((prev) => {
       const n = new Map(prev); const ex = n.get(p.id); const max = p.stock ?? Infinity;
       if ((ex?.qty || 0) >= max) { toast.warning(`Estoque máximo atingido (${p.stock} un.)`); return prev; }
@@ -144,6 +155,7 @@ export function Catalog({ storeId: storeIdProp }: { storeId?: string } = {}) {
     });
   }
   function addCombo(c: any) {
+    funnelTrack('cart_add');
     const cartId = `combo_${c.id}`;
     const comboProduct = { id: cartId, name: c.nome, price: parseFloat(c.preco || 0), isCombo: true, produtos: c.produtos || [], imagemPath: c.imagemPath || null, downloadToken: c.downloadToken || null, stock: null };
     setCart((prev) => { const n = new Map(prev); const ex = n.get(cartId); n.set(cartId, { product: comboProduct, qty: (ex?.qty || 0) + 1 }); return n; });
@@ -171,6 +183,7 @@ export function Catalog({ storeId: storeIdProp }: { storeId?: string } = {}) {
         }
       } catch { /* ignore falhas de leitura */ }
     }
+    funnelTrack('checkout');
     setCartOpen(false); setCheckoutOpen(true);
   }
 

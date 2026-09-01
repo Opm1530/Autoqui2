@@ -29,7 +29,7 @@ import { ecommerceRouter } from './ecommerce/router.js';
 import { startEcommerceJobs } from './ecommerce/jobs.js';
 import { storefrontPublicRouter, storefrontAuthRouter } from './ecommerce/storefront.js';
 import { handleIncoming, activateCapture, deactivateCapture, captureStatus, getConfig, saveRecompra, saveAutomacoes, saveFidelidade, sendFidelidade, sendLeadMessage, setUltimaCompra, startFarmaquiJobs, getLanding, saveLanding, setLandingHost, publicLanding, farmaMetrics, listRecompra, cancelRecompra, sendRecompraNow, groupsList, listGroupOffers, createGroupOffer, deleteGroupOffer, extractGroupLeads, extractAgendaLeads, createManualLead, numberHealth } from "./farmaqui.js";
-import { trackEvent, getVitrineMetrics, getLandingMetrics } from './vitrineMetrics.js';
+import { trackEvent, getVitrineMetrics, getLandingMetrics, getCatalogFunnel } from "./vitrineMetrics.js";
 import { setStoreSubdomain, removeStoreSubdomain, storeByHost } from './domains.js';
 
 // Enforcement de assinatura no backend: bloqueia escrita se inadimplente além
@@ -261,6 +261,7 @@ app.post('/api/track', rateLimit(120, 60_000), (req, res) => {
   res.json({ ok: true }); // fire-and-forget
 });
 app.get('/api/vitrine/metrics', requireAuth, wrap((req) => getVitrineMetrics(req.uid, Number(req.query.days) || 30)));
+app.get('/api/catalog/funnel', requireAuth, wrap((req) => getCatalogFunnel(req.uid, Number(req.query.days) || 30)));
 app.get('/api/farmaqui/landing-metrics', requireAuth, wrap((req) => getLandingMetrics(req.uid, Number(req.query.days) || 30)));
 app.get('/api/farmaqui/status', requireAuth, wrap((req) => captureStatus(req.uid)));
 app.post('/api/farmaqui/deactivate', requireAuth, wrap((req) => deactivateCapture(req.uid)));

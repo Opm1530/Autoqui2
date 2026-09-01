@@ -72,6 +72,7 @@ export function Dashboard() {
   const [vmDays, setVmDays] = useState(30);
   const [lp, setLp] = useState<any | null>(null);
   const [lpDays, setLpDays] = useState(30);
+  const [funnel, setFunnel] = useState<any | null>(null);
   const [fkpi, setFkpi] = useState<any | null>(null);
   const [farmaLeads, setFarmaLeads] = useState<any[] | null>(null);
   const [shared, setShared] = useState(false);
@@ -231,6 +232,7 @@ export function Dashboard() {
   }, [isFarma, companyId]);
 
   const hasVenda = modulos.includes('venda') || modulos.includes('venda_catalogo');
+  useEffect(() => { if (hasVenda) vitrineApi.catalogFunnel(30).then(setFunnel).catch(() => {}); }, [hasVenda]);
   const copyLink = (storeId: string) => {
     const url = `${window.location.origin}/catalog/${storeId}`;
     navigator.clipboard.writeText(url).then(() => toast.success('Link copiado!'));
@@ -356,7 +358,7 @@ export function Dashboard() {
             <BestHours data={catalog?.bestHours || []} />
           </div>
           <div className="dash-col">
-            <BairroDonut items={salesViz.bairros} total={salesViz.totalPedidos} />
+            <CatalogFunnel f={funnel} />
             <SubscriptionCard sub={sub} />
           </div>
         </div>
@@ -547,6 +549,56 @@ function LandingBlock({ m, days, setDays }: { m: any | null; days: number; setDa
                 </div>
               </div>
             </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// Funil de conversão do catálogo (substitui "pedidos por bairro").
+const FUNNEL_STAGES = [
+  { key: 'carrinho', label: 'Adicionou ao carrinho', color: '#a3e635' },
+  { key: 'checkout', label: 'Entrou no checkout', color: '#84cc16' },
+  { key: 'pagamento', label: 'Iniciou o pagamento', color: '#65a30d' },
+  { key: 'comprou', label: 'Comprou', color: '#4d7c0f' },
+  { key: 'recomprou', label: 'Recomprou', color: '#166534' },
+];
+function CatalogFunnel({ f }: { f: any | null }) {
+  if (!f) return <div className="card viz-card"><SkeletonBox width={170} height={18} /><SkeletonBox height={180} style={{ marginTop: 16 }} /></div>;
+  const vals = FUNNEL_STAGES.map((s) => Number(f[s.key] || 0));
+  const max = Math.max(1, ...vals);
+  const vazio = vals.every((v) => v === 0);
+  return (
+    <div className="card viz-card">
+      <div className="viz-head"><h4>Funil de conversão</h4></div>
+      {vazio ? (
+        <p style={{ color: 'var(--text-dim)', fontSize: '0.85rem', margin: '1rem 0 0' }}>Ainda sem dados. As etapas do carrinho ao pagamento começam a contar conforme os clientes usam o catálogo.</p>
+      ) : (
+        <>
+          {/* Funil (trapézios centralizados) */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, margin: '16px 0 14px' }}>
+            {FUNNEL_STAGES.map((s, i) => (
+              <div key={s.key} title={`${s.label}: ${vals[i]}`}
+                style={{ width: `${Math.max(16, (vals[i] / max) * 100)}%`, margin: '0 auto', height: 30, background: s.color, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800, fontSize: '0.85rem', minWidth: 40, transition: 'width .4s' }}>
+                {vals[i]}
+              </div>
+            ))}
+          </div>
+          {/* Legenda com conversão de cada etapa */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+            {FUNNEL_STAGES.map((s, i) => {
+              const prev = i > 0 ? vals[i - 1] : 0;
+              const conv = i > 0 && prev > 0 ? Math.round((vals[i] / prev) * 100) : null;
+              return (
+                <div key={s.key} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.84rem' }}>
+                  <span style={{ width: 11, height: 11, borderRadius: 3, background: s.color, flexShrink: 0 }} />
+                  <span style={{ flex: 1, color: 'var(--text-main)' }}>{s.label}</span>
+                  {conv !== null && <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)' }}>{conv}%</span>}
+                  <span style={{ fontWeight: 700, minWidth: 32, textAlign: 'right' }}>{fmtInt(vals[i])}</span>
+                </div>
+              );
+            })}
           </div>
         </>
       )}

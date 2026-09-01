@@ -5,7 +5,7 @@ import { FieldValue } from 'firebase-admin/firestore';
 import { db, getAll } from './firebase.js';
 import { loadUser } from './currentUser.js';
 
-const TIPOS = new Set(['view', 'produto', 'whatsapp', 'lp_view', 'lp_cta']);
+const TIPOS = new Set(['view', 'produto', 'whatsapp', 'lp_view', 'lp_cta', 'cart_add', 'checkout', 'pay_start']);
 const diaOf = (ms: number) => new Date(ms).toISOString().slice(0, 10); // YYYY-MM-DD
 const docId = (empresaId: string, dia: string) => `${empresaId}__${dia}`;
 
@@ -91,6 +91,43 @@ export async function getVitrineMetrics(uid: string, daysRaw: number) {
     serie, topProdutos,
   };
   cache.set(key, { at: Date.now(), data });
+  return data;
+}
+
+// Funil de conversão do catálogo: carrinho → checkout → pagamento → comprou → recomprou.
+const funnelCache = new Map<string, { at: number; data: any }>();
+export async function getCatalogFunnel(uid: string, daysRaw: number) {
+  const companyId = await companyOf(uid);
+  const days = [7, 30, 90].includes(daysRaw) ? daysRaw : 30;
+  const key = `${companyId}:${days}`;
+  const hit = funnelCache.get(key);
+  if (hit && Date.now() - hit.at < TTL) return hit.data;
+
+  // Eventos rastreados (carrinho/checkout/pagamento) do vitrine_daily.
+  const dias: string[] = [];
+  for (let i = 0; i < days; i++) dias.push(diaOf(Date.now() - i * 86400000));
+  const refs = dias.map((d) => db.collection('vitrine_daily').doc(docId(companyId, d)));
+  const snaps = await db.getAll(...refs);
+  let carrinho = 0, checkout = 0, pagamento = 0;
+  snaps.forEach((s) => { const d = (s.exists ? s.data() : {}) as any; carrinho += Number(d.cart_add || 0); checkout += Number(d.checkout || 0); pagamento += Number(d.pay_start || 0); });
+
+  // Comprou / recomprou a partir dos pedidos (recompra = cliente com pedido anterior).
+  const orders = await getAll('pedidos', [{ field: 'empresaId', operator: '==', value: companyId }]).catch(() => []);
+  const cutoff = Date.now() - days * 86400000;
+  const dated = orders
+    .map((o: any) => ({ phone: String(o.clientPhone || o.telefone || '').replace(/\D/g, ''), ms: new Date(o.criadoEm || o.createdAt || 0).getTime() }))
+    .filter((o: any) => o.phone)
+    .sort((a: any, b: any) => a.ms - b.ms);
+  const vistos = new Set<string>();
+  let comprou = 0, recomprou = 0;
+  for (const o of dated) {
+    const repeat = vistos.has(o.phone);
+    vistos.add(o.phone);
+    if (o.ms >= cutoff) { comprou++; if (repeat) recomprou++; }
+  }
+
+  const data = { days, carrinho, checkout, pagamento, comprou, recomprou };
+  funnelCache.set(key, { at: Date.now(), data });
   return data;
 }
 
