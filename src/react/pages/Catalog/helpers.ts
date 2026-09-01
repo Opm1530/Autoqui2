@@ -35,7 +35,10 @@ export function getStoreHorario(config: any, store: any, dia: string) {
   return { ativo: h.ativo ?? h.aberto ?? (dia !== 'dom'), inicio: h.inicio || h.abertura || '08:00', fim: h.fim || h.fechamento || '18:00' };
 }
 export function getStoreFrete(config: any, store: any, dia: string) {
-  const h = config.horario_entrega?.[dia] || store.horario_entrega?.[dia] || {};
+  const h = config.horario_entrega?.[dia] || store.horario_entrega?.[dia];
+  // Sem horário de entrega configurado para o dia → entrega segue o horário de
+  // funcionamento (evita "entrega indisponível" fora do default fixo 08–18).
+  if (!h) return getStoreHorario(config, store, dia);
   return { ativo: h.ativo ?? h.aberto ?? (dia !== 'dom'), inicio: h.inicio || h.abertura || '08:00', fim: h.fim || h.fechamento || '18:00' };
 }
 const nowMinutes = () => { const a = new Date(); return a.getHours() * 60 + a.getMinutes(); };
