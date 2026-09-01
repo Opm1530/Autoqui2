@@ -163,7 +163,7 @@ export function Products() {
           <div style={{ flex: 1, minWidth: 300, maxWidth: 500, background: 'rgba(132, 204, 22,0.1)', border: '1px dashed var(--primary)', borderRadius: 12, padding: '10px 15px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
             <div style={{ flex: 1, overflow: 'hidden' }}>
               <span style={{ fontSize: '0.7rem', color: 'var(--primary)', fontWeight: 700, textTransform: 'uppercase', display: 'block', marginBottom: 2 }}>Link do Catálogo</span>
-              <input readOnly value={catalogLink} style={{ width: '100%', background: 'transparent', border: 'none', color: 'white', fontSize: '0.85rem', textOverflow: 'ellipsis', outline: 'none' }} />
+              <input readOnly value={catalogLink} style={{ width: '100%', background: 'transparent', border: 'none', color: 'var(--text-main)', fontSize: '0.85rem', textOverflow: 'ellipsis', outline: 'none' }} />
             </div>
             <button className="btn-primary" style={{ padding: '8px 12px', fontSize: '0.8rem', flexShrink: 0 }} onClick={() => navigator.clipboard.writeText(catalogLink).then(() => toast.success('Link do catálogo copiado!'))}>
               <i className="fa-solid fa-copy" /> Copiar

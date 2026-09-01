@@ -30,7 +30,7 @@ export function StatusBadge({ status, compact }: { status: string; compact?: boo
 
 export function DeliveryBadge({ entrega, compact }: { entrega: string; compact?: boolean }) {
   if (entrega === 'retirada') {
-    return badge('badge secondary', { background: 'rgba(139,92,246,0.1)', color: '#a3e635', border: '1px solid rgba(139,92,246,0.2)' }, 'fa-store', 'Retirada', compact);
+    return badge('badge info', { background: 'rgba(132,204,22,0.12)', color: 'var(--primary-hover)', border: '1px solid rgba(132,204,22,0.3)' }, 'fa-store', 'Retirada', compact);
   }
   return badge('badge info', { background: 'rgba(132,204,22,0.12)', color: 'var(--primary-hover)', border: '1px solid rgba(132,204,22,0.3)' }, 'fa-truck', 'Entrega', compact);
 }
@@ -60,7 +60,7 @@ export function PaymentBadge({ order, compact }: { order: any; compact?: boolean
   }
   if (isEntrega) {
     const sub = order.paymentSubMethod === 'dinheiro' ? 'Dinheiro' : order.paymentSubMethod === 'cartao' ? 'Cartão' : '';
-    return badge('badge warning', { background: 'rgba(245,158,11,0.1)', color: '#fbbf24', border: '1px solid rgba(245,158,11,0.2)' }, 'fa-hand-holding-dollar', `Na Entrega${sub ? ` · ${sub}` : ''}`, compact);
+    return badge('badge info', { background: 'rgba(132,204,22,0.12)', color: 'var(--primary-hover)', border: '1px solid rgba(132,204,22,0.3)' }, 'fa-hand-holding-dollar', `Na Entrega${sub ? ` · ${sub}` : ''}`, compact);
   }
   return badge('badge secondary', {}, 'fa-money-bill', payment, compact);
 }
