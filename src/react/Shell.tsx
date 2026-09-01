@@ -97,7 +97,12 @@ function buildNav(role: string | undefined, modulos: string[]): NavEntry[] {
   if (atendimento || vendaCatalogo || venda || vitrine) add({ to: '/leads', label: 'Leads', icon: 'fa-people-group' });
   if (disparo) add({ to: '/campaigns', label: 'Campanhas', icon: 'fa-bullhorn' });
 
-  if (isEmployee) return nav;
+  // Colaborador vê o Negócio (horários/frete/link), mas não Configuração/Ferramentas.
+  if (isEmployee) {
+    nav.push({ section: 'Geral' });
+    add({ to: '/business', label: 'Negócio', icon: 'fa-store' });
+    return nav;
+  }
 
   // ── Geral (dono) ──
   // "Negócio" (hub com Equipe + Instâncias) aparece para TODAS as contas.

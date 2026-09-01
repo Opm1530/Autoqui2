@@ -22,6 +22,7 @@ interface Instance {
 export function Instances() {
   const { user } = useAuth();
   const companyId = user?.companyId || '';
+  const isOwner = user?.role === 'owner' || user?.role === 'admin'; // colaborador só conecta/desconecta
 
   const [company, setCompany] = useState<any>(null);
   const [instances, setInstances] = useState<Instance[]>([]);
@@ -190,17 +191,17 @@ export function Instances() {
           <span className="badge secondary" style={{ fontSize: '0.85rem', padding: '0.4rem 0.8rem' }}><i className="fa-solid fa-layer-group" style={{ marginRight: 6 }} /> Limite: <strong style={{ marginLeft: 4 }}>{limit}</strong></span>
           <span className="badge info" style={{ fontSize: '0.85rem', padding: '0.4rem 0.8rem' }}><i className="fa-solid fa-circle-nodes" style={{ marginRight: 6 }} /> Utilizadas: <strong style={{ marginLeft: 4 }}>{instances.length}</strong></span>
         </div>
-        <button className="btn-add" disabled={atLimit} style={atLimit ? { opacity: 0.5, cursor: 'not-allowed' } : undefined}
+        {isOwner && <button className="btn-add" disabled={atLimit} style={atLimit ? { opacity: 0.5, cursor: 'not-allowed' } : undefined}
           onClick={() => setShowNew(true)}>
           Nova Instância<span className="btn-add-icon"><i className="fa-solid fa-plus" /></span>
-        </button>
+        </button>}
       </div>
 
       {instances.length === 0 ? (
         <div className="card" style={{ textAlign: 'center', padding: '3rem 2rem', color: 'var(--text-muted)' }}>
           <i className="fa-brands fa-whatsapp" style={{ fontSize: '2.5rem', color: 'var(--text-dim)', display: 'block', margin: '0 auto 12px', width: 'fit-content' }} />
-          <p style={{ margin: '0 0 16px' }}>Conecte seu WhatsApp para atender e receber pedidos. É rápido: crie a instância e leia o QR Code.</p>
-          <button className="btn-add" onClick={() => setShowNew(true)}>Conectar meu WhatsApp<span className="btn-add-icon"><i className="fa-solid fa-plus" /></span></button>
+          <p style={{ margin: '0 0 16px' }}>{isOwner ? 'Conecte seu WhatsApp para atender e receber pedidos. É rápido: crie a instância e leia o QR Code.' : 'Nenhuma instância cadastrada. Peça ao dono da conta para criar uma.'}</p>
+          {isOwner && <button className="btn-add" onClick={() => setShowNew(true)}>Conectar meu WhatsApp<span className="btn-add-icon"><i className="fa-solid fa-plus" /></span></button>}
         </div>
       ) : (
         <div className="instances-grid">
@@ -247,7 +248,7 @@ export function Instances() {
                     <button className="btn-secondary" style={{ flex: 1, justifyContent: 'center', color: '#fbbf24', borderColor: 'rgba(245,158,11,0.4)' }} onClick={() => logoutInstance(inst)}><i className="fa-solid fa-right-from-bracket" /> Desconectar</button>
                   )}
                   <button className="btn-secondary" title="Compartilhar link de conexão" style={{ color: '#a3e635', borderColor: 'rgba(132, 204, 22,0.4)' }} onClick={() => shareQR(inst.nome)}><i className="fa-solid fa-share-nodes" /></button>
-                  <button className="btn-secondary" title="Excluir" style={{ color: '#f87171', borderColor: 'rgba(239,68,68,0.35)' }} onClick={() => deleteInstance(inst)}><i className="fa-solid fa-trash" /></button>
+                  {isOwner && <button className="btn-secondary" title="Excluir" style={{ color: '#f87171', borderColor: 'rgba(239,68,68,0.35)' }} onClick={() => deleteInstance(inst)}><i className="fa-solid fa-trash" /></button>}
                 </div>
               </div>
             );

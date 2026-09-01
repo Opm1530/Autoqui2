@@ -74,6 +74,19 @@ export function Users() {
 
   if (loading) return <SkeletonTable rows={6} cols={6} />;
   if (!companyId) return <p>Erro: Usuário sem empresa associada.</p>;
+  // Só o dono gerencia a equipe.
+  if (user?.role !== 'owner' && user?.role !== 'admin') {
+    return (
+      <div>
+        <div className="page-heading"><h1>Negócio</h1></div>
+        <ManageTabs />
+        <div className="card" style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
+          <i className="fa-solid fa-lock" style={{ fontSize: '1.8rem', display: 'block', marginBottom: 12, color: '#fbbf24' }} />
+          Apenas o dono da conta pode gerenciar a equipe.
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>

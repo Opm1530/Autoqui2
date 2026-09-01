@@ -139,18 +139,18 @@ export function Stores() {
                   )}
                 </div>
               </div>
-              {isOwner && (
-                <div className="negocio-actions">
+              <div className="negocio-actions">
+                {isOwner && (
                   <button className="btn-primary" onClick={() => setModal({ id: s.id, name: s.name || '', address: s.address || '' })}>
                     <i className="fa-solid fa-pen" /> Editar dados
                   </button>
-                  {mostraFrete && (
-                    <button className={'btn-secondary negocio-frete-btn' + (freteAtivo ? '' : ' off')} onClick={() => toggleFrete(s)}>
-                      <i className={`fa-solid ${freteAtivo ? 'fa-truck' : 'fa-truck-ramp-box'}`} /> {freteAtivo ? 'Desativar frete' : 'Ativar frete'}
-                    </button>
-                  )}
-                </div>
-              )}
+                )}
+                {mostraFrete && (
+                  <button className={'btn-secondary negocio-frete-btn' + (freteAtivo ? '' : ' off')} onClick={() => toggleFrete(s)}>
+                    <i className={`fa-solid ${freteAtivo ? 'fa-truck' : 'fa-truck-ramp-box'}`} /> {freteAtivo ? 'Desativar frete' : 'Ativar frete'}
+                  </button>
+                )}
+              </div>
             </div>
 
             <div className="negocio-stats">
@@ -179,6 +179,22 @@ export function Stores() {
         </div>
       )}
 
+      {/* Colaborador: só copia o link do catálogo (sem editar o endereço). */}
+      {!isOwner && stores.length > 0 && temProdutos && (() => {
+        const s = stores[0];
+        const link = s.subdominio ? `https://${s.subdominio}` : `${window.location.origin}/catalog/${s.id}`;
+        return (
+          <div className="card" style={{ marginTop: '1.25rem' }}>
+            <div className="config-section-title"><i className="fa-solid fa-globe" style={{ color: 'var(--primary)' }} /> Link do catálogo</div>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginTop: 8 }}>
+              <input readOnly value={link} className="config-input" style={{ flex: 1, minWidth: 200 }} onFocus={(e) => e.target.select()} />
+              <button className="btn-primary" onClick={() => navigator.clipboard.writeText(link).then(() => toast.success('Link copiado!'))}><i className="fa-solid fa-copy" /> Copiar</button>
+              <a href={link} target="_blank" rel="noreferrer" className="btn-secondary"><i className="fa-solid fa-arrow-up-right-from-square" /></a>
+            </div>
+          </div>
+        );
+      })()}
+
       {isOwner && modulos.includes('farmaqui') && (
         <div className="card" style={{ marginTop: '1.25rem' }}>
           <div className="config-section-title"><i className="fa-solid fa-globe" style={{ color: 'var(--primary)' }} /> Endereço da landing page</div>
@@ -196,7 +212,7 @@ export function Stores() {
         </div>
       )}
 
-      {isOwner && mostraHorarios && storeId && (
+      {mostraHorarios && storeId && (
         <div style={{ marginTop: '1.5rem' }}>
           <Schedules key={`func-${storeId}`} title="Horário de Funcionamento" icon="fa-clock"
             description="Defina os dias e horários em que o negócio aceita pedidos." campo="horario_funcionamento"
