@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage } from '../../../firebase/config';
 import { API_BASE_URL } from '../../../services/api';
@@ -25,8 +25,18 @@ const MODAL_CARD: React.CSSProperties = { background: '#1e293b', borderRadius: 2
 const inputStyle: React.CSSProperties = { width: '100%', padding: 12, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, color: 'white', fontSize: '0.95rem', boxSizing: 'border-box' };
 const labelStyle: React.CSSProperties = { display: 'block', fontSize: '0.8rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 700, marginBottom: 6 };
 
-export function CheckoutModals({ cart, subtotal, storeId, companyId, data, onClose, onClearCart, onClosedAlert }: Props) {
+export function CheckoutModals({ cart, subtotal, storeId, companyId, data, onClose: onCloseRaw, onClearCart, onClosedAlert }: Props) {
   const { config, pixKey, isMpActive, flatBairros, taxaGenerica, cuponsList } = data;
+  const pendingKey = `cat_pending_${companyId}`;
+  // Pedido PIX manual pendente (sobrevive a reload do navegador in-app do WhatsApp):
+  // se a página recarregar na hora de anexar o comprovante, restauramos essa tela.
+  const pending = useMemo(() => {
+    try { const p = JSON.parse(localStorage.getItem(pendingKey) || 'null'); if (p && p.storeId === storeId && Date.now() - p.ts < 30 * 60000) return p; } catch { /* ignore */ }
+    return null;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const clearPending = () => { try { localStorage.removeItem(pendingKey); } catch { /* ignore */ } };
+  const onClose = () => { clearPending(); onCloseRaw(); };
   // Dados salvos do cliente (preenche o formulário automaticamente)
   const savedUser = useMemo(() => {
     try { return JSON.parse(localStorage.getItem(`cat_user_${companyId}`) || '{}'); } catch { return {}; }
@@ -34,7 +44,7 @@ export function CheckoutModals({ cart, subtotal, storeId, companyId, data, onClo
   }, []);
   const savedBairroIsKnown = savedUser.bairro && flatBairros.some((b: any) => b.nome.toLowerCase() === String(savedUser.bairro).toLowerCase());
 
-  const [step, setStep] = useState<Step>('delivery');
+  const [step, setStep] = useState<Step>(pending ? 'pixManual' : 'delivery');
   const [deliveryType, setDeliveryType] = useState<'entrega' | 'retirada' | ''>('');
   const [name, setName] = useState(savedUser.name || '');
   const [phone, setPhone] = useState(savedUser.phone || '');
@@ -50,14 +60,25 @@ export function CheckoutModals({ cart, subtotal, storeId, companyId, data, onClo
   const [subMethod, setSubMethod] = useState<'dinheiro' | 'cartao' | null>(null);
   const [troco, setTroco] = useState('');
   const [busy, setBusy] = useState('');
-  const [orderId, setOrderId] = useState('');
+  const [orderId, setOrderId] = useState(pending?.orderId || '');
   const [mpData, setMpData] = useState<any>(null);
-  const [orderTotal, setOrderTotal] = useState(0); // total do pedido criado (o carrinho é limpo depois)
+  const [orderTotal, setOrderTotal] = useState<number>(pending?.orderTotal || 0); // total do pedido criado (o carrinho é limpo depois)
   const payTracked = useRef(false);
   const trackPay = () => { if (payTracked.current || !companyId) return; payTracked.current = true; trackVitrine('pay_start', companyId, storeId); };
   const [comprovanteFile, setComprovanteFile] = useState<File | null>(null);
   const [comprovantePreview, setComprovantePreview] = useState<string | null>(null);
   const comprovanteRef = useRef<HTMLInputElement>(null);
+
+  // Salva o pedido PIX manual pendente enquanto estiver nessa tela; limpa ao confirmar.
+  // Assim, se o navegador recarregar ao anexar o comprovante, o checkout é restaurado.
+  useEffect(() => {
+    if (step === 'pixManual' && orderId) {
+      try { localStorage.setItem(pendingKey, JSON.stringify({ storeId, orderId, orderTotal, ts: Date.now() })); } catch { /* ignore */ }
+    } else if (step === 'confirmation') {
+      clearPending();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step, orderId, orderTotal]);
 
   const store = data.store;
   // Entrega disponível = horário de entrega aberto E a loja faz entrega
@@ -335,6 +356,7 @@ export function CheckoutModals({ cart, subtotal, storeId, companyId, data, onClo
   if (step === 'pixManual') return backdrop(
     <div style={MODAL_CARD}>
       <Header title={<><i className="fa-brands fa-pix" /> Pagamento via PIX</>} onX={onClose} />
+      {orderId && <div style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.25)', borderRadius: 12, padding: '10px 14px', marginBottom: 12, fontSize: '0.82rem', color: '#10b981', display: 'flex', alignItems: 'center', gap: 8 }}><i className="fa-solid fa-circle-check" /> Pedido <strong>#{orderId}</strong> já registrado. Anexar o comprovante é opcional.</div>}
       <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: 14, marginBottom: 16, fontSize: '0.9rem', display: 'flex', justifyContent: 'space-between', fontWeight: 800 }}><span>Total</span><span style={{ color: 'var(--primary-cat)' }}>R$ {orderTotal.toFixed(2)}</span></div>
       <div style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: 14, padding: 16, marginBottom: 16 }}>
         <p style={{ margin: '0 0 6px', fontWeight: 700, fontSize: '0.9rem', color: '#10b981' }}><i className="fa-brands fa-pix" /> Chave PIX:</p>

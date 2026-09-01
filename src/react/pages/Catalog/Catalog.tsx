@@ -44,6 +44,16 @@ export function Catalog({ storeId: storeIdProp }: { storeId?: string } = {}) {
   };
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [closedAlert, setClosedAlert] = useState<'store' | 'delivery' | null>(null);
+
+  // Se houver um pedido PIX manual pendente (ex.: navegador do WhatsApp recarregou
+  // ao anexar o comprovante), reabre o checkout automaticamente ao carregar.
+  useEffect(() => {
+    if (!data?.company?.id) return;
+    try {
+      const p = JSON.parse(localStorage.getItem(`cat_pending_${data.company.id}`) || 'null');
+      if (p && p.storeId === storeId && Date.now() - p.ts < 30 * 60000) setCheckoutOpen(true);
+    } catch { /* ignore */ }
+  }, [data, storeId]);
   const [storeInfoOpen, setStoreInfoOpen] = useState(false);
   const [activeFilter, setActiveFilter] = useState('all');
   const [search, setSearch] = useState('');
