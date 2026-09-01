@@ -188,11 +188,11 @@ export function Orders() {
                             <DeliveryBadge entrega={order.entrega || 'entrega'} compact={!isExp} />
                             <PaymentBadge order={order} compact={!isExp} />
                             {order.comprovanteUrl && (
-                              <a href={order.comprovanteUrl} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}
-                                title="Ver comprovante de pagamento"
-                                style={{ background: 'rgba(132,204,22,0.12)', border: '1px solid rgba(132,204,22,0.4)', color: 'var(--primary)', width: 24, height: 24, borderRadius: 6, flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem' }}>
+                              <button onClick={(e) => { e.stopPropagation(); setSelected(order); }}
+                                title="Tem comprovante — abrir pedido"
+                                style={{ background: 'rgba(132,204,22,0.12)', border: '1px solid rgba(132,204,22,0.4)', color: 'var(--primary)', width: 24, height: 24, borderRadius: 6, flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', cursor: 'pointer' }}>
                                 <i className="fa-solid fa-receipt" />
-                              </a>
+                              </button>
                             )}
                             <button
                               title={isExp ? 'Recolher' : 'Expandir'}
@@ -219,7 +219,7 @@ export function Orders() {
 
       {selected && (
         <OrderModal
-          order={selected}
+          order={orders.find((o) => o.id === selected.id) || selected}
           companyId={companyId}
           storeName={storeName(selected.lojaId)}
           clientName={leadName(selected.leadId, selected.nome || selected.leadName)}

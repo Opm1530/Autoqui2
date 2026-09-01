@@ -20,6 +20,7 @@ export function OrderModal({ order, companyId, storeName, clientName, clientPhon
   const { user } = useAuth();
   const isPlatformAdmin = user?.role === 'admin';
   const [busy, setBusy] = useState(false);
+  const [viewComprovante, setViewComprovante] = useState(false);
   const status = (order.status || 'em_montagem').toLowerCase();
   const isTerminal = status === 'finalizado' || status === 'cancelado';
   // Pedido de catálogo não tem IA no fluxo: sem Intervir/Atend. Humano (só WhatsApp).
@@ -41,9 +42,11 @@ export function OrderModal({ order, companyId, storeName, clientName, clientPhon
     try {
       await orderService.updateOrderStatus(order, companyId, target as any);
       toast.success('Status atualizado!');
-      onClose();
+      // Não fecha: o pedido é passado "ao vivo" pelo parent (onSnapshot), então o
+      // modal reflete o novo status e já mostra a próxima ação (encadear etapas).
     } catch (err: any) {
       toast.error('Erro: ' + (err.message || err));
+    } finally {
       setBusy(false);
     }
   }
@@ -198,10 +201,10 @@ export function OrderModal({ order, companyId, storeName, clientName, clientPhon
                     <span>Total</span><span style={{ color: 'var(--primary)' }}>R$ {(order.value || order.total || 0).toFixed(2)}</span>
                   </div>
                   {order.comprovanteUrl && (
-                    <a href={order.comprovanteUrl} target="_blank" rel="noreferrer"
-                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 12, padding: '10px 12px', borderRadius: 10, background: 'rgba(132,204,22,0.1)', border: '1px solid rgba(132,204,22,0.35)', color: 'var(--primary)', fontWeight: 700, fontSize: '0.9rem', textDecoration: 'none' }}>
+                    <button type="button" onClick={() => setViewComprovante(true)}
+                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 12, width: '100%', padding: '10px 12px', borderRadius: 10, background: 'rgba(132,204,22,0.1)', border: '1px solid rgba(132,204,22,0.35)', color: 'var(--primary)', fontWeight: 700, fontSize: '0.9rem', cursor: 'pointer' }}>
                       <i className="fa-solid fa-receipt" /> Ver comprovante de pagamento
-                    </a>
+                    </button>
                   )}
                 </div>
               </div>
@@ -277,6 +280,30 @@ export function OrderModal({ order, companyId, storeName, clientName, clientPhon
           </div>
         </div>
       </div>
+
+      {/* Popup do comprovante (dentro do sistema) */}
+      {viewComprovante && order.comprovanteUrl && (
+        <div onClick={() => setViewComprovante(false)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <div onClick={(e) => e.stopPropagation()}
+            style={{ background: 'var(--surface, #1e293b)', borderRadius: 16, maxWidth: 560, width: '100%', maxHeight: '90vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', borderBottom: '1px solid var(--border-color)' }}>
+              <span style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}><i className="fa-solid fa-receipt" style={{ color: 'var(--primary)' }} /> Comprovante de pagamento</span>
+              <button onClick={() => setViewComprovante(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.4rem', color: 'var(--text-muted)', lineHeight: 1 }}>&times;</button>
+            </div>
+            <div style={{ padding: 12, overflow: 'auto', display: 'flex', justifyContent: 'center', alignItems: 'center', background: '#0f172a' }}>
+              {order.comprovanteUrl.toLowerCase().includes('.pdf')
+                ? <iframe title="Comprovante" src={order.comprovanteUrl} style={{ width: '100%', height: '70vh', border: 'none', background: 'white' }} />
+                : <img src={order.comprovanteUrl} alt="Comprovante" style={{ maxWidth: '100%', maxHeight: '75vh', objectFit: 'contain', borderRadius: 8 }} />}
+            </div>
+            <div style={{ padding: '10px 16px', borderTop: '1px solid var(--border-color)', textAlign: 'right' }}>
+              <a href={order.comprovanteUrl} target="_blank" rel="noreferrer" style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+                <i className="fa-solid fa-up-right-from-square" /> Abrir em nova aba
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
