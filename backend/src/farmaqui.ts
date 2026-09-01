@@ -194,20 +194,51 @@ export async function deactivateCapture(uid: string) {
   const companyId = await companyOf(uid);
   const cap = await readCapture(companyId);
   if (cap.instancia) { try { await setWebhook(cap.instancia, incomingUrl(companyId), false); } catch { /* ignore */ } }
-  await db.collection('companies').doc(companyId).set({ leadCapture: { ativa: false, atualizadoEm: new Date().toISOString() } }, { merge: true });
+  await db.collection('companies').doc(companyId).set({
+    leadCapture: { ativa: false, instancia: '', atualizadoEm: new Date().toISOString() },
+    farmaqui: { capturaAtiva: false, capturaInstancia: '' }, // limpa legado também
+  }, { merge: true });
   return { ok: true };
+}
+
+// Chamada quando uma instância é excluída: se a captação apontava pra ela,
+// desliga a captação (evita ficar mostrando a instância morta em FarmaQui).
+// Recebe o companyId direto (a instância já não existe pra validar posse).
+export async function clearCaptureForInstance(companyId: string, instanceName: string) {
+  if (!companyId || !instanceName) return;
+  const cap = await readCapture(companyId);
+  if (cap.instancia !== instanceName) return;
+  await db.collection('companies').doc(companyId).set({
+    leadCapture: { ativa: false, instancia: '', atualizadoEm: new Date().toISOString() },
+    farmaqui: { capturaAtiva: false, capturaInstancia: '' }, // limpa legado também
+  }, { merge: true });
+  console.log(`[farmaqui] captura desligada — instancia ${instanceName} excluida (empresa ${companyId})`);
+}
+
+// Auto-cura: se a captação aponta pra uma instância que não existe mais
+// (foi excluída), limpa a referência e devolve o estado já corrigido.
+async function healedCapture(companyId: string): Promise<{ ativa: boolean; instancia: string; origem: string }> {
+  const cap = await readCapture(companyId);
+  if (!cap.instancia) return cap;
+  const existe = await getAll('instancias', [
+    { field: 'empresaId', operator: '==', value: companyId },
+    { field: 'nome', operator: '==', value: cap.instancia },
+  ]).catch(() => [] as any[]);
+  if (existe.length > 0) return cap;
+  await clearCaptureForInstance(companyId, cap.instancia);
+  return { ativa: false, instancia: '', origem: cap.origem };
 }
 
 export async function captureStatus(uid: string) {
   const companyId = await companyOf(uid);
-  const cap = await readCapture(companyId);
+  const cap = await healedCapture(companyId);
   return { ativa: cap.ativa, instancia: cap.instancia, origem: cap.origem };
 }
 
 // Saúde do número: status da conexão da instância coletora + nº de leads.
 export async function numberHealth(uid: string) {
   const companyId = await companyOf(uid);
-  const cap = await readCapture(companyId);
+  const cap = await healedCapture(companyId);
   if (!cap.instancia) return { instancia: '', connected: false, state: 'none', totalLeads: 0, enviadosHoje: 0, limiteHoje: 0 };
   const st = await getInstanceStatus(cap.instancia).catch(() => ({ state: 'close', connected: false }));
   const [leads, enviadosHoje, limiteHoje] = await Promise.all([
@@ -231,7 +262,7 @@ export async function getConfig(uid: string) {
   const companyId = await companyOf(uid);
   const doc = await db.collection('companies').doc(companyId).get();
   const f = (doc.data() as any)?.farmaqui || {};
-  const cap = await readCapture(companyId);
+  const cap = await healedCapture(companyId);
   return {
     capturaAtiva: cap.ativa, capturaInstancia: cap.instancia,
     recompra: { ...DEFAULT_RECOMPRA, ...(f.recompra || {}) },

@@ -28,7 +28,7 @@ import { rateLimit, verifyMpSignature } from './security.js';
 import { ecommerceRouter } from './ecommerce/router.js';
 import { startEcommerceJobs } from './ecommerce/jobs.js';
 import { storefrontPublicRouter, storefrontAuthRouter } from './ecommerce/storefront.js';
-import { handleIncoming, activateCapture, deactivateCapture, captureStatus, getConfig, saveRecompra, saveAutomacoes, saveFidelidade, sendFidelidade, sendLeadMessage, setUltimaCompra, startFarmaquiJobs, getLanding, saveLanding, setLandingHost, publicLanding, farmaMetrics, listRecompra, cancelRecompra, sendRecompraNow, groupsList, listGroupOffers, createGroupOffer, deleteGroupOffer, extractGroupLeads, extractAgendaLeads, createManualLead, numberHealth } from "./farmaqui.js";
+import { handleIncoming, activateCapture, deactivateCapture, clearCaptureForInstance, captureStatus, getConfig, saveRecompra, saveAutomacoes, saveFidelidade, sendFidelidade, sendLeadMessage, setUltimaCompra, startFarmaquiJobs, getLanding, saveLanding, setLandingHost, publicLanding, farmaMetrics, listRecompra, cancelRecompra, sendRecompraNow, groupsList, listGroupOffers, createGroupOffer, deleteGroupOffer, extractGroupLeads, extractAgendaLeads, createManualLead, numberHealth } from "./farmaqui.js";
 import { trackEvent, getVitrineMetrics, getLandingMetrics, getCatalogFunnel } from "./vitrineMetrics.js";
 import { setStoreSubdomain, removeStoreSubdomain, storeByHost } from './domains.js';
 
@@ -436,8 +436,11 @@ app.post('/api/wa/set-webhook', requireAuth, wrap(async (req) => {
 }));
 
 app.delete('/api/wa/instance/:name', requireAuth, wrap(async (req) => {
-  await assertInstanceOwner(req.uid, String(req.params.name));
-  return { ok: await wa.deleteInstance(String(req.params.name)) };
+  const inst = await assertInstanceOwner(req.uid, String(req.params.name));
+  const ok = await wa.deleteInstance(String(req.params.name));
+  // Se a captação do FarmaQui apontava pra essa instância, desliga (não deixa a instância morta pendurada).
+  try { await clearCaptureForInstance(String(inst?.empresaId || ''), String(req.params.name)); } catch { /* não bloqueia a exclusão */ }
+  return { ok };
 }));
 
 app.post('/api/wa/logout/:name', requireAuth, wrap(async (req) => {
