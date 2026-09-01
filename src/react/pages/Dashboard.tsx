@@ -264,9 +264,24 @@ export function Dashboard() {
 
   return (
     <div>
-      <div className="page-heading">
-        <h1>Dashboard</h1>
-        <p>Gerencie suas vendas com controle e precisão.</p>
+      <div className="page-heading" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap' }}>
+        <div>
+          <h1>Dashboard</h1>
+          <p>Gerencie suas vendas com controle e precisão.</p>
+        </div>
+        {sub?.emTrial && (
+          <Link to="/billing" style={{ textDecoration: 'none', flexShrink: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(245,158,11,0.10)', border: '1px solid rgba(245,158,11,0.35)', borderRadius: 12, padding: '8px 14px', maxWidth: 340 }}>
+              <i className="fa-solid fa-triangle-exclamation" style={{ color: '#f59e0b', fontSize: '1.05rem' }} />
+              <div style={{ lineHeight: 1.3 }}>
+                <div style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--text-main)' }}>
+                  Plano gratuito · {sub.diasRestantesTrial === 1 ? 'resta 1 dia' : `restam ${sub.diasRestantesTrial} dias`}
+                </div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Depois disso, seu catálogo irá parar de funcionar. Toque para assinar.</div>
+              </div>
+            </div>
+          </Link>
+        )}
       </div>
 
       {showChecklist && (

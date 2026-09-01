@@ -36,6 +36,7 @@ export function Billing({ wall = false }: { wall?: boolean }) {
   const [trial, setTrial] = useState<{ emTrial: boolean; dias: number }>({ emTrial: false, dias: 0 });
   const [plans, setPlans] = useState<any[]>([]);
   const [busy, setBusy] = useState('');
+  const [showPlans, setShowPlans] = useState(false);
 
   async function load() {
     const [mine, pl] = await Promise.all([
@@ -76,6 +77,10 @@ export function Billing({ wall = false }: { wall?: boolean }) {
 
   // Em teste, mostra "Teste grátis" mesmo que o status cru seja outro (ex.: cancelou no meio).
   const badge = trial.emTrial ? STATUS_LABEL.trial : (assinatura?.status ? STATUS_LABEL[assinatura.status] : null);
+  // Já tem um plano definido e ainda não pagou (teste/pendente): só falta pagar esse plano.
+  const temPlanoParaPagar = !!(assinatura && assinatura.planId && assinatura.status !== 'authorized' && assinatura.status !== 'cancelled');
+  // Mostra a grade só quando não há plano definido, ou o dono pediu pra trocar.
+  const mostrarGrade = showPlans || (!temPlanoParaPagar && (!assinatura || assinatura.status !== 'authorized'));
 
   return (
     <div style={{ maxWidth: 720, margin: wall ? '2rem auto' : '0 auto' }}>
@@ -99,7 +104,7 @@ export function Billing({ wall = false }: { wall?: boolean }) {
           <i className="fa-solid fa-gift" style={{ fontSize: '1.6rem', color: '#a3e635' }} />
           <div>
             <div style={{ fontWeight: 700 }}>Você está no teste grátis</div>
-            <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>{trial.dias === 1 ? 'Falta 1 dia' : `Faltam ${trial.dias} dias`}. Assine abaixo para não perder o acesso quando o teste acabar.</div>
+            <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>{trial.dias === 1 ? 'Falta 1 dia' : `Faltam ${trial.dias} dias`}. {temPlanoParaPagar ? 'Assine agora para não perder o acesso quando o teste acabar.' : 'Escolha um plano abaixo para não perder o acesso quando o teste acabar.'}</div>
           </div>
         </div>
       )}
@@ -117,14 +122,27 @@ export function Billing({ wall = false }: { wall?: boolean }) {
               {badge && <span className="badge" style={{ background: badge.color + '22', color: badge.color, border: `1px solid ${badge.color}44` }}><i className="fa-solid fa-circle" style={{ fontSize: '0.5rem', marginRight: 5, verticalAlign: 'middle' }} />{badge.label}</span>}
             </div>
           </div>
-          {assinatura.status === 'authorized' && <button className="btn-secondary" style={{ color: '#f87171', borderColor: 'rgba(239,68,68,0.35)' }} onClick={cancel}>Cancelar assinatura</button>}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end' }}>
+            {assinatura.status === 'authorized' && <button className="btn-secondary" style={{ color: '#f87171', borderColor: 'rgba(239,68,68,0.35)' }} onClick={cancel}>Cancelar assinatura</button>}
+            {temPlanoParaPagar && (
+              <>
+                <button className="btn-primary" style={{ justifyContent: 'center' }} disabled={!isOwner || busy === assinatura.planId} onClick={() => subscribe(assinatura.planId)}>
+                  {busy === assinatura.planId ? 'Redirecionando...' : <><i className="fa-solid fa-credit-card" /> {trial.emTrial ? 'Assinar agora' : 'Pagar assinatura'}</>}
+                </button>
+                <button className="btn-link" style={{ fontSize: '0.8rem', color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }} onClick={() => setShowPlans((v) => !v)}>
+                  {showPlans ? 'Ocultar outros planos' : 'Ver outros planos'}
+                </button>
+                {!isOwner && <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0 }}>Apenas o dono pode assinar.</p>}
+              </>
+            )}
+          </div>
         </div>
       )}
 
       {/* Planos disponíveis */}
-      {(!assinatura || assinatura.status !== 'authorized') && (
+      {mostrarGrade && (
         <>
-          <h3 style={{ marginBottom: 12 }}>{trial.emTrial ? 'Assine para continuar após o teste' : assinatura ? 'Reative escolhendo um plano' : 'Escolha um plano'}</h3>
+          <h3 style={{ marginBottom: 12 }}>{temPlanoParaPagar ? 'Trocar de plano' : trial.emTrial ? 'Assine para continuar após o teste' : assinatura ? 'Reative escolhendo um plano' : 'Escolha um plano'}</h3>
           {plans.length === 0 ? (
             <div className="card" style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>Nenhum plano disponível no momento. Contate o administrador.</div>
           ) : (
