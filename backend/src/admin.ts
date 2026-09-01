@@ -116,6 +116,23 @@ export async function setCompanyStores(uid: string, companyId: string | undefine
     if (max && stores.length > max) throw new Error('limite_lojas_excedido');
   }
 
+  // Colaborador só pode ligar/desligar o frete — não altera nome, endereço,
+  // instância, nem cria/remove lojas. Valida contra o estado atual.
+  if (user.role === 'employee') {
+    const company = await getDoc('companies', targetId);
+    const atuais: any[] = company?.stores || [];
+    if (stores.length !== atuais.length) throw new Error('forbidden');
+    for (const nova of stores) {
+      const orig = atuais.find((s: any) => s.id === nova.id);
+      if (!orig) throw new Error('forbidden');
+      // Toda diferença permitida se resume ao campo frete_ativo.
+      for (const k of new Set([...Object.keys(orig), ...Object.keys(nova)])) {
+        if (k === 'frete_ativo') continue;
+        if (JSON.stringify(orig[k]) !== JSON.stringify(nova[k])) throw new Error('forbidden');
+      }
+    }
+  }
+
   await db.collection('companies').doc(targetId).update({ stores });
   return { ok: true };
 }
