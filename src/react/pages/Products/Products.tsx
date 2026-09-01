@@ -83,8 +83,11 @@ export function Products() {
 
   const { page, setPage, totalPages, pageItems, total, perPage } = usePagination(filtered, 20, `${storeFilter}|${search}|${catFilter}`);
 
-  const catalogLink = (storeFilter !== 'all' && storeFilter !== 'employee_all')
-    ? `${window.location.origin}/catalog/${storeFilter}` : null;
+  const catalogLink = (() => {
+    if (storeFilter === 'all' || storeFilter === 'employee_all') return null;
+    const st = stores.find((s) => s.id === storeFilter);
+    return st?.subdominio ? `https://${st.subdominio}` : `${window.location.origin}/catalog/${storeFilter}`;
+  })();
 
   function toggleSelect(id: string) {
     setSelected((prev) => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
