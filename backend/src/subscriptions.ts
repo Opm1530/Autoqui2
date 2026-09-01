@@ -151,17 +151,22 @@ export async function subscribe(uid: string, planId: string): Promise<{ init_poi
   if (user.role !== 'owner' && user.role !== 'admin') throw new Error('forbidden');
   if (!user.companyId) throw new Error('no_company');
   const plano = await getDoc('planos', planId);
-  if (!plano?.mpPlanId) throw new Error('plano_invalido');
+  const valor = Number(plano?.valor);
+  if (!plano || !valor || valor <= 0) throw new Error('plano_invalido');
   const token = await platformToken();
 
+  // Preapproval SEM plano fixo (auto_recurring próprio) + status 'pending':
+  // o MP devolve init_point pro dono autorizar (checkout hospedado, sem cartão aqui).
+  // Assim conseguimos external_reference por empresa e o redirect de volta ao painel.
   const resp = await fetch(`${MP_API}/preapproval`, {
     method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
     body: JSON.stringify({
-      preapproval_plan_id: plano.mpPlanId,
+      reason: plano.nome,
+      external_reference: user.companyId,
       payer_email: user.email,
       back_url: `${PANEL_URL}/billing`,
-      external_reference: user.companyId,
-      reason: plano.nome,
+      status: 'pending',
+      auto_recurring: { frequency: 1, frequency_type: 'months', transaction_amount: valor, currency_id: 'BRL' },
     }),
   });
   const data = await resp.json().catch(() => ({}));
