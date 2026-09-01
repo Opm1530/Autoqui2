@@ -29,8 +29,7 @@ const STATUS_LABEL: Record<string, { label: string; color: string }> = {
 
 // `wall` = renderiza como parede de cobrança (inadimplente/bloqueado).
 export function Billing({ wall = false }: { wall?: boolean }) {
-  const { user } = useAuth();
-  const isOwner = user?.role === 'owner';
+  useAuth();
   const [loading, setLoading] = useState(true);
   const [assinatura, setAssinatura] = useState<any>(null);
   const [trial, setTrial] = useState<{ emTrial: boolean; dias: number }>({ emTrial: false, dias: 0 });
@@ -65,15 +64,6 @@ export function Billing({ wall = false }: { wall?: boolean }) {
   }
 
   if (loading) return <SkeletonCards count={2} lines={2} />;
-
-  // Funcionário sem poder pagar
-  if (wall && !isOwner) return (
-    <div className="card" style={{ maxWidth: 560, margin: '3rem auto', textAlign: 'center', padding: '2.5rem' }}>
-      <i className="fa-solid fa-lock" style={{ fontSize: '2.5rem', color: '#fbbf24', display: 'block', marginBottom: 16 }} />
-      <h2>Acesso suspenso</h2>
-      <p style={{ color: 'var(--text-muted)' }}>A assinatura da empresa está pendente. Peça ao dono para regularizar o pagamento.</p>
-    </div>
-  );
 
   // Em teste, mostra "Teste grátis" mesmo que o status cru seja outro (ex.: cancelou no meio).
   const badge = trial.emTrial ? STATUS_LABEL.trial : (assinatura?.status ? STATUS_LABEL[assinatura.status] : null);
@@ -126,13 +116,12 @@ export function Billing({ wall = false }: { wall?: boolean }) {
             {assinatura.status === 'authorized' && <button className="btn-secondary" style={{ color: '#f87171', borderColor: 'rgba(239,68,68,0.35)' }} onClick={cancel}>Cancelar assinatura</button>}
             {temPlanoParaPagar && (
               <>
-                <button className="btn-primary" style={{ justifyContent: 'center' }} disabled={!isOwner || busy === assinatura.planId} onClick={() => subscribe(assinatura.planId)}>
+                <button className="btn-primary" style={{ justifyContent: 'center' }} disabled={busy === assinatura.planId} onClick={() => subscribe(assinatura.planId)}>
                   {busy === assinatura.planId ? 'Redirecionando...' : <><i className="fa-solid fa-credit-card" /> {trial.emTrial ? 'Assinar agora' : 'Pagar assinatura'}</>}
                 </button>
                 <button className="btn-link" style={{ fontSize: '0.8rem', color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }} onClick={() => setShowPlans((v) => !v)}>
                   {showPlans ? 'Ocultar outros planos' : 'Ver outros planos'}
                 </button>
-                {!isOwner && <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0 }}>Apenas o dono pode assinar.</p>}
               </>
             )}
           </div>
@@ -159,10 +148,9 @@ export function Billing({ wall = false }: { wall?: boolean }) {
                       </li>
                     ))}
                   </ul>
-                  <button className="btn-primary" style={{ justifyContent: 'center' }} disabled={!isOwner || busy === p.id} onClick={() => subscribe(p.id)}>
+                  <button className="btn-primary" style={{ justifyContent: 'center' }} disabled={busy === p.id} onClick={() => subscribe(p.id)}>
                     {busy === p.id ? 'Redirecionando...' : <><i className="fa-solid fa-credit-card" /> Assinar</>}
                   </button>
-                  {!isOwner && <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textAlign: 'center', margin: 0 }}>Apenas o dono pode assinar.</p>}
                 </div>
               ))}
             </div>

@@ -96,16 +96,28 @@ export async function getVitrineMetrics(uid: string, daysRaw: number) {
 
 // Funil de conversão do catálogo: carrinho → checkout → pagamento → comprou → recomprou.
 const funnelCache = new Map<string, { at: number; data: any }>();
-export async function getCatalogFunnel(uid: string, daysRaw: number) {
+// Converte o período pedido em: lista de dias (YYYY-MM-DD) + janela [startMs, endMs).
+function rangeWindow(rangeRaw: string): { range: string; dias: string[]; startMs: number; endMs: number } {
+  const range = ['hoje', 'ontem', '7', '30'].includes(rangeRaw) ? rangeRaw : '30';
+  const DAY = 86400000;
+  const meiaNoite = (ms: number) => { const d = new Date(ms); d.setHours(0, 0, 0, 0); return d.getTime(); };
+  const hojeIni = meiaNoite(Date.now());
+  if (range === 'hoje') return { range, dias: [diaOf(hojeIni)], startMs: hojeIni, endMs: Date.now() };
+  if (range === 'ontem') return { range, dias: [diaOf(hojeIni - DAY)], startMs: hojeIni - DAY, endMs: hojeIni };
+  const n = range === '7' ? 7 : 30;
+  const dias: string[] = [];
+  for (let i = 0; i < n; i++) dias.push(diaOf(Date.now() - i * DAY));
+  return { range, dias, startMs: Date.now() - n * DAY, endMs: Date.now() };
+}
+
+export async function getCatalogFunnel(uid: string, rangeRaw: string) {
   const companyId = await companyOf(uid);
-  const days = [7, 30, 90].includes(daysRaw) ? daysRaw : 30;
-  const key = `${companyId}:${days}`;
+  const { range, dias, startMs, endMs } = rangeWindow(rangeRaw);
+  const key = `${companyId}:${range}`;
   const hit = funnelCache.get(key);
   if (hit && Date.now() - hit.at < TTL) return hit.data;
 
-  // Eventos rastreados (carrinho/checkout/pagamento) do vitrine_daily.
-  const dias: string[] = [];
-  for (let i = 0; i < days; i++) dias.push(diaOf(Date.now() - i * 86400000));
+  // Eventos rastreados (acesso/carrinho/checkout/pagamento) do vitrine_daily.
   const refs = dias.map((d) => db.collection('vitrine_daily').doc(docId(companyId, d)));
   const snaps = await db.getAll(...refs);
   let acessou = 0, carrinho = 0, checkout = 0, pagamento = 0;
@@ -113,7 +125,6 @@ export async function getCatalogFunnel(uid: string, daysRaw: number) {
 
   // Comprou / recomprou a partir dos pedidos (recompra = cliente com pedido anterior).
   const orders = await getAll('pedidos', [{ field: 'empresaId', operator: '==', value: companyId }]).catch(() => []);
-  const cutoff = Date.now() - days * 86400000;
   const dated = orders
     .map((o: any) => ({ phone: String(o.clientPhone || o.telefone || '').replace(/\D/g, ''), ms: new Date(o.criadoEm || o.createdAt || 0).getTime() }))
     .filter((o: any) => o.phone)
@@ -123,10 +134,10 @@ export async function getCatalogFunnel(uid: string, daysRaw: number) {
   for (const o of dated) {
     const repeat = vistos.has(o.phone);
     vistos.add(o.phone);
-    if (o.ms >= cutoff) { comprou++; if (repeat) recomprou++; }
+    if (o.ms >= startMs && o.ms < endMs) { comprou++; if (repeat) recomprou++; }
   }
 
-  const data = { days, acessou, carrinho, checkout, pagamento, comprou, recomprou };
+  const data = { range, acessou, carrinho, checkout, pagamento, comprou, recomprou };
   funnelCache.set(key, { at: Date.now(), data });
   return data;
 }

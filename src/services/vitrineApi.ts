@@ -11,15 +11,15 @@ export interface VitrineMetrics {
 }
 
 export interface CatalogFunnel {
-  days: number; acessou: number; carrinho: number; checkout: number; pagamento: number; comprou: number; recomprou: number;
+  range: string; acessou: number; carrinho: number; checkout: number; pagamento: number; comprou: number; recomprou: number;
 }
 
 export const vitrineApi = {
-  async catalogFunnel(days = 30): Promise<CatalogFunnel> {
+  async catalogFunnel(range: string = '30'): Promise<CatalogFunnel> {
     const user = auth.currentUser;
     const headers: Record<string, string> = {};
     if (user) { try { headers['Authorization'] = `Bearer ${await user.getIdToken()}`; } catch { /* ignore */ } }
-    const resp = await fetch(`${API_BASE_URL}/api/catalog/funnel?days=${days}`, { headers });
+    const resp = await fetch(`${API_BASE_URL}/api/catalog/funnel?range=${encodeURIComponent(range)}`, { headers });
     const data = await resp.json().catch(() => ({}));
     if (!resp.ok) throw new Error(data.error || 'erro');
     return data;

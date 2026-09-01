@@ -148,7 +148,6 @@ export async function listPublicPlans(): Promise<Array<{ id: string; nome: strin
 // Cria um preapproval vinculado ao plano e devolve o init_point pro dono autorizar.
 export async function subscribe(uid: string, planId: string): Promise<{ init_point: string }> {
   const user = await getUser(uid);
-  if (user.role !== 'owner' && user.role !== 'admin') throw new Error('forbidden');
   if (!user.companyId) throw new Error('no_company');
   const plano = await getDoc('planos', planId);
   const valor = Number(plano?.valor);

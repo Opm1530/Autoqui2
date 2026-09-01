@@ -73,6 +73,7 @@ export function Dashboard() {
   const [lp, setLp] = useState<any | null>(null);
   const [lpDays, setLpDays] = useState(30);
   const [funnel, setFunnel] = useState<any | null>(null);
+  const [funnelRange, setFunnelRange] = useState('30');
   const [fkpi, setFkpi] = useState<any | null>(null);
   const [farmaLeads, setFarmaLeads] = useState<any[] | null>(null);
   const [shared, setShared] = useState(false);
@@ -232,7 +233,7 @@ export function Dashboard() {
   }, [isFarma, companyId]);
 
   const hasVenda = modulos.includes('venda') || modulos.includes('venda_catalogo');
-  useEffect(() => { if (hasVenda) vitrineApi.catalogFunnel(30).then(setFunnel).catch(() => {}); }, [hasVenda]);
+  useEffect(() => { if (hasVenda) { setFunnel(null); vitrineApi.catalogFunnel(funnelRange).then(setFunnel).catch(() => {}); } }, [hasVenda, funnelRange]);
   const copyLink = (storeId: string) => {
     const url = `${window.location.origin}/catalog/${storeId}`;
     navigator.clipboard.writeText(url).then(() => toast.success('Link copiado!'));
@@ -373,7 +374,7 @@ export function Dashboard() {
             <BestHours data={catalog?.bestHours || []} />
           </div>
           <div className="dash-col">
-            <CatalogFunnel f={funnel} />
+            <CatalogFunnel f={funnel} range={funnelRange} onRange={setFunnelRange} />
             <SubscriptionCard sub={sub} />
           </div>
         </div>
@@ -580,13 +581,33 @@ const FUNNEL_STAGES = [
   { key: 'comprou', label: 'Comprou', color: '#4d7c0f' },
   { key: 'recomprou', label: 'Recomprou', color: '#166534' },
 ];
-function CatalogFunnel({ f }: { f: any | null }) {
-  if (!f) return <div className="card viz-card"><SkeletonBox width={170} height={18} /><SkeletonBox height={180} style={{ marginTop: 16 }} /></div>;
+const FUNNEL_RANGES: { key: string; label: string }[] = [
+  { key: 'hoje', label: 'Hoje' },
+  { key: 'ontem', label: 'Ontem' },
+  { key: '7', label: '7 dias' },
+  { key: '30', label: '30 dias' },
+];
+function CatalogFunnel({ f, range, onRange }: { f: any | null; range: string; onRange: (r: string) => void }) {
+  const filtro = (
+    <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+      {FUNNEL_RANGES.map((r) => (
+        <button key={r.key} onClick={() => onRange(r.key)}
+          style={{ fontSize: '0.72rem', fontWeight: 700, padding: '3px 9px', borderRadius: 999, cursor: 'pointer',
+            border: `1px solid ${range === r.key ? 'var(--primary)' : 'var(--border)'}`,
+            background: range === r.key ? 'var(--primary)' : 'transparent',
+            color: range === r.key ? 'var(--primary-contrast, #12250f)' : 'var(--text-muted)' }}>
+          {r.label}
+        </button>
+      ))}
+    </div>
+  );
+  const head = <div className="viz-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}><h4>Funil de conversão</h4>{filtro}</div>;
+  if (!f) return <div className="card viz-card">{head}<SkeletonBox height={180} style={{ marginTop: 16 }} /></div>;
   const vals = FUNNEL_STAGES.map((s) => Number(f[s.key] || 0));
   const vazio = vals.every((v) => v === 0);
   return (
     <div className="card viz-card">
-      <div className="viz-head"><h4>Funil de conversão</h4></div>
+      {head}
       {vazio ? (
         <p style={{ color: 'var(--text-dim)', fontSize: '0.85rem', margin: '1rem 0 0' }}>Ainda sem dados. As etapas do carrinho ao pagamento começam a contar conforme os clientes usam o catálogo.</p>
       ) : (
