@@ -187,6 +187,79 @@ export async function subscribe(uid: string, planId: string): Promise<{ init_poi
   return { init_point: data.init_point };
 }
 
+// ── PIX avulso (1 mês) — alternativa manual ao cartão recorrente ────────────
+// Gera um pagamento PIX pontual. Quando aprovado (webhook ou polling), libera
+// +30 dias via `pixPagoAte`. Não renova sozinho — o cliente paga a cada mês.
+export async function subscribePix(uid: string, planId: string): Promise<{ paymentId: string; qrCode: string; qrCodeBase64: string; ticketUrl: string; valor: number; expiraEm: string }> {
+  const user = await getUser(uid);
+  if (!user.companyId) throw new Error('no_company');
+  const plano = await getDoc('planos', planId);
+  const valor = Number(plano?.valor);
+  if (!plano || !valor || valor <= 0) throw new Error('plano_invalido');
+  const token = await platformToken();
+
+  const resp = await fetch(`${MP_API}/v1/payments`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'X-Idempotency-Key': randomUUID() },
+    body: JSON.stringify({
+      transaction_amount: valor,
+      description: `Assinatura ${plano.nome} (1 mês) — AutoQui`,
+      payment_method_id: 'pix',
+      payer: { email: user.email },
+      external_reference: user.companyId,
+      notification_url: `${PUBLIC_BASE_URL}/api/mp/subscription-webhook`,
+      metadata: { tipo: 'assinatura_pix', company_id: user.companyId, plan_id: planId },
+    }),
+  });
+  const data = await resp.json().catch(() => ({}));
+  if (!resp.ok || !data?.id) {
+    console.error('[sub-pix] erro criar pix:', resp.status, JSON.stringify(data));
+    const det = data?.message || (Array.isArray(data?.cause) && data.cause[0]?.description) || `HTTP ${resp.status}`;
+    throw new Error(`mp_erro_pix: ${det}`);
+  }
+  const tx = data.point_of_interaction?.transaction_data || {};
+  const company = await getDoc('companies', user.companyId);
+  await db.collection('companies').doc(user.companyId).set({
+    assinatura: { ...(company?.assinatura || {}), planId, planoNome: plano.nome, valor, maxLojas: plano.maxLojas || 1, ultimoPixId: String(data.id), atualizadoEm: Timestamp.now() },
+  }, { merge: true });
+
+  return { paymentId: String(data.id), qrCode: tx.qr_code || '', qrCodeBase64: tx.qr_code_base64 || '', ticketUrl: tx.ticket_url || '', valor, expiraEm: data.date_of_expiration || '' };
+}
+
+// Consulta o status do PIX (o front faz polling). Se aprovado, aplica na hora
+// (redundância ao webhook, que pode atrasar).
+export async function subscriptionPixStatus(uid: string, paymentId: string): Promise<{ status: string }> {
+  const user = await getUser(uid);
+  if (!user.companyId) throw new Error('no_company');
+  const token = await platformToken();
+  const resp = await fetch(`${MP_API}/v1/payments/${paymentId}`, { headers: { Authorization: `Bearer ${token}` } });
+  const pay = await resp.json().catch(() => ({}));
+  const status = String(pay?.status || 'unknown');
+  if (status === 'approved' && String(pay.external_reference) === user.companyId) {
+    await aplicarPixAssinatura(user.companyId, String(pay?.metadata?.plan_id || ''), String(pay.id));
+  }
+  return { status };
+}
+
+// Aplica +30 dias de acesso via PIX. Idempotente por paymentId (não soma 2x).
+async function aplicarPixAssinatura(companyId: string, planId: string, paymentId: string): Promise<void> {
+  const company = await getDoc('companies', companyId);
+  const a = company?.assinatura || {};
+  if (paymentId && a.pixAplicadoId === paymentId) return; // já creditado
+  const plano = planId ? await getDoc('planos', planId) : null;
+  const base = Math.max(Date.now(), toMs(a.pixPagoAte) || 0);
+  const novo = base + 30 * 86400000;
+  await db.collection('companies').doc(companyId).set({
+    assinatura: {
+      ...a,
+      ...(plano ? { planId, planoNome: plano.nome, valor: plano.valor, maxLojas: plano.maxLojas || 1 } : {}),
+      pixPagoAte: Timestamp.fromMillis(novo), pixAplicadoId: paymentId, metodoPagamento: 'pix',
+      inadimplenteDesde: null, atualizadoEm: Timestamp.now(),
+    },
+  }, { merge: true });
+  console.log(`[sub-pix] empresa ${companyId} liberada até ${new Date(novo).toISOString()} (pix ${paymentId})`);
+}
+
 export async function cancelSubscription(uid: string, companyId?: string): Promise<{ ok: boolean }> {
   const user = await getUser(uid);
   const targetId = user.role === 'admin' && companyId ? companyId : user.companyId;
@@ -243,6 +316,10 @@ export function computeAccess(company: any, toleranciaDias: number): { bloqueada
   if (!a || !a.planId) return livre();
   if (a.status === 'authorized') return livre();
 
+  // PIX avulso: liberado enquanto os 30 dias pagos não venceram.
+  const pixMs = toMs(a.pixPagoAte);
+  if (pixMs && Date.now() < pixMs) return livre();
+
   // Teste vale até o fim, independentemente de ter cancelado no meio.
   const now = Date.now();
   const trialMs = toMs(a.trialAte);
@@ -281,6 +358,20 @@ export async function handleSubscriptionWebhook(body: any): Promise<void> {
     if (pre.status === 'authorized') patch.inadimplenteDesde = null;
     const company = await getDoc('companies', companyId);
     await db.collection('companies').doc(companyId).set({ assinatura: { ...(company?.assinatura || {}), ...patch } }, { merge: true });
+    return;
+  }
+
+  // PIX avulso da assinatura (pagamento pontual aprovado).
+  if (type === 'payment') {
+    const id = body?.data?.id || body?.id;
+    if (!id) return;
+    const resp = await fetch(`${MP_API}/v1/payments/${id}`, { headers: { Authorization: `Bearer ${token}` } });
+    const pay = await resp.json().catch(() => null);
+    if (!pay || pay.status !== 'approved') return;
+    if (pay?.metadata?.tipo !== 'assinatura_pix') return; // só pagamentos de assinatura
+    const companyId = String(pay.external_reference || pay?.metadata?.company_id || '');
+    if (!companyId) return;
+    await aplicarPixAssinatura(companyId, String(pay?.metadata?.plan_id || ''), String(pay.id));
     return;
   }
 

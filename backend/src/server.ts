@@ -17,7 +17,7 @@ import {
 } from './admin.js';
 import {
   connectPlatformMp, platformMpStatus, disconnectPlatformMp,
-  savePlan, deletePlan, subscribe, cancelSubscription, mySubscription,
+  savePlan, deletePlan, subscribe, subscribePix, subscriptionPixStatus, cancelSubscription, mySubscription,
   handleSubscriptionWebhook, provisionSignup, listPublicPlans, isCompanyBlocked,
 } from './subscriptions.js';
 import { startCampaignJobs } from './campaigns.js';
@@ -308,6 +308,8 @@ app.post('/api/plans/delete', requireAuth, wrap((req) => deletePlan(req.uid, Str
 app.post('/api/signup/provision', requireAuth, rateLimit(5, 60_000), wrap((req) => provisionSignup(req.uid, { companyName: String(req.body?.companyName || ''), planId: String(req.body?.planId || '') })));
 
 app.post('/api/subscription/subscribe', requireAuth, wrap((req) => subscribe(req.uid, String(req.body?.planId))));
+app.post('/api/subscription/pix', requireAuth, wrap((req) => subscribePix(req.uid, String(req.body?.planId))));
+app.get('/api/subscription/pix-status', requireAuth, wrap((req) => subscriptionPixStatus(req.uid, String(req.query.paymentId || ''))));
 app.post('/api/subscription/cancel', requireAuth, wrap((req) => cancelSubscription(req.uid, req.body?.companyId)));
 app.get('/api/subscription/mine', requireAuth, wrap((req) => mySubscription(req.uid)));
 
