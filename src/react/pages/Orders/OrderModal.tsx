@@ -197,6 +197,12 @@ export function OrderModal({ order, companyId, storeName, clientName, clientPhon
                   <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.6rem 0 0', marginTop: 6, borderTop: '1px solid var(--border-color)', fontWeight: 800, fontSize: '1.05rem' }}>
                     <span>Total</span><span style={{ color: 'var(--primary)' }}>R$ {(order.value || order.total || 0).toFixed(2)}</span>
                   </div>
+                  {order.comprovanteUrl && (
+                    <a href={order.comprovanteUrl} target="_blank" rel="noreferrer"
+                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 12, padding: '10px 12px', borderRadius: 10, background: 'rgba(132,204,22,0.1)', border: '1px solid rgba(132,204,22,0.35)', color: 'var(--primary)', fontWeight: 700, fontSize: '0.9rem', textDecoration: 'none' }}>
+                      <i className="fa-solid fa-receipt" /> Ver comprovante de pagamento
+                    </a>
+                  )}
                 </div>
               </div>
             </div>

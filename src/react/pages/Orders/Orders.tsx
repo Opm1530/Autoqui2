@@ -187,6 +187,13 @@ export function Orders() {
                             <StatusBadge status={status} compact={!isExp} />
                             <DeliveryBadge entrega={order.entrega || 'entrega'} compact={!isExp} />
                             <PaymentBadge order={order} compact={!isExp} />
+                            {order.comprovanteUrl && (
+                              <a href={order.comprovanteUrl} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}
+                                title="Ver comprovante de pagamento"
+                                style={{ background: 'rgba(132,204,22,0.12)', border: '1px solid rgba(132,204,22,0.4)', color: 'var(--primary)', width: 24, height: 24, borderRadius: 6, flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem' }}>
+                                <i className="fa-solid fa-receipt" />
+                              </a>
+                            )}
                             <button
                               title={isExp ? 'Recolher' : 'Expandir'}
                               onClick={(e) => { e.stopPropagation(); toggleExpanded(order.id); }}
