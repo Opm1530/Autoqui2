@@ -14,6 +14,7 @@ import { MercadoPago } from './pages/MercadoPago';
 import { Users } from './pages/Users';
 import { Instances } from './pages/Instances';
 import { Leads } from './pages/Leads/Leads';
+import { CRMBoard } from './pages/CRM/Board';
 import { CatalogSettings } from './pages/Configuration/CatalogSettings';
 import { Stores } from './pages/Stores';
 import { Campaigns } from './pages/Campaigns/Campaigns';
@@ -122,6 +123,7 @@ export function App() {
             <Route path="/categories" element={<Categories />} />
             <Route path="/combos" element={<Combos />} />
             <Route path="/leads" element={<Leads />} />
+            <Route path="/crm" element={<CRMBoard />} />
             <Route path="/business" element={<Stores />} />
             <Route path="/users" element={<Users />} />
             <Route path="/instances" element={<Instances />} />

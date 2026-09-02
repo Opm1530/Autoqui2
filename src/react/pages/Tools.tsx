@@ -27,6 +27,7 @@ const TOOLS: Tool[] = [
   { key: 'farmaqui', name: 'FarmaQui (CRM)', desc: 'Captura quem manda mensagem no WhatsApp como lead, marca última compra e (em breve) lembra a recompra. Ideal para farmácias e recorrência.', icon: 'fa-prescription-bottle-medical', color: '#84cc16', group: 'canal', open: '/farmaqui' },
   { key: 'atendimento', name: 'Atendente IA', desc: 'Uma IA que atende, tira dúvidas e qualifica seus clientes no WhatsApp, 24 horas por dia.', icon: 'fa-robot', color: '#22c55e', group: 'camada', open: '/leads', soon: true },
   { key: 'disparo', name: 'Campanhas', desc: 'Dispare mensagens em massa para toda a sua base no WhatsApp, com inteligência anti-banimento.', icon: 'fa-bullhorn', color: '#ef4444', group: 'camada', open: '/campaigns' },
+  { key: 'crm', name: 'CRM (Kanban)', desc: 'Organize seus leads e clientes num quadro Kanban: colunas personalizáveis, tags, arrastar-e-soltar, lista e arquivamento. Usa a sua base de leads.', icon: 'fa-table-columns', color: '#84cc16', group: 'camada', open: '/crm' },
 ];
 
 export function Tools() {

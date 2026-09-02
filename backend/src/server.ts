@@ -21,6 +21,7 @@ import {
   handleSubscriptionWebhook, provisionSignup, listPublicPlans, isCompanyBlocked,
 } from './subscriptions.js';
 import { startCampaignJobs } from './campaigns.js';
+import { getCrmConfig, saveCrmConfig } from './crm.js';
 import { createDoc, updateDoc, deleteDoc } from './collections.js';
 import { loadUser } from './currentUser.js';
 import { assertInstanceOwner, assertCanCreate, shareQr, qrByToken, statusByToken } from './waInstances.js';
@@ -306,6 +307,9 @@ app.post('/api/plans/delete', requireAuth, wrap((req) => deletePlan(req.uid, Str
 // Autocadastro: o front cria a conta no Firebase e chama isto com o ID token.
 // Rate-limit pra não permitir criação de empresas em massa.
 app.post('/api/signup/provision', requireAuth, rateLimit(5, 60_000), wrap((req) => provisionSignup(req.uid, { companyName: String(req.body?.companyName || ''), planId: String(req.body?.planId || '') })));
+
+app.get('/api/crm/config', requireAuth, wrap((req) => getCrmConfig(req.uid)));
+app.post('/api/crm/config', requireAuth, wrap((req) => saveCrmConfig(req.uid, req.body || {})));
 
 app.post('/api/subscription/subscribe', requireAuth, wrap((req) => subscribe(req.uid, String(req.body?.planId))));
 app.post('/api/subscription/pix', requireAuth, wrap((req) => subscribePix(req.uid, String(req.body?.planId))));

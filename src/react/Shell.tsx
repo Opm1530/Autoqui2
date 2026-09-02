@@ -19,7 +19,7 @@ const HELP_WA = 'https://wa.me/5564999983832'; // atendimento da plataforma (ite
 
 const TITLES: Record<string, string> = {
   '/dashboard': 'Dashboard', '/tools': 'Ferramentas', '/ecommerce': 'E-commerce', '/farmaqui': 'FarmaQui', '/farmaqui/recompra': 'FarmaQui', '/farmaqui/grupo': 'FarmaQui', '/orders': 'Pedidos', '/products': 'Produtos',
-  '/leads': 'Leads', '/business': 'Negócio', '/users': 'Usuários',
+  '/leads': 'Leads', '/crm': 'CRM', '/business': 'Negócio', '/users': 'Usuários',
   '/combos': 'Combos', '/categories': 'Categorias',
   '/instances': 'Instâncias', '/catalog-settings': 'Configuração', '/farmaqui-settings': 'Configuração', '/farmaqui/atendimento': 'Atendimento',
   '/mercado-pago': 'Mercado Pago', '/campaigns': 'Campanhas',
@@ -95,6 +95,7 @@ function buildNav(role: string | undefined, modulos: string[]): NavEntry[] {
 
   // ── Camadas (somam sobre qualquer canal) ──
   if (atendimento || vendaCatalogo || venda || vitrine) add({ to: '/leads', label: 'Leads', icon: 'fa-people-group' });
+  if (has('crm')) add({ to: '/crm', label: 'CRM', icon: 'fa-table-columns' });
   if (disparo) add({ to: '/campaigns', label: 'Campanhas', icon: 'fa-bullhorn' });
 
   // Colaborador vê o Negócio (horários/frete/link), mas não Configuração/Ferramentas.
