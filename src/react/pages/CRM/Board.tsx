@@ -216,6 +216,7 @@ export function CRMBoard() {
       {detail && <DetailDrawer lead={detail} colunas={colunas} tags={tags} arquivado={!!detail.crmArquivado}
         onMove={(cid: string) => { moveTo(detail, cid); setDetail((d: any) => ({ ...d, crmColuna: cid })); }}
         onToggleTag={(t: string) => toggleTag(detail, t)} onArquivar={() => arquivar(detail)}
+        onSaveFields={(f: any) => dataApi.update('leads', detail.id, f).then(() => { setDetail((d: any) => ({ ...d, ...f })); toast.success('Dados salvos.'); }).catch(() => toast.error('Erro ao salvar.'))}
         onRestaurar={() => { desarquivar(detail); setDetail(null); }} onRemover={() => removerDoBoard(detail)} onClose={() => setDetail(null)} />}
     </div>
   );
@@ -363,14 +364,36 @@ function TagManager({ tags, onSave, onClose }: { tags: CrmTag[]; onSave: (t: Crm
 }
 
 // ── Detalhe do card ──
-function DetailDrawer({ lead, colunas, tags, arquivado, onMove, onToggleTag, onArquivar, onRestaurar, onRemover, onClose }: any) {
+function DetailDrawer({ lead, colunas, tags, arquivado, onMove, onToggleTag, onArquivar, onRestaurar, onRemover, onSaveFields, onClose }: any) {
   const phone = leadPhone(lead);
   const ltags: string[] = Array.isArray(lead.tags) ? lead.tags : [];
+  const [nome, setNome] = useState(lead.nome || lead.leadName || '');
+  const [aniversario, setAniversario] = useState(String(lead.aniversario || '').slice(0, 10));
+  const [email, setEmail] = useState(lead.email || '');
+  const [endereco, setEndereco] = useState(lead.endereco || '');
+  const [obs, setObs] = useState(lead.observacao || '');
+  const inp: React.CSSProperties = { width: '100%', padding: 9, background: 'var(--bg-color,#f8fafc)', border: '1px solid var(--border-color)', borderRadius: 8, fontSize: '0.9rem', color: 'var(--text-main)', boxSizing: 'border-box' };
+  const lbl: React.CSSProperties = { fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' };
+  const dirty = nome !== (lead.nome || lead.leadName || '') || aniversario !== String(lead.aniversario || '').slice(0, 10) || email !== (lead.email || '') || endereco !== (lead.endereco || '') || obs !== (lead.observacao || '');
+  const salvar = () => onSaveFields({ nome, aniversario, email, endereco, observacao: obs });
   return (
     <Overlay onClose={onClose} title={lead.nome || lead.leadName || 'Cliente'}>
-      <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 12 }}>
+      <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 14 }}>
         <i className="fa-brands fa-whatsapp" style={{ color: '#25d366' }} /> {phone || '—'} {lead.origem ? `· origem: ${lead.origem}` : ''}
       </div>
+
+      {/* Dados do cliente (editáveis) */}
+      <div style={{ display: 'grid', gap: 10, marginBottom: 16 }}>
+        <div><label style={lbl}>Nome</label><input value={nome} onChange={(e) => setNome(e.target.value)} style={{ ...inp, marginTop: 3 }} /></div>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <div style={{ flex: 1 }}><label style={lbl}>Aniversário</label><input type="date" value={aniversario} onChange={(e) => setAniversario(e.target.value)} style={{ ...inp, marginTop: 3 }} /></div>
+          <div style={{ flex: 1 }}><label style={lbl}>E-mail</label><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="opcional" style={{ ...inp, marginTop: 3 }} /></div>
+        </div>
+        <div><label style={lbl}>Endereço</label><input value={endereco} onChange={(e) => setEndereco(e.target.value)} placeholder="opcional" style={{ ...inp, marginTop: 3 }} /></div>
+        <div><label style={lbl}>Observação</label><textarea value={obs} onChange={(e) => setObs(e.target.value)} rows={3} placeholder="Anotações internas sobre o cliente..." style={{ ...inp, marginTop: 3, resize: 'vertical' }} /></div>
+        {dirty && <button className="btn-primary" style={{ justifyContent: 'center' }} onClick={salvar}><i className="fa-solid fa-floppy-disk" /> Salvar dados</button>}
+      </div>
+
       <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Coluna</label>
       <select value={lead.crmColuna || ''} onChange={(e) => onMove(e.target.value)} className="config-input" style={{ width: '100%', margin: '4px 0 14px' }}>
         {colunas.map((c: CrmColuna) => <option key={c.id} value={c.id}>{c.nome}</option>)}
