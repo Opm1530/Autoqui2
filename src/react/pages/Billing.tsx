@@ -95,8 +95,9 @@ export function Billing({ wall = false }: { wall?: boolean }) {
 
   // Em teste, mostra "Teste grátis" mesmo que o status cru seja outro (ex.: cancelou no meio).
   const badge = trial.emTrial ? STATUS_LABEL.trial : (assinatura?.status ? STATUS_LABEL[assinatura.status] : null);
-  // Já tem um plano definido e ainda não pagou (teste/pendente): só falta pagar esse plano.
-  const temPlanoParaPagar = !!(assinatura && assinatura.planId && assinatura.status !== 'authorized' && assinatura.status !== 'cancelled');
+  // Já tem plano/funcionalidades definidos e ainda não pagou (teste/pendente): só falta pagar.
+  const temAlaCarte = !!(assinatura && Array.isArray(assinatura.features) && assinatura.features.length);
+  const temPlanoParaPagar = !!(assinatura && (assinatura.planId || temAlaCarte) && assinatura.status !== 'authorized' && assinatura.status !== 'cancelled');
   // Mostra a grade só quando não há plano definido, ou o dono pediu pra trocar.
   const mostrarGrade = showPlans || (!temPlanoParaPagar && (!assinatura || assinatura.status !== 'authorized'));
 

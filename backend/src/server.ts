@@ -307,7 +307,7 @@ app.post('/api/plans/delete', requireAuth, wrap((req) => deletePlan(req.uid, Str
 
 // Autocadastro: o front cria a conta no Firebase e chama isto com o ID token.
 // Rate-limit pra não permitir criação de empresas em massa.
-app.post('/api/signup/provision', requireAuth, rateLimit(5, 60_000), wrap((req) => provisionSignup(req.uid, { companyName: String(req.body?.companyName || ''), planId: String(req.body?.planId || '') })));
+app.post('/api/signup/provision', requireAuth, rateLimit(5, 60_000), wrap((req) => provisionSignup(req.uid, { companyName: String(req.body?.companyName || ''), features: Array.isArray(req.body?.features) ? req.body.features : [] })));
 
 app.get('/api/pricing', wrap(() => getPricing()));
 app.post('/api/pricing/save', requireAuth, wrap((req) => savePricing(req.uid, req.body || {})));
@@ -315,8 +315,8 @@ app.post('/api/pricing/save', requireAuth, wrap((req) => savePricing(req.uid, re
 app.get('/api/crm/config', requireAuth, wrap((req) => getCrmConfig(req.uid)));
 app.post('/api/crm/config', requireAuth, wrap((req) => saveCrmConfig(req.uid, req.body || {})));
 
-app.post('/api/subscription/subscribe', requireAuth, wrap((req) => subscribe(req.uid, String(req.body?.planId))));
-app.post('/api/subscription/pix', requireAuth, wrap((req) => subscribePix(req.uid, String(req.body?.planId))));
+app.post('/api/subscription/subscribe', requireAuth, wrap((req) => subscribe(req.uid, req.body?.planId ? String(req.body.planId) : undefined)));
+app.post('/api/subscription/pix', requireAuth, wrap((req) => subscribePix(req.uid, req.body?.planId ? String(req.body.planId) : undefined)));
 app.get('/api/subscription/pix-status', requireAuth, wrap((req) => subscriptionPixStatus(req.uid, String(req.query.paymentId || ''))));
 app.post('/api/subscription/cancel', requireAuth, wrap((req) => cancelSubscription(req.uid, req.body?.companyId)));
 app.get('/api/subscription/mine', requireAuth, wrap((req) => mySubscription(req.uid)));

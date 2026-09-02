@@ -1,106 +1,157 @@
-import { useEffect, useState } from 'react';
-import { useSearchParams, Link, useNavigate } from 'react-router-dom';
+import { useEffect, useMemo, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { authService } from '../../services/auth';
-import { subscriptionApi } from '../../services/subscriptionApi';
+import { pricingApi, CANAIS_FEAT, ADICIONAIS_FEAT, type Pricing } from '../../services/pricingApi';
 import { toast } from '../../services/toast';
-import { lojasLabel } from '../util/plan';
 
-type Plan = { id: string; nome: string; valor: number; maxLojas: number };
+const CANAL_KEYS = new Set(CANAIS_FEAT.map((f) => f.key));
+const ADIC_KEYS = new Set(ADICIONAIS_FEAT.map((f) => f.key));
+const brl = (n: number) => `R$ ${Number(n).toFixed(2)}`;
 
 export function Signup() {
-  const [params] = useSearchParams();
   const navigate = useNavigate();
-  const [plans, setPlans] = useState<Plan[]>([]);
-  const [planId, setPlanId] = useState('');
+  const [step, setStep] = useState<1 | 2>(1);
   const [companyName, setCompanyName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [pricing, setPricing] = useState<Pricing | null>(null);
+  const [features, setFeatures] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
-  const [loadingPlans, setLoadingPlans] = useState(true);
 
-  useEffect(() => {
-    subscriptionApi.publicPlans()
-      .then((pl) => {
-        setPlans(pl);
-        const fromUrl = params.get('plano');
-        if (fromUrl && pl.some((p) => p.id === fromUrl)) setPlanId(fromUrl);
-        else if (pl.length) setPlanId(pl[0].id);
-      })
-      .catch(() => toast.error('Não foi possível carregar os planos.'))
-      .finally(() => setLoadingPlans(false));
-  }, [params]);
+  useEffect(() => { pricingApi.get().then(setPricing).catch(() => toast.error('Não foi possível carregar os preços.')); }, []);
 
-  async function handleSubmit(e: React.FormEvent) {
+  const preco = (k: string) => pricing?.precos?.[k] ?? 0;
+  // Só mostra funcionalidades com preço > 0 (as sem preço/"em breve" ficam de fora).
+  const canais = CANAIS_FEAT.filter((f) => preco(f.key) > 0);
+  const adicionais = ADICIONAIS_FEAT.filter((f) => preco(f.key) > 0);
+
+  const totais = useMemo(() => {
+    const canal = features.find((f) => CANAL_KEYS.has(f));
+    const base = canal ? preco(canal) : 0;
+    const addKeys = features.filter((f) => ADIC_KEYS.has(f));
+    const adicBruto = addKeys.reduce((s, k) => s + preco(k), 0);
+    const tier = (pricing?.descontos || []).filter((d) => addKeys.length >= d.min).sort((a, b) => b.pct - a.pct)[0];
+    const pct = tier ? tier.pct : 0;
+    const desc = Math.round(adicBruto * pct) / 100;
+    return { base, adicBruto, pct, desc, total: base + adicBruto - desc, temCanal: !!canal, qtdAdic: addKeys.length };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [features, pricing]);
+
+  const toggleCanal = (k: string) => setFeatures((f) => [...f.filter((x) => !CANAL_KEYS.has(x)), k]); // 1 canal
+  const toggleAdic = (k: string) => setFeatures((f) => (f.includes(k) ? f.filter((x) => x !== k) : [...f, k]));
+
+  function irParaFuncionalidades(e: React.FormEvent) {
     e.preventDefault();
     if (!companyName.trim()) { toast.warning('Informe o nome da sua empresa.'); return; }
-    if (!planId) { toast.warning('Escolha um plano.'); return; }
+    if (!email.trim()) { toast.warning('Informe o e-mail.'); return; }
     if (password.length < 6) { toast.warning('A senha precisa ter ao menos 6 caracteres.'); return; }
+    setStep(2);
+  }
+
+  async function finalizar() {
+    if (!totais.temCanal) { toast.warning('Escolha um canal principal (Catálogo ou Vitrine).'); return; }
     setLoading(true);
     try {
-      await authService.signUpOwner(email.trim(), password, companyName.trim(), planId);
+      await authService.signUpOwner(email.trim(), password, companyName.trim(), features);
       toast.success('Conta criada! Você tem 7 dias de teste grátis.');
       navigate('/dashboard');
     } catch (err: any) {
       const msg = err?.message || String(err);
-      const amigavel = msg.includes('email-already-in-use') ? 'Este e-mail já tem uma conta. Faça login.'
+      toast.error(msg.includes('email-already-in-use') ? 'Este e-mail já tem uma conta. Faça login.'
         : msg === 'ja_provisionado' ? 'Esta conta já tem uma empresa.'
-        : msg === 'plano_invalido' ? 'Plano indisponível. Recarregue a página.'
-        : 'Erro ao criar conta: ' + msg;
-      toast.error(amigavel);
+        : msg === 'sem_canal' ? 'Escolha um canal principal.'
+        : 'Erro ao criar conta: ' + msg);
       setLoading(false);
     }
   }
 
+  const card: React.CSSProperties = { maxWidth: step === 1 ? 480 : 720, width: '100%', margin: '5vh auto', padding: '2.5rem 3rem 3rem' };
+  const inp: React.CSSProperties = { width: '100%', padding: '14px 16px', borderRadius: 10 };
+
   return (
     <div className="login-page-container">
-      <form className="card glass" style={{ maxWidth: 480, width: '100%', margin: '6vh auto', padding: '2.5rem 3rem 3rem' }} onSubmit={handleSubmit}>
-        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+      <div className="card glass" style={card}>
+        <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
           <img src="/logo.png" alt="AutoQui" style={{ width: 56, borderRadius: 14 }} />
-          <h2 style={{ marginTop: '1rem' }}>Criar sua conta</h2>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: 6 }}>7 dias de teste grátis. Sem cartão para começar.</p>
+          <h2 style={{ marginTop: '1rem' }}>{step === 1 ? 'Criar sua conta' : 'Selecione suas funcionalidades'}</h2>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: 6 }}>
+            {step === 1 ? '7 dias de teste grátis. Sem cartão para começar.' : 'Monte seu plano. Você só paga após o teste — e pode mudar depois.'}
+          </p>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginTop: 12 }}>
+            {[1, 2].map((s) => <span key={s} style={{ width: 26, height: 5, borderRadius: 3, background: step >= (s as 1 | 2) ? 'var(--primary)' : 'var(--border-color)' }} />)}
+          </div>
         </div>
 
-        <div className="form-group" style={{ marginBottom: '1.25rem' }}>
-          <label style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>Plano</label>
-          {loadingPlans ? (
-            <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}><i className="fa-solid fa-spinner fa-spin" /> Carregando planos...</div>
-          ) : plans.length === 0 ? (
-            <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Nenhum plano disponível no momento. Fale com o suporte.</div>
-          ) : (
-            <div style={{ display: 'grid', gap: 10 }}>
-              {plans.map((p) => (
-                <label key={p.id} className="card" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', cursor: 'pointer', border: planId === p.id ? '2px solid var(--primary)' : '1px solid var(--border-color)' }}>
-                  <input type="radio" name="plano" value={p.id} checked={planId === p.id} onChange={() => setPlanId(p.id)} style={{ width: 'auto' }} />
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 700 }}>{p.nome} <span style={{ fontWeight: 400, color: 'var(--text-muted)', fontSize: '0.85rem' }}>· {lojasLabel(p.maxLojas)}</span></div>
-                  </div>
-                  <div style={{ fontWeight: 800, color: 'var(--primary)' }}>R$ {Number(p.valor).toFixed(2)}<span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 400 }}>/mês</span></div>
-                </label>
-              ))}
+        {step === 1 ? (
+          <form onSubmit={irParaFuncionalidades}>
+            <div className="form-group" style={{ marginBottom: '1.25rem' }}>
+              <label style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>Nome da empresa</label>
+              <input type="text" className="input-field" required value={companyName} onChange={(e) => setCompanyName(e.target.value)} style={inp} />
             </div>
-          )}
-        </div>
+            <div className="form-group" style={{ marginBottom: '1.25rem' }}>
+              <label style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>E-mail</label>
+              <input type="email" className="input-field" required value={email} onChange={(e) => setEmail(e.target.value)} style={inp} />
+            </div>
+            <div className="form-group" style={{ marginBottom: '2rem' }}>
+              <label style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>Senha</label>
+              <input type="password" className="input-field" required value={password} onChange={(e) => setPassword(e.target.value)} placeholder="mínimo 6 caracteres" style={inp} />
+            </div>
+            <button type="submit" className="btn-primary" style={{ width: '100%', justifyContent: 'center', padding: '14px' }}>Continuar <i className="fa-solid fa-arrow-right" /></button>
+            <p style={{ textAlign: 'center', marginTop: '1.25rem', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+              Já tem conta? <Link to="/login" style={{ color: 'var(--primary)', fontWeight: 600 }}>Entrar</Link>
+            </p>
+          </form>
+        ) : !pricing ? (
+          <div style={{ textAlign: 'center', color: 'var(--text-muted)' }}><i className="fa-solid fa-spinner fa-spin" /> Carregando...</div>
+        ) : (
+          <>
+            <h4 style={{ margin: '0 0 8px' }}>Canal principal <span style={{ fontWeight: 400, color: 'var(--text-muted)', fontSize: '0.82rem' }}>(escolha 1)</span></h4>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(200px,1fr))', gap: 10, marginBottom: 20 }}>
+              {canais.map((f) => { const on = features.includes(f.key); return (
+                <button key={f.key} type="button" onClick={() => toggleCanal(f.key)} style={featCard(on)}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><i className={`fa-solid ${f.icon}`} style={{ color: 'var(--primary)' }} /><strong>{f.label}</strong></div>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: '4px 0 8px' }}>{f.desc}</div>
+                  <div style={{ fontWeight: 800, color: 'var(--primary)' }}>{brl(preco(f.key))}<span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 400 }}>/mês</span></div>
+                </button>
+              ); })}
+            </div>
 
-        <div className="form-group" style={{ marginBottom: '1.25rem' }}>
-          <label style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>Nome da empresa</label>
-          <input type="text" className="input-field" required value={companyName} onChange={(e) => setCompanyName(e.target.value)} style={{ width: '100%', padding: '14px 16px', borderRadius: 10 }} />
-        </div>
-        <div className="form-group" style={{ marginBottom: '1.25rem' }}>
-          <label style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>E-mail</label>
-          <input type="email" className="input-field" required value={email} onChange={(e) => setEmail(e.target.value)} style={{ width: '100%', padding: '14px 16px', borderRadius: 10 }} />
-        </div>
-        <div className="form-group" style={{ marginBottom: '2rem' }}>
-          <label style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>Senha</label>
-          <input type="password" className="input-field" required value={password} onChange={(e) => setPassword(e.target.value)} placeholder="mínimo 6 caracteres" style={{ width: '100%', padding: '14px 16px', borderRadius: 10 }} />
-        </div>
+            {adicionais.length > 0 && <>
+              <h4 style={{ margin: '0 0 8px' }}>Adicionais <span style={{ fontWeight: 400, color: 'var(--text-muted)', fontSize: '0.82rem' }}>(opcionais — mais itens, mais desconto)</span></h4>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(200px,1fr))', gap: 10, marginBottom: 20 }}>
+                {adicionais.map((f) => { const on = features.includes(f.key); return (
+                  <button key={f.key} type="button" onClick={() => toggleAdic(f.key)} style={featCard(on)}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><i className={`fa-solid ${on ? 'fa-square-check' : 'fa-square'}`} style={{ color: on ? 'var(--primary)' : 'var(--text-dim)' }} /><i className={`fa-solid ${f.icon}`} style={{ color: 'var(--text-muted)' }} /><strong>{f.label}</strong></div>
+                    <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: '4px 0 8px' }}>{f.desc}</div>
+                    <div style={{ fontWeight: 800, color: 'var(--primary)' }}>{brl(preco(f.key))}<span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 400 }}>/mês</span></div>
+                  </button>
+                ); })}
+              </div>
+            </>}
 
-        <button type="submit" className="btn-primary" disabled={loading || loadingPlans} style={{ width: '100%', justifyContent: 'center', padding: '14px' }}>
-          {loading ? <i className="fa-solid fa-spinner fa-spin" /> : 'Começar teste grátis'}
-        </button>
-        <p style={{ textAlign: 'center', marginTop: '1.25rem', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
-          Já tem conta? <Link to="/login" style={{ color: 'var(--primary)', fontWeight: 600 }}>Entrar</Link>
-        </p>
-      </form>
+            {/* Resumo */}
+            <div className="card" style={{ background: 'rgba(132,204,22,0.06)', border: '1px solid rgba(132,204,22,0.3)', marginBottom: 16 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', color: 'var(--text-muted)' }}><span>Canal + adicionais</span><span>{brl(totais.base + totais.adicBruto)}</span></div>
+              {totais.desc > 0 && <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', color: '#16a34a', marginTop: 4 }}><span>Desconto ({totais.pct}% em {totais.qtdAdic} adicionais)</span><span>- {brl(totais.desc)}</span></div>}
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 800, fontSize: '1.15rem', marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--border-color)' }}><span>Total mensal</span><span style={{ color: 'var(--primary)' }}>{brl(totais.total)}</span></div>
+              <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: '8px 0 0' }}>Cobrado só após os 7 dias de teste. Cancele quando quiser.</p>
+            </div>
+
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button type="button" className="btn-secondary" onClick={() => setStep(1)}><i className="fa-solid fa-arrow-left" /> Voltar</button>
+              <button type="button" className="btn-primary" style={{ flex: 1, justifyContent: 'center' }} disabled={loading || !totais.temCanal} onClick={finalizar}>
+                {loading ? <i className="fa-solid fa-spinner fa-spin" /> : <>Começar teste grátis · {brl(totais.total)}/mês</>}
+              </button>
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }
+
+const featCard = (on: boolean): React.CSSProperties => ({
+  textAlign: 'left', padding: '12px 14px', borderRadius: 12, cursor: 'pointer',
+  border: `2px solid ${on ? 'var(--primary)' : 'var(--border-color)'}`,
+  background: on ? 'rgba(132,204,22,0.08)' : 'var(--surface,#fff)', color: 'var(--text-main)',
+});

@@ -7,6 +7,7 @@ import { getDoc, db } from './firebase.js';
 import { loadUser } from './currentUser.js';
 import { PUBLIC_BASE_URL, PANEL_URL } from './config.js';
 import { Timestamp } from 'firebase-admin/firestore';
+import { getPricing, computeTotal, CANAIS as PRICE_CANAIS, ADICIONAIS as PRICE_ADICIONAIS } from './pricing.js';
 
 const MP_API = 'https://api.mercadopago.com';
 const TRIAL_DIAS = 7; // teste grátis do autocadastro
@@ -19,22 +20,24 @@ function assertAdmin(u: any) { if (u.role !== 'admin') throw new Error('forbidde
 // ID token. Cria a empresa em teste de 7 dias + o doc users (role owner). O
 // backend força o papel e deriva o teto de lojas/módulos do PLANO — o usuário
 // não escolhe isso.
-export async function provisionSignup(uid: string, payload: { companyName: string; planId: string }): Promise<{ companyId: string }> {
+export async function provisionSignup(uid: string, payload: { companyName: string; features?: string[] }): Promise<{ companyId: string }> {
   const companyName = String(payload?.companyName || '').trim();
-  const planId = String(payload?.planId || '').trim();
-  if (!companyName || !planId) throw new Error('dados_incompletos');
+  if (!companyName) throw new Error('dados_incompletos');
 
   // Já tem empresa? Não provisiona de novo (evita duplicar no F5 / reenvio).
   const existing = await getDoc('users', uid);
   if (existing?.companyId) throw new Error('ja_provisionado');
 
-  const plano = await getDoc('planos', planId);
-  if (!plano || plano.ativo === false) throw new Error('plano_invalido');
+  // Funcionalidades escolhidas (à la carte). Precisa de ao menos 1 canal.
+  const pricing = await getPricing();
+  const valid = new Set([...PRICE_CANAIS, ...PRICE_ADICIONAIS]);
+  const features = (Array.isArray(payload?.features) ? payload.features : []).map(String).filter((f) => valid.has(f));
+  const canal = features.find((f) => PRICE_CANAIS.has(f));
+  if (!canal) throw new Error('sem_canal');
+  const { total } = computeTotal(features, pricing);
 
   const authUser = await getAuth().getUser(uid);
   const email = authUser.email || '';
-  const maxLojas = plano.maxLojas || 1;
-  const modulos = Array.isArray(plano.modulos) && plano.modulos.length ? plano.modulos : ['venda_catalogo'];
 
   const baseStore = { id: randomUUID(), name: companyName, active: true };
   const trialAte = Timestamp.fromMillis(Date.now() + TRIAL_DIAS * 86400000);
@@ -43,20 +46,21 @@ export async function provisionSignup(uid: string, payload: { companyName: strin
     name: companyName,
     stores: [baseStore],
     limite_instancias: 1,
-    limite_lojas: maxLojas,
+    limite_lojas: 1,
     status: 'active',
     ownerId: uid,
     origem: 'self-signup',
     isento: false,
-    modulos_ativos: modulos,
+    modulos_ativos: features,
     metrics: { totalMessages: 0, totalPayments: 0 },
     assinatura: {
-      planId, planoNome: plano.nome, valor: plano.valor, maxLojas,
+      // Modelo à la carte: guarda as features e o total calculado (sem plano fixo).
+      features, valor: total, planoNome: canal === 'vitrine' ? 'Vitrine' : 'Personalizado', maxLojas: 1,
       status: 'trial', trialAte, inadimplenteDesde: null, atualizadoEm: Timestamp.now(),
     },
   });
   await db.collection('users').doc(uid).set({ uid, email, role: 'owner', companyId: ref.id });
-  console.log(`[signup] empresa ${ref.id} criada (plano ${plano.nome}, teste ${TRIAL_DIAS}d) por ${email}`);
+  console.log(`[signup] empresa ${ref.id} criada (features ${features.join('+')}, R$${total}, teste ${TRIAL_DIAS}d) por ${email}`);
   return { companyId: ref.id };
 }
 
@@ -144,14 +148,30 @@ export async function listPublicPlans(): Promise<Array<{ id: string; nome: strin
     .sort((a, b) => a.valor - b.valor);
 }
 
-// ── Assinatura (auto-serviço do dono) ──────────────────────────────────────
-// Cria um preapproval vinculado ao plano e devolve o init_point pro dono autorizar.
-export async function subscribe(uid: string, planId: string): Promise<{ init_point: string }> {
+// Resolve quanto/por quê cobrar: plano legado (planId) OU total à la carte
+// (recalculado das features salvas na empresa, refletindo os preços atuais).
+async function resolveCharge(uid: string, planId?: string): Promise<{ user: any; company: any; valor: number; reason: string; extra: any }> {
   const user = await getUser(uid);
   if (!user.companyId) throw new Error('no_company');
-  const plano = await getDoc('planos', planId);
-  const valor = Number(plano?.valor);
-  if (!plano || !valor || valor <= 0) throw new Error('plano_invalido');
+  const company = await getDoc('companies', user.companyId);
+  if (planId) {
+    const plano = await getDoc('planos', planId);
+    const valor = Number(plano?.valor);
+    if (!plano || !valor || valor <= 0) throw new Error('plano_invalido');
+    return { user, company, valor, reason: plano.nome, extra: { planId, planoNome: plano.nome, maxLojas: plano.maxLojas || 1 } };
+  }
+  const a = (company as any)?.assinatura || {};
+  const features: string[] = Array.isArray(a.features) ? a.features : [];
+  const valor = features.length ? computeTotal(features, await getPricing()).total : Number(a.valor);
+  if (!valor || valor <= 0) throw new Error('valor_invalido');
+  return { user, company, valor, reason: 'AutoQui — assinatura', extra: { features, valor } };
+}
+
+// ── Assinatura (auto-serviço do dono) ──────────────────────────────────────
+// Cria um preapproval e devolve o init_point pro dono autorizar. Sem planId,
+// cobra o total à la carte da empresa.
+export async function subscribe(uid: string, planId?: string): Promise<{ init_point: string }> {
+  const { user, company, valor, reason, extra } = await resolveCharge(uid, planId);
   const token = await platformToken();
 
   // Preapproval SEM plano fixo (auto_recurring próprio) + status 'pending':
@@ -160,7 +180,7 @@ export async function subscribe(uid: string, planId: string): Promise<{ init_poi
   const resp = await fetch(`${MP_API}/preapproval`, {
     method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
     body: JSON.stringify({
-      reason: plano.nome,
+      reason,
       external_reference: user.companyId,
       payer_email: user.email,
       back_url: `${PANEL_URL}/billing`,
@@ -175,11 +195,9 @@ export async function subscribe(uid: string, planId: string): Promise<{ init_poi
     throw new Error(`mp_erro_assinatura: ${detalhe}`);
   }
 
-  const company = await getDoc('companies', user.companyId);
   await db.collection('companies').doc(user.companyId).set({
     assinatura: {
-      ...(company?.assinatura || {}),
-      planId, planoNome: plano.nome, valor: plano.valor, maxLojas: plano.maxLojas || 1,
+      ...(company?.assinatura || {}), ...extra, valor,
       mpPreapprovalId: String(data.id || ''), status: 'pending', inadimplenteDesde: null, atualizadoEm: Timestamp.now(),
     },
   }, { merge: true });
@@ -190,12 +208,8 @@ export async function subscribe(uid: string, planId: string): Promise<{ init_poi
 // ── PIX avulso (1 mês) — alternativa manual ao cartão recorrente ────────────
 // Gera um pagamento PIX pontual. Quando aprovado (webhook ou polling), libera
 // +30 dias via `pixPagoAte`. Não renova sozinho — o cliente paga a cada mês.
-export async function subscribePix(uid: string, planId: string): Promise<{ paymentId: string; qrCode: string; qrCodeBase64: string; ticketUrl: string; valor: number; expiraEm: string }> {
-  const user = await getUser(uid);
-  if (!user.companyId) throw new Error('no_company');
-  const plano = await getDoc('planos', planId);
-  const valor = Number(plano?.valor);
-  if (!plano || !valor || valor <= 0) throw new Error('plano_invalido');
+export async function subscribePix(uid: string, planId?: string): Promise<{ paymentId: string; qrCode: string; qrCodeBase64: string; ticketUrl: string; valor: number; expiraEm: string }> {
+  const { user, valor, reason } = await resolveCharge(uid, planId);
   const token = await platformToken();
 
   const resp = await fetch(`${MP_API}/v1/payments`, {
@@ -203,12 +217,12 @@ export async function subscribePix(uid: string, planId: string): Promise<{ payme
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'X-Idempotency-Key': randomUUID() },
     body: JSON.stringify({
       transaction_amount: valor,
-      description: `Assinatura ${plano.nome} (1 mês) — AutoQui`,
+      description: `${reason} (1 mês)`,
       payment_method_id: 'pix',
       payer: { email: user.email },
       external_reference: user.companyId,
       notification_url: `${PUBLIC_BASE_URL}/api/mp/subscription-webhook`,
-      metadata: { tipo: 'assinatura_pix', company_id: user.companyId, plan_id: planId },
+      metadata: { tipo: 'assinatura_pix', company_id: user.companyId, plan_id: planId || '' },
     }),
   });
   const data = await resp.json().catch(() => ({}));
@@ -220,7 +234,7 @@ export async function subscribePix(uid: string, planId: string): Promise<{ payme
   const tx = data.point_of_interaction?.transaction_data || {};
   const company = await getDoc('companies', user.companyId);
   await db.collection('companies').doc(user.companyId).set({
-    assinatura: { ...(company?.assinatura || {}), planId, planoNome: plano.nome, valor, maxLojas: plano.maxLojas || 1, ultimoPixId: String(data.id), atualizadoEm: Timestamp.now() },
+    assinatura: { ...(company?.assinatura || {}), ...(planId ? { planId } : {}), valor, ultimoPixId: String(data.id), atualizadoEm: Timestamp.now() },
   }, { merge: true });
 
   return { paymentId: String(data.id), qrCode: tx.qr_code || '', qrCodeBase64: tx.qr_code_base64 || '', ticketUrl: tx.ticket_url || '', valor, expiraEm: data.date_of_expiration || '' };

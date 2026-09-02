@@ -25,8 +25,8 @@ export const subscriptionApi = {
   // autocadastro (após criar a conta no Firebase)
   provision: (companyName: string, planId: string) => req('/api/signup/provision', 'POST', { companyName, planId }),
   // assinatura (dono)
-  subscribe: (planId: string) => req('/api/subscription/subscribe', 'POST', { planId }),
-  subscribePix: (planId: string): Promise<{ paymentId: string; qrCode: string; qrCodeBase64: string; ticketUrl: string; valor: number; expiraEm: string }> => req('/api/subscription/pix', 'POST', { planId }),
+  subscribe: (planId?: string) => req('/api/subscription/subscribe', 'POST', { planId }),
+  subscribePix: (planId?: string): Promise<{ paymentId: string; qrCode: string; qrCodeBase64: string; ticketUrl: string; valor: number; expiraEm: string }> => req('/api/subscription/pix', 'POST', { planId }),
   pixStatus: (paymentId: string): Promise<{ status: string }> => req(`/api/subscription/pix-status?paymentId=${encodeURIComponent(paymentId)}`, 'GET'),
   cancel: (companyId?: string) => req('/api/subscription/cancel', 'POST', { companyId }),
   mine: () => req('/api/subscription/mine', 'GET'),
