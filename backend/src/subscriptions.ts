@@ -161,7 +161,10 @@ async function resolveCharge(uid: string, planId?: string): Promise<{ user: any;
     return { user, company, valor, reason: plano.nome, extra: { planId, planoNome: plano.nome, maxLojas: plano.maxLojas || 1 } };
   }
   const a = (company as any)?.assinatura || {};
-  const features: string[] = Array.isArray(a.features) ? a.features : [];
+  // Sem features na assinatura (cliente antigo migrando): usa os módulos ativos da empresa.
+  const modulos: string[] = Array.isArray((company as any)?.modulos_ativos) ? (company as any).modulos_ativos : [];
+  const valid = new Set([...PRICE_CANAIS, ...PRICE_ADICIONAIS]);
+  const features: string[] = (Array.isArray(a.features) && a.features.length ? a.features : modulos).filter((f: string) => valid.has(f));
   const valor = features.length ? computeTotal(features, await getPricing()).total : Number(a.valor);
   if (!valor || valor <= 0) throw new Error('valor_invalido');
   return { user, company, valor, reason: 'AutoQui — assinatura', extra: { features, valor } };
