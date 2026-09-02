@@ -31,6 +31,7 @@ import { AdminUsers } from './pages/Admin/AdminUsers';
 import { Webhooks } from './pages/Admin/Webhooks';
 import { AdminMigration } from './pages/Admin/AdminMigration';
 import { Plans } from './pages/Admin/Plans';
+import { PricingConfig } from './pages/Admin/PricingConfig';
 import { Billing } from './pages/Billing';
 import { ChangePassword } from './pages/ChangePassword';
 import { Tools } from './pages/Tools';
@@ -139,6 +140,7 @@ export function App() {
             <Route path="/admin/webhooks" element={<Webhooks />} />
             <Route path="/admin/migration" element={<AdminMigration />} />
             <Route path="/admin/plans" element={<Plans />} />
+            <Route path="/admin/pricing" element={<PricingConfig />} />
             <Route path="/billing" element={<Billing />} />
             <Route path="/change-password" element={<ChangePassword />} />
           </Route>
