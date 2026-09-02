@@ -3,6 +3,7 @@
 import { db, getDoc, getAll } from './firebase.js';
 import { loadUser } from './currentUser.js';
 import { Timestamp } from 'firebase-admin/firestore';
+import { getPricing, computeTotal, CANAIS, ADICIONAIS } from './pricing.js';
 
 export interface Coupon {
   id?: string;
@@ -89,6 +90,29 @@ export function applyCoupon(total: number, c: { tipo: string; valor: number } | 
 // Marca +1 uso (no cadastro, quando o cupom é de fato aplicado).
 export async function incCouponUse(id: string): Promise<void> {
   await db.collection('cupons_sistema').doc(id).set({ usados: (Number((await getDoc('cupons_sistema', id))?.usados) || 0) + 1 }, { merge: true }).catch(() => {});
+}
+
+// Admin aplica (ou remove, com codigo vazio) um cupom direto numa empresa.
+export async function applyCouponToCompany(uid: string, companyId: string, codigo: string): Promise<{ ok: boolean; valor: number; cupom: any }> {
+  await assertAdmin(uid);
+  const company = await getDoc('companies', companyId);
+  if (!company) throw new Error('not_found');
+  const a = (company as any).assinatura || {};
+  const valid = new Set([...CANAIS, ...ADICIONAIS]);
+  const features: string[] = (Array.isArray(a.features) && a.features.length ? a.features : ((company as any).modulos_ativos || [])).filter((f: string) => valid.has(f));
+  const { total } = computeTotal(features, await getPricing());
+  if (!up(codigo)) {
+    // Remove cupom
+    const { cupom, ...rest } = a;
+    await db.collection('companies').doc(companyId).set({ assinatura: { ...rest, valor: total, atualizadoEm: Timestamp.now() } }, { merge: true });
+    return { ok: true, valor: total, cupom: null };
+  }
+  const c = await findValidCoupon(codigo);
+  const snap = couponSnapshot(c);
+  const valor = applyCoupon(total, c);
+  await db.collection('companies').doc(companyId).set({ assinatura: { ...a, cupom: snap, valor, atualizadoEm: Timestamp.now() } }, { merge: true });
+  await incCouponUse(c.id!);
+  return { ok: true, valor, cupom: { codigo: c.codigo, tipo: c.tipo, valor: c.valor, duracaoMeses: c.duracaoMeses } };
 }
 
 // Snapshot do cupom pra guardar na assinatura (com data de expiração do desconto).

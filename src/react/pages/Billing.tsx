@@ -150,6 +150,9 @@ export function Billing({ wall = false }: { wall?: boolean }) {
                 <button className="btn-secondary" style={{ justifyContent: 'center' }} disabled={pixBusy === 'go'} onClick={() => payPix()}>
                   {pixBusy === 'go' ? 'Gerando PIX...' : <><i className="fa-brands fa-pix" /> Pagar 1 mês no PIX</>}
                 </button>
+                <div style={{ maxWidth: 260, fontSize: '0.72rem', color: 'var(--text-muted)', textAlign: 'right', lineHeight: 1.45, marginTop: 2 }}>
+                  <i className="fa-solid fa-star" style={{ color: 'var(--primary)' }} /> No <strong>cartão</strong>, a renovação é automática e o desconto vale <strong>para sempre</strong>. No PIX você paga manualmente a cada mês.
+                </div>
               </>
             )}
           </div>

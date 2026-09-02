@@ -22,4 +22,6 @@ export const couponApi = {
   remove: (id: string): Promise<{ ok: boolean }> => req('/api/coupons/delete', 'POST', { id }),
   validate: (codigo: string): Promise<{ codigo: string; tipo: 'percent' | 'fixo'; valor: number; duracaoMeses: number | null }> =>
     req(`/api/coupons/validate?codigo=${encodeURIComponent(codigo)}`, 'GET'),
+  applyToCompany: (companyId: string, codigo: string): Promise<{ ok: boolean; valor: number; cupom: any }> =>
+    req('/api/coupons/apply-company', 'POST', { companyId, codigo }),
 };

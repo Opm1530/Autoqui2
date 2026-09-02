@@ -5,6 +5,7 @@ import { toast } from '../../../services/toast';
 import { confirm } from '../../../services/confirm';
 import { SkeletonTable } from '../../components/Skeleton';
 import { pricingApi } from '../../../services/pricingApi';
+import { couponApi } from '../../../services/couponApi';
 
 const MODULE_OPTIONS = [
   { value: 'atendimento', label: 'IA de Atendimento' },
@@ -108,6 +109,20 @@ function CompanyModal({ editing, onClose, onSaved, onRemoved }: { editing: any |
   const [precos, setPrecos] = useState<Record<string, number>>({});
   useEffect(() => { pricingApi.get().then((p) => setPrecos(p.precos || {})).catch(() => {}); }, []);
   const totalMensal = modules.reduce((s, m) => s + (precos[m] || 0), 0);
+  const [cupomAtual, setCupomAtual] = useState<any>(editing?.assinatura?.cupom || null);
+  const [cupomInput, setCupomInput] = useState('');
+  const [cupomBusy, setCupomBusy] = useState(false);
+  async function aplicarCupomEmpresa(codigo: string) {
+    if (!isEdit) return;
+    setCupomBusy(true);
+    try {
+      const r = await couponApi.applyToCompany((editing as any).id, codigo);
+      setCupomAtual(r.cupom);
+      setCupomInput('');
+      toast.success(codigo ? 'Cupom aplicado ao cliente!' : 'Cupom removido.');
+    } catch (e: any) { toast.error(e.message === 'cupom_invalido' ? 'Cupom inválido.' : 'Erro: ' + (e.message || e)); }
+    finally { setCupomBusy(false); }
+  }
   const [stores, setStores] = useState<StoreRow[]>(() => {
     const init = (editing?.stores || []) as any[];
     if (init.length) return init.map((s) => ({ id: s.id, name: s.name || '', address: s.address || '', active: s.active !== false, frete_ativo: s.frete_ativo !== false, instancia_id: s.instancia_id || null }));
@@ -229,10 +244,29 @@ function CompanyModal({ editing, onClose, onSaved, onRemoved }: { editing: any |
               );
             })}
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(132,204,22,0.08)', border: '1px solid rgba(132,204,22,0.3)', borderRadius: 10, padding: '10px 14px', marginBottom: 16 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(132,204,22,0.08)', border: '1px solid rgba(132,204,22,0.3)', borderRadius: 10, padding: '10px 14px', marginBottom: 12 }}>
             <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Mensalidade (soma das ferramentas · preços em <strong>Admin → Preços</strong>)</span>
             <strong style={{ color: 'var(--primary)', fontSize: '1.05rem' }}>R$ {totalMensal.toFixed(2)}/mês</strong>
           </div>
+
+          {isEdit && (
+            <div className="form-group">
+              <label>Cupom de desconto do cliente</label>
+              {cupomAtual ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(132,204,22,0.1)', border: '1px solid rgba(132,204,22,0.3)', borderRadius: 10, padding: '10px 14px' }}>
+                  <i className="fa-solid fa-ticket" style={{ color: 'var(--primary)' }} />
+                  <span style={{ flex: 1 }}><strong>{cupomAtual.codigo}</strong> · {cupomAtual.tipo === 'percent' ? `${cupomAtual.valor}%` : `R$ ${Number(cupomAtual.valor).toFixed(2)}`} de desconto · {cupomAtual.duracaoMeses == null ? 'para sempre' : `${cupomAtual.duracaoMeses} mês(es)`}</span>
+                  <button type="button" className="btn-secondary" style={{ padding: '4px 10px', color: '#ef4444' }} disabled={cupomBusy} onClick={() => aplicarCupomEmpresa('')}>Remover</button>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <input value={cupomInput} onChange={(e) => setCupomInput(e.target.value.toUpperCase())} placeholder="Código do cupom" style={{ flex: 1, textTransform: 'uppercase' }} />
+                  <button type="button" className="btn-secondary" disabled={cupomBusy || !cupomInput.trim()} onClick={() => aplicarCupomEmpresa(cupomInput.trim())}>Aplicar</button>
+                </div>
+              )}
+              <small style={{ color: 'var(--text-muted)' }}>Aplica na hora, sem precisar salvar. O desconto entra no valor cobrado.</small>
+            </div>
+          )}
 
           <button type="submit" className="btn-primary full-width" disabled={saving} style={{ marginTop: '1rem' }}>{saving ? 'Salvando...' : 'Salvar Cliente'}</button>
         </form>

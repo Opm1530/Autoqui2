@@ -23,7 +23,7 @@ import {
 import { startCampaignJobs } from './campaigns.js';
 import { getCrmConfig, saveCrmConfig } from './crm.js';
 import { getPricing, savePricing } from './pricing.js';
-import { listCoupons, saveCoupon, deleteCoupon, validateCoupon } from './coupons.js';
+import { listCoupons, saveCoupon, deleteCoupon, validateCoupon, applyCouponToCompany } from './coupons.js';
 import { createDoc, updateDoc, deleteDoc } from './collections.js';
 import { loadUser } from './currentUser.js';
 import { assertInstanceOwner, assertCanCreate, shareQr, qrByToken, statusByToken } from './waInstances.js';
@@ -317,6 +317,7 @@ app.get('/api/coupons', requireAuth, wrap((req) => listCoupons(req.uid)));
 app.post('/api/coupons/save', requireAuth, wrap((req) => saveCoupon(req.uid, req.body || {})));
 app.post('/api/coupons/delete', requireAuth, wrap((req) => deleteCoupon(req.uid, String(req.body?.id))));
 app.get('/api/coupons/validate', wrap((req) => validateCoupon(String(req.query.codigo || ''))));
+app.post('/api/coupons/apply-company', requireAuth, wrap((req) => applyCouponToCompany(req.uid, String(req.body?.companyId), String(req.body?.codigo || ''))));
 
 app.get('/api/crm/config', requireAuth, wrap((req) => getCrmConfig(req.uid)));
 app.post('/api/crm/config', requireAuth, wrap((req) => saveCrmConfig(req.uid, req.body || {})));
