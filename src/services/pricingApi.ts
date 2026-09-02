@@ -23,6 +23,7 @@ export const pricingApi = {
 export const CANAIS_FEAT = [
   { key: 'venda_catalogo', label: 'Catálogo', icon: 'fa-bag-shopping', desc: 'Loja com carrinho e pagamento (PIX/Mercado Pago)' },
   { key: 'vitrine', label: 'Vitrine', icon: 'fa-image', desc: 'Mostruário; pedido direto no WhatsApp' },
+  { key: 'farmaqui', label: 'FarmaQui', icon: 'fa-prescription-bottle-medical', desc: 'Captação de leads, recompra e automações para farmácia' },
   { key: 'ecommerce', label: 'E-commerce (NuvemShop)', icon: 'fa-store', desc: 'Integração com loja NuvemShop' },
   { key: 'agendamento', label: 'Agendamento', icon: 'fa-calendar-check', desc: 'Agenda de serviços com lembretes' },
 ];

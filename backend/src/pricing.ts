@@ -4,12 +4,12 @@ import { db, getDoc } from './firebase.js';
 import { loadUser } from './currentUser.js';
 
 // Canais (escolha 1) e adicionais (somam). Espelha CANAIS do admin.
-export const CANAIS = new Set(['venda_catalogo', 'vitrine', 'ecommerce', 'agendamento']);
+export const CANAIS = new Set(['venda_catalogo', 'vitrine', 'farmaqui', 'ecommerce', 'agendamento']);
 export const ADICIONAIS = new Set(['crm', 'disparo', 'atendimento']);
 const FEATURES = [...CANAIS, ...ADICIONAIS];
 
 const DEFAULT_PRECOS: Record<string, number> = {
-  venda_catalogo: 163, vitrine: 43, ecommerce: 0, agendamento: 0,
+  venda_catalogo: 163, vitrine: 43, farmaqui: 0, ecommerce: 0, agendamento: 0,
   crm: 0, disparo: 0, atendimento: 0,
 };
 // Desconto aplicado sobre a soma dos ADICIONAIS, conforme a quantidade deles.
