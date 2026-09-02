@@ -7,6 +7,7 @@ import { toast } from '../../services/toast';
 import { confirm } from '../../services/confirm';
 import { useAuth } from '../useAuth';
 import { SkeletonCards } from '../components/Skeleton';
+import { pricingApi } from '../../services/pricingApi';
 
 type Tool = {
   key: string;
@@ -35,6 +36,7 @@ export function Tools() {
   const navigate = useNavigate();
   const companyId = user?.companyId || '';
   const [modulos, setModulos] = useState<string[] | null>(null);
+  const [precos, setPrecos] = useState<Record<string, number>>({});
   const [busy, setBusy] = useState('');
 
   async function load() {
@@ -42,8 +44,10 @@ export function Tools() {
     setModulos(company?.modulos_ativos || []);
   }
   useEffect(() => { if (companyId) load(); }, [companyId]);
+  useEffect(() => { pricingApi.get().then((p) => setPrecos(p.precos || {})).catch(() => {}); }, []);
 
   const isActive = (t: Tool) => !!modulos?.includes(t.key);
+  const precoDe = (t: Tool) => precos[t.key] || 0;
 
   async function activate(t: Tool) {
     // Canal é exclusivo: se já houver outro canal ativo, exige confirmação por digitação.
@@ -63,6 +67,18 @@ export function Tools() {
           return;
         }
       }
+    }
+    // Ferramenta paga: avisa o valor extra antes de ativar.
+    const preco = precoDe(t);
+    if (preco > 0 && t.group !== 'canal') {
+      const ok = await confirm.show({
+        title: `Ativar ${t.name}`,
+        message: `Isso adiciona <strong>R$ ${preco.toFixed(2)}/mês</strong> à sua assinatura (com desconto por combo quando houver). A cobrança entra no próximo ciclo. Deseja ativar?`,
+        confirmText: 'Ativar',
+        cancelText: 'Cancelar',
+        type: 'warning',
+      });
+      if (!ok) return;
     }
     setBusy(t.key);
     try {
@@ -131,6 +147,10 @@ export function Tools() {
           </div>
         </div>
         <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', lineHeight: 1.6, margin: 0, flex: 1 }}>{t.desc}</p>
+
+        {!t.soon && precoDe(t) > 0 && (
+          <div style={{ fontWeight: 800, color: t.color }}>R$ {precoDe(t).toFixed(2)}<span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 400 }}>/mês</span></div>
+        )}
 
         {t.soon ? (
           <button className="btn-secondary" disabled style={{ justifyContent: 'center', opacity: 0.7 }}>Em breve</button>

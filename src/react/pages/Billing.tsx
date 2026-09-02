@@ -5,19 +5,10 @@ import { toast } from '../../services/toast';
 import { confirm } from '../../services/confirm';
 import { useAuth } from '../useAuth';
 import { SkeletonCards } from '../components/Skeleton';
-import { lojasLabel } from '../util/plan';
+import { pricingApi, ALL_FEAT, CANAIS_FEAT } from '../../services/pricingApi';
 
-// Explicação do plano montada a partir dos campos cadastrados no admin.
-function planFeatures(p: any): string[] {
-  const feats: string[] = [];
-  const isVitrine = (p.modulos || []).includes('vitrine');
-  feats.push(isVitrine
-    ? 'Vitrine online: mostruário de produtos e pedidos direto no WhatsApp'
-    : 'Catálogo completo: carrinho e pagamento (PIX / Mercado Pago)');
-  feats.push(`Inclui ${lojasLabel(p.maxLojas)}`);
-  if (p.toleranciaDias) feats.push(`${p.toleranciaDias} dias de tolerância se um pagamento falhar`);
-  return feats;
-}
+const CANAL_KEYS = new Set(CANAIS_FEAT.map((f) => f.key));
+const featLabel = (k: string) => ALL_FEAT.find((f) => f.key === k)?.label || k;
 
 const STATUS_LABEL: Record<string, { label: string; color: string }> = {
   authorized: { label: 'Ativa', color: '#34d399' },
@@ -29,39 +20,47 @@ const STATUS_LABEL: Record<string, { label: string; color: string }> = {
 
 // `wall` = renderiza como parede de cobrança (inadimplente/bloqueado).
 export function Billing({ wall = false }: { wall?: boolean }) {
-  useAuth();
+  const { user } = useAuth();
+  const companyId = user?.companyId || '';
   const [loading, setLoading] = useState(true);
   const [assinatura, setAssinatura] = useState<any>(null);
   const [trial, setTrial] = useState<{ emTrial: boolean; dias: number }>({ emTrial: false, dias: 0 });
-  const [plans, setPlans] = useState<any[]>([]);
+  const [precos, setPrecos] = useState<Record<string, number>>({});
+  const [features, setFeatures] = useState<string[]>([]);
   const [busy, setBusy] = useState('');
-  const [showPlans, setShowPlans] = useState(false);
   const [pix, setPix] = useState<{ paymentId: string; qrCode: string; qrCodeBase64: string; valor: number } | null>(null);
   const [pixBusy, setPixBusy] = useState('');
 
   async function load() {
-    const [mine, pl] = await Promise.all([
-      subscriptionApi.mine().catch(() => ({ assinatura: null, emTrial: false, diasRestantesTrial: 0 })),
-      dbService.getAll('planos').catch(() => []),
+    const [mine, pr] = await Promise.all([
+      subscriptionApi.mine().catch(() => ({ assinatura: null, emTrial: false, diasRestantesTrial: 0, companyId: '' })),
+      pricingApi.get().catch(() => ({ precos: {}, descontos: [] })),
     ]);
     setAssinatura(mine.assinatura || null);
     setTrial({ emTrial: !!mine.emTrial, dias: mine.diasRestantesTrial || 0 });
-    setPlans((pl as any[]).filter((p) => p.ativo !== false));
+    setPrecos(pr.precos || {});
+    // Funcionalidades ativas: da assinatura ou (legado) dos módulos da empresa.
+    let feats: string[] = Array.isArray(mine.assinatura?.features) ? mine.assinatura.features : [];
+    if (!feats.length && companyId) {
+      const c = (await dbService.get('companies', companyId).catch(() => null)) as any;
+      feats = Array.isArray(c?.modulos_ativos) ? c.modulos_ativos : [];
+    }
+    setFeatures(feats);
     setLoading(false);
   }
   useEffect(() => { load(); }, []);
 
-  async function subscribe(planId: string) {
-    setBusy(planId);
+  async function subscribe() {
+    setBusy('go');
     try {
-      const { init_point } = await subscriptionApi.subscribe(planId);
+      const { init_point } = await subscriptionApi.subscribe();
       window.location.href = init_point; // redireciona pro checkout do Mercado Pago
     } catch (e: any) { toast.error('Erro ao iniciar assinatura: ' + (e.message || e)); setBusy(''); }
   }
-  async function payPix(planId: string) {
-    setPixBusy(planId);
+  async function payPix() {
+    setPixBusy('go');
     try {
-      const data = await subscriptionApi.subscribePix(planId);
+      const data = await subscriptionApi.subscribePix();
       if (!data.qrCode) throw new Error('sem QR');
       setPix({ paymentId: data.paymentId, qrCode: data.qrCode, qrCodeBase64: data.qrCodeBase64, valor: data.valor });
     } catch (e: any) { toast.error('Erro ao gerar PIX: ' + (e.message || e)); }
@@ -95,11 +94,11 @@ export function Billing({ wall = false }: { wall?: boolean }) {
 
   // Em teste, mostra "Teste grátis" mesmo que o status cru seja outro (ex.: cancelou no meio).
   const badge = trial.emTrial ? STATUS_LABEL.trial : (assinatura?.status ? STATUS_LABEL[assinatura.status] : null);
-  // Já tem plano/funcionalidades definidos e ainda não pagou (teste/pendente): só falta pagar.
-  const temAlaCarte = !!(assinatura && Array.isArray(assinatura.features) && assinatura.features.length);
-  const temPlanoParaPagar = !!(assinatura && (assinatura.planId || temAlaCarte) && assinatura.status !== 'authorized' && assinatura.status !== 'cancelled');
-  // Mostra a grade só quando não há plano definido, ou o dono pediu pra trocar.
-  const mostrarGrade = showPlans || (!temPlanoParaPagar && (!assinatura || assinatura.status !== 'authorized'));
+  // À la carte: tem o que cobrar quando há funcionalidades ativas e ainda não pagou.
+  const temPlanoParaPagar = !!(assinatura && features.length && assinatura.status !== 'authorized' && assinatura.status !== 'cancelled');
+  const bruto = features.reduce((s, k) => s + (precos[k] || 0), 0);
+  const total = Number(assinatura?.valor) || bruto;
+  const desconto = Math.max(0, bruto - total);
 
   return (
     <div style={{ maxWidth: 720, margin: wall ? '2rem auto' : '0 auto' }}>
@@ -136,8 +135,8 @@ export function Billing({ wall = false }: { wall?: boolean }) {
               <i className="fa-solid fa-crown" />
             </div>
             <div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.03em' }}>Plano atual</div>
-              <div style={{ fontWeight: 700, fontSize: '1.1rem', margin: '2px 0 6px' }}>{assinatura.planoNome || '—'} {assinatura.valor ? `· R$ ${Number(assinatura.valor).toFixed(2)}/mês` : ''}</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.03em' }}>Sua assinatura</div>
+              <div style={{ fontWeight: 800, fontSize: '1.25rem', margin: '2px 0 6px', color: 'var(--primary)' }}>R$ {total.toFixed(2)}<span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 400 }}>/mês</span></div>
               {badge && <span className="badge" style={{ background: badge.color + '22', color: badge.color, border: `1px solid ${badge.color}44` }}><i className="fa-solid fa-circle" style={{ fontSize: '0.5rem', marginRight: 5, verticalAlign: 'middle' }} />{badge.label}</span>}
             </div>
           </div>
@@ -145,14 +144,11 @@ export function Billing({ wall = false }: { wall?: boolean }) {
             {assinatura.status === 'authorized' && <button className="btn-secondary" style={{ color: '#f87171', borderColor: 'rgba(239,68,68,0.35)' }} onClick={cancel}>Cancelar assinatura</button>}
             {temPlanoParaPagar && (
               <>
-                <button className="btn-primary" style={{ justifyContent: 'center' }} disabled={busy === assinatura.planId} onClick={() => subscribe(assinatura.planId)}>
-                  {busy === assinatura.planId ? 'Redirecionando...' : <><i className="fa-solid fa-credit-card" /> {trial.emTrial ? 'Assinar no cartão' : 'Pagar no cartão'}</>}
+                <button className="btn-primary" style={{ justifyContent: 'center' }} disabled={busy === 'go'} onClick={() => subscribe()}>
+                  {busy === 'go' ? 'Redirecionando...' : <><i className="fa-solid fa-credit-card" /> {trial.emTrial ? 'Assinar no cartão' : 'Pagar no cartão'}</>}
                 </button>
-                <button className="btn-secondary" style={{ justifyContent: 'center' }} disabled={pixBusy === assinatura.planId} onClick={() => payPix(assinatura.planId)}>
-                  {pixBusy === assinatura.planId ? 'Gerando PIX...' : <><i className="fa-brands fa-pix" /> Pagar 1 mês no PIX</>}
-                </button>
-                <button className="btn-link" style={{ fontSize: '0.8rem', color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }} onClick={() => setShowPlans((v) => !v)}>
-                  {showPlans ? 'Ocultar outros planos' : 'Ver outros planos'}
+                <button className="btn-secondary" style={{ justifyContent: 'center' }} disabled={pixBusy === 'go'} onClick={() => payPix()}>
+                  {pixBusy === 'go' ? 'Gerando PIX...' : <><i className="fa-brands fa-pix" /> Pagar 1 mês no PIX</>}
                 </button>
               </>
             )}
@@ -160,37 +156,28 @@ export function Billing({ wall = false }: { wall?: boolean }) {
         </div>
       )}
 
-      {/* Planos disponíveis */}
-      {mostrarGrade && (
-        <>
-          <h3 style={{ marginBottom: 12 }}>{temPlanoParaPagar ? 'Trocar de plano' : trial.emTrial ? 'Assine para continuar após o teste' : assinatura ? 'Reative escolhendo um plano' : 'Escolha um plano'}</h3>
-          {plans.length === 0 ? (
-            <div className="card" style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>Nenhum plano disponível no momento. Contate o administrador.</div>
-          ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '1.25rem' }}>
-              {plans.map((p) => (
-                <div key={p.id} className="card" style={{ display: 'flex', flexDirection: 'column', gap: 12, borderTop: '4px solid var(--primary)' }}>
-                  <div style={{ fontWeight: 700, fontSize: '1.05rem' }}>{p.nome}</div>
-                  <div style={{ fontSize: '1.7rem', fontWeight: 800, color: 'var(--primary)' }}>R$ {Number(p.valor).toFixed(2)}<span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 400 }}>/mês</span></div>
-                  <ul style={{ listStyle: 'none', margin: '2px 0 0', padding: 0, display: 'flex', flexDirection: 'column', gap: 8, flex: 1 }}>
-                    {planFeatures(p).map((f, i) => (
-                      <li key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
-                        <i className="fa-solid fa-circle-check" style={{ color: 'var(--primary)', marginTop: 3, flexShrink: 0 }} />
-                        <span>{f}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  <button className="btn-primary" style={{ justifyContent: 'center' }} disabled={busy === p.id} onClick={() => subscribe(p.id)}>
-                    {busy === p.id ? 'Redirecionando...' : <><i className="fa-solid fa-credit-card" /> Assinar no cartão</>}
-                  </button>
-                  <button className="btn-secondary" style={{ justifyContent: 'center' }} disabled={pixBusy === p.id} onClick={() => payPix(p.id)}>
-                    {pixBusy === p.id ? 'Gerando PIX...' : <><i className="fa-brands fa-pix" /> 1 mês no PIX</>}
-                  </button>
-                </div>
-              ))}
+      {/* Detalhe das funcionalidades assinadas */}
+      {features.length > 0 && (
+        <div className="card" style={{ marginBottom: '1.5rem' }}>
+          <h4 style={{ margin: '0 0 12px' }}><i className="fa-solid fa-list-check" style={{ color: 'var(--primary)' }} /> Suas funcionalidades</h4>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {features.map((k) => (
+              <div key={k} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.92rem' }}>
+                <span><i className={`fa-solid ${CANAL_KEYS.has(k) ? 'fa-star' : 'fa-plus'}`} style={{ color: 'var(--text-dim,#94a3b8)', marginRight: 8, fontSize: '0.75rem' }} />{featLabel(k)}{CANAL_KEYS.has(k) && <span style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}> · principal</span>}</span>
+                <span style={{ color: 'var(--text-muted)' }}>R$ {(precos[k] || 0).toFixed(2)}</span>
+              </div>
+            ))}
+            {desconto > 0 && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.92rem', color: '#16a34a', borderTop: '1px solid var(--border-color)', paddingTop: 8 }}>
+                <span>Desconto por combo</span><span>- R$ {desconto.toFixed(2)}</span>
+              </div>
+            )}
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 800, fontSize: '1.05rem', borderTop: '1px solid var(--border-color)', paddingTop: 8 }}>
+              <span>Total mensal</span><span style={{ color: 'var(--primary)' }}>R$ {total.toFixed(2)}</span>
             </div>
-          )}
-        </>
+          </div>
+          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '12px 0 0' }}>Adicione ou remova funcionalidades em <strong>Ferramentas</strong> — o valor se ajusta automaticamente.</p>
+        </div>
       )}
 
       {pix && <PixModal pix={pix} onClose={() => setPix(null)} />}

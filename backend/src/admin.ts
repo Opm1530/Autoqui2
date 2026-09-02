@@ -4,6 +4,7 @@ import { getAuth } from 'firebase-admin/auth';
 import { Timestamp } from 'firebase-admin/firestore';
 import { getDoc, getAll, db } from './firebase.js';
 import { loadUser } from './currentUser.js';
+import { getPricing, computeTotal, CANAIS as PRICE_CANAIS, ADICIONAIS as PRICE_ADICIONAIS } from './pricing.js';
 
 const GRACA_DIAS = 7; // prazo pra assinar quando o admin atribui plano a um cliente existente
 
@@ -77,7 +78,7 @@ const TOOLS = new Set(['venda_catalogo', 'vitrine', 'atendimento', 'agendamento'
 const PAGE_KEYS = new Set(['orders', 'products', 'categories', 'combos', 'catalog-settings', 'leads', 'crm', 'campaigns', 'farmaqui', 'ecommerce', 'schedule', 'business', 'instances']);
 const sanitizePermissions = (v: any): string[] => (Array.isArray(v) ? v : []).map((k) => String(k)).filter((k) => PAGE_KEYS.has(k));
 const CANAIS = new Set(['venda_catalogo', 'vitrine', 'agendamento', 'ecommerce', 'farmaqui']);
-export async function toggleTool(uid: string, toolKey: string, active: boolean): Promise<{ modulos: string[] }> {
+export async function toggleTool(uid: string, toolKey: string, active: boolean): Promise<{ modulos: string[]; valor?: number }> {
   const user = await getUser(uid);
   if (user.role !== 'owner' && user.role !== 'admin') throw new Error('forbidden');
   const companyId = user.companyId;
@@ -93,8 +94,13 @@ export async function toggleTool(uid: string, toolKey: string, active: boolean):
   } else {
     mods = mods.filter((m) => m !== toolKey);
   }
-  await db.collection('companies').doc(companyId).update({ modulos_ativos: mods });
-  return { modulos: mods };
+  // À la carte: as funcionalidades ativas definem a assinatura. Recalcula o total.
+  const valid = new Set([...PRICE_CANAIS, ...PRICE_ADICIONAIS]);
+  const features = mods.filter((m) => valid.has(m));
+  const { total } = computeTotal(features, await getPricing());
+  const assinatura = { ...((company as any)?.assinatura || {}), features, valor: total, atualizadoEm: Timestamp.now() };
+  await db.collection('companies').doc(companyId).update({ modulos_ativos: mods, assinatura });
+  return { modulos: mods, valor: total };
 }
 
 export async function toggleCompanyStatus(uid: string, id: string, status: string): Promise<{ ok: boolean }> {

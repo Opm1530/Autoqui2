@@ -150,16 +150,11 @@ export async function listPublicPlans(): Promise<Array<{ id: string; nome: strin
 
 // Resolve quanto/por quê cobrar: plano legado (planId) OU total à la carte
 // (recalculado das features salvas na empresa, refletindo os preços atuais).
-async function resolveCharge(uid: string, planId?: string): Promise<{ user: any; company: any; valor: number; reason: string; extra: any }> {
+async function resolveCharge(uid: string, _planId?: string): Promise<{ user: any; company: any; valor: number; reason: string; extra: any }> {
   const user = await getUser(uid);
   if (!user.companyId) throw new Error('no_company');
   const company = await getDoc('companies', user.companyId);
-  if (planId) {
-    const plano = await getDoc('planos', planId);
-    const valor = Number(plano?.valor);
-    if (!plano || !valor || valor <= 0) throw new Error('plano_invalido');
-    return { user, company, valor, reason: plano.nome, extra: { planId, planoNome: plano.nome, maxLojas: plano.maxLojas || 1 } };
-  }
+  // Modelo à la carte: total sempre calculado das funcionalidades ativas (sem plano).
   const a = (company as any)?.assinatura || {};
   // Sem features na assinatura (cliente antigo migrando): usa os módulos ativos da empresa.
   const modulos: string[] = Array.isArray((company as any)?.modulos_ativos) ? (company as any).modulos_ativos : [];

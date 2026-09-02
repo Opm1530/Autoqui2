@@ -34,7 +34,6 @@ const ADMIN_NAV: NavEntry[] = [
   { to: '/admin/dashboard', label: 'Dashboard', icon: 'fa-chart-line' },
   { to: '/admin/companies', label: 'Clientes', icon: 'fa-building' },
   { to: '/admin/users', label: 'Usuários', icon: 'fa-users' },
-  { to: '/admin/plans', label: 'Planos', icon: 'fa-tags' },
   { to: '/admin/pricing', label: 'Preços', icon: 'fa-dollar-sign' },
   { to: '/admin/webhooks', label: 'Webhooks', icon: 'fa-link' },
   { to: '/admin/migration', label: 'Migração', icon: 'fa-clone' },
