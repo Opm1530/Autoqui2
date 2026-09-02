@@ -73,6 +73,9 @@ export async function saveCompany(uid: string, payload: { id?: string; data: any
 // Auto-serviço. Dois tipos: CANAIS ("como você vende") são mutuamente exclusivos
 // — só um por conta; CAMADAS (IA, campanhas) somam livremente.
 const TOOLS = new Set(['venda_catalogo', 'vitrine', 'atendimento', 'agendamento', 'disparo', 'ecommerce', 'farmaqui', 'crm']);
+// Páginas que um colaborador pode receber acesso (validação das permissões).
+const PAGE_KEYS = new Set(['orders', 'products', 'categories', 'combos', 'catalog-settings', 'leads', 'crm', 'campaigns', 'farmaqui', 'ecommerce', 'schedule', 'business', 'instances']);
+const sanitizePermissions = (v: any): string[] => (Array.isArray(v) ? v : []).map((k) => String(k)).filter((k) => PAGE_KEYS.has(k));
 const CANAIS = new Set(['venda_catalogo', 'vitrine', 'agendamento', 'ecommerce', 'farmaqui']);
 export async function toggleTool(uid: string, toolKey: string, active: boolean): Promise<{ modulos: string[] }> {
   const user = await getUser(uid);
@@ -227,7 +230,7 @@ export async function removeStore(uid: string, companyId: string, storeId: strin
 // ─── USERS ───────────────────────────────────────────────────────────────────
 
 // Dono cria colaborador na própria empresa. Cria no Auth + doc users.
-export async function createEmployee(uid: string, payload: { name: string; email: string; password: string; storeIds?: string[] }): Promise<{ id: string }> {
+export async function createEmployee(uid: string, payload: { name: string; email: string; password: string; storeIds?: string[]; permissions?: string[] }): Promise<{ id: string }> {
   const user = await getUser(uid);
   if (user.role !== 'owner' && user.role !== 'admin') throw new Error('forbidden');
   if (!user.companyId) throw new Error('no_company');
@@ -235,13 +238,14 @@ export async function createEmployee(uid: string, payload: { name: string; email
   const created = await getAuth().createUser({ email: payload.email, password: payload.password, displayName: payload.name || undefined });
   await db.collection('users').doc(created.uid).set({
     uid: created.uid, name: payload.name || '', email: payload.email, role: 'employee',
-    companyId: user.companyId, storeIds: payload.storeIds || [], active: true, permissions: ['orders', 'products'],
+    companyId: user.companyId, storeIds: payload.storeIds || [], active: true,
+    permissions: sanitizePermissions(payload.permissions),
   });
   return { id: created.uid };
 }
 
 // Atualiza campos de um usuário. Admin em qualquer; dono só na própria empresa.
-export async function updateUser(uid: string, targetId: string, fields: { name?: string; storeIds?: string[] }): Promise<{ ok: boolean }> {
+export async function updateUser(uid: string, targetId: string, fields: { name?: string; storeIds?: string[]; permissions?: string[] }): Promise<{ ok: boolean }> {
   const user = await getUser(uid);
   const target = await getDoc('users', targetId);
   if (!target) throw new Error('not_found');
@@ -249,6 +253,7 @@ export async function updateUser(uid: string, targetId: string, fields: { name?:
   const clean: any = {};
   if (typeof fields.name === 'string') clean.name = fields.name;
   if (Array.isArray(fields.storeIds)) clean.storeIds = fields.storeIds;
+  if (Array.isArray(fields.permissions)) clean.permissions = sanitizePermissions(fields.permissions);
   if (Object.keys(clean).length === 0) throw new Error('nada_para_atualizar');
   await db.collection('users').doc(targetId).update(clean);
   return { ok: true };

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { dbService } from '../../services/db';
 import { adminApi } from '../../services/adminApi';
+import { pagesForModules } from '../util/pages';
 import { toast } from '../../services/toast';
 import { confirm } from '../../services/confirm';
 import { useAuth } from '../useAuth';
@@ -15,6 +16,7 @@ interface Employee {
   storeIds?: string[];
   storeId?: string;
   active?: boolean;
+  permissions?: string[];
 }
 
 export function Users() {
@@ -22,6 +24,7 @@ export function Users() {
   const companyId = user?.companyId || '';
 
   const [stores, setStores] = useState<any[]>([]);
+  const [modulos, setModulos] = useState<string[]>([]);
   const [team, setTeam] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
@@ -35,6 +38,7 @@ export function Users() {
         dbService.getAll('users', { field: 'companyId', operator: '==', value: companyId }),
       ]);
       setStores((companyDoc as any)?.stores || []);
+      setModulos((companyDoc as any)?.modulos_ativos || []);
       setTeam((usersRaw as Employee[]).filter((u) => u.role === 'employee'));
       setLoading(false);
     })();
@@ -132,21 +136,24 @@ export function Users() {
       </div>
 
       {modalOpen && (
-        <EmployeeModal stores={stores} editing={editing}
+        <EmployeeModal stores={stores} modulos={modulos} editing={editing}
           onClose={() => { setModalOpen(false); setEditing(null); }} onSaved={onSaved} />
       )}
     </div>
   );
 }
 
-function EmployeeModal({ stores, editing, onClose, onSaved }: {
-  stores: any[]; editing: Employee | null; onClose: () => void; onSaved: (e: Employee, isNew: boolean) => void;
+function EmployeeModal({ stores, modulos, editing, onClose, onSaved }: {
+  stores: any[]; modulos: string[]; editing: Employee | null; onClose: () => void; onSaved: (e: Employee, isNew: boolean) => void;
 }) {
   const isEdit = !!editing;
   const [name, setName] = useState(editing?.name || '');
   const [email, setEmail] = useState(editing?.email || '');
   const [password, setPassword] = useState('');
   const [saving, setSaving] = useState(false);
+  const paginas = pagesForModules(modulos);
+  const [perms, setPerms] = useState<string[]>(Array.isArray((editing as any)?.permissions) ? (editing as any).permissions : []);
+  const togglePerm = (k: string) => setPerms((p) => (p.includes(k) ? p.filter((x) => x !== k) : [...p, k]));
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -157,13 +164,13 @@ function EmployeeModal({ stores, editing, onClose, onSaved }: {
     setSaving(true);
     try {
       if (isEdit && editing) {
-        await adminApi.updateUser(editing.id, { name, storeIds });
+        await adminApi.updateUser(editing.id, { name, storeIds, permissions: perms });
         toast.success('Colaborador atualizado com sucesso!');
-        onSaved({ ...editing, name, storeIds }, false);
+        onSaved({ ...editing, name, storeIds, permissions: perms } as Employee, false);
       } else {
-        const { id } = await adminApi.createEmployee({ name, email, password, storeIds });
+        const { id } = await adminApi.createEmployee({ name, email, password, storeIds, permissions: perms });
         toast.success('Colaborador adicionado com sucesso!');
-        onSaved({ id, name, email, role: 'employee', storeIds, active: true }, true);
+        onSaved({ id, name, email, role: 'employee', storeIds, active: true, permissions: perms } as Employee, true);
       }
     } catch (err: any) {
       toast.error('Erro: ' + (err.message || err));
@@ -202,6 +209,25 @@ function EmployeeModal({ stores, editing, onClose, onSaved }: {
               <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Mínimo de 6 caracteres" required />
             </div>
           )}
+          <div className="form-group">
+            <label>Páginas que ele pode acessar</label>
+            <p style={{ margin: '2px 0 8px', fontSize: '0.78rem', color: 'var(--text-dim)' }}>O Dashboard é sempre visível. Marque as demais.</p>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              {paginas.map((p) => {
+                const on = perms.includes(p.key);
+                return (
+                  <button type="button" key={p.key} onClick={() => togglePerm(p.key)}
+                    style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 11px', borderRadius: 10, cursor: 'pointer', textAlign: 'left',
+                      border: `1px solid ${on ? 'var(--primary)' : 'var(--border-color)'}`, background: on ? 'rgba(132,204,22,0.1)' : 'transparent', color: 'var(--text-main)' }}>
+                    <i className={`fa-solid ${on ? 'fa-square-check' : 'fa-square'}`} style={{ color: on ? 'var(--primary)' : 'var(--text-dim)' }} />
+                    <i className={`fa-solid ${p.icon}`} style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }} />
+                    <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{p.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+            {paginas.length === 0 && <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Nenhuma ferramenta ativa ainda.</p>}
+          </div>
           <button type="submit" className="btn-primary full-width" disabled={saving} style={{ marginTop: 6 }}>
             {saving ? <><i className="fa-solid fa-spinner fa-spin" /> Salvando...</> : isEdit ? 'Salvar alterações' : 'Adicionar colaborador'}
           </button>

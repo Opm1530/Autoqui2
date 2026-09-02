@@ -21,6 +21,7 @@ export interface AppUser {
     companyId?: string;
     storeId?: string;
     storeIds?: string[];
+    permissions?: string[];
 }
 
 class AuthService {
@@ -65,7 +66,8 @@ class AuthService {
                                 role: userData.role,
                                 companyId: userData.companyId,
                                 storeId: userData.storeId,
-                                storeIds: userData.storeIds
+                                storeIds: userData.storeIds,
+                                permissions: Array.isArray(userData.permissions) ? userData.permissions : [],
                             };
                         } else {
                             // User exists in Auth but not in DB - likely deleted

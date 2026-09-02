@@ -22,8 +22,8 @@ export const adminApi = {
   // pedidos
   deleteOrder: (orderId: string) => authFetch('/api/orders/delete', { orderId }),
   // users
-  createEmployee: (payload: { name: string; email: string; password: string; storeIds?: string[] }) => authFetch('/api/users/create-employee', payload),
-  updateUser: (id: string, fields: { name?: string; storeIds?: string[] }) => authFetch('/api/users/update', { id, fields }),
+  createEmployee: (payload: { name: string; email: string; password: string; storeIds?: string[]; permissions?: string[] }) => authFetch('/api/users/create-employee', payload),
+  updateUser: (id: string, fields: { name?: string; storeIds?: string[]; permissions?: string[] }) => authFetch('/api/users/update', { id, fields }),
   setUserActive: (id: string, active: boolean) => authFetch('/api/users/set-active', { id, active }),
   deleteUser: (id: string) => authFetch('/api/users/delete', { id }),
   // settings

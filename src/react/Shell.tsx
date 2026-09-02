@@ -9,6 +9,7 @@ import { authService } from '../services/auth';
 import { dbService } from '../services/db';
 import { orderNotification } from '../services/orderNotification';
 import { subscriptionApi } from '../services/subscriptionApi';
+import { pagesForModules, employeeCanAccess } from './util/pages';
 import { Billing } from './pages/Billing';
 import { useAuth } from './useAuth';
 
@@ -38,7 +39,7 @@ const ADMIN_NAV: NavEntry[] = [
   { to: '/admin/migration', label: 'Migração', icon: 'fa-clone' },
 ];
 
-function buildNav(role: string | undefined, modulos: string[]): NavEntry[] {
+function buildNav(role: string | undefined, modulos: string[], permissions: string[] = []): NavEntry[] {
   if (role === 'admin') return ADMIN_NAV;
   const has = (m: string) => modulos.includes(m);
   const vitrine = has('vitrine');
@@ -71,6 +72,14 @@ function buildNav(role: string | undefined, modulos: string[]): NavEntry[] {
 
   add({ to: '/dashboard', label: 'Dashboard', icon: 'fa-chart-line' });
 
+  // ── Colaborador: menu montado só com as páginas liberadas pra ele ──
+  if (isEmployee) {
+    const pages = pagesForModules(modulos).filter((p) => permissions.includes(p.key));
+    if (pages.length) nav.push({ section: 'Acesso' });
+    pages.forEach((p) => add({ to: p.route, label: p.label, icon: p.icon }));
+    return nav;
+  }
+
   // ── Canal (só um ativo por vez) ──
   if (vitrine) {
     add(produtosDropdown('Produtos', true));
@@ -97,13 +106,6 @@ function buildNav(role: string | undefined, modulos: string[]): NavEntry[] {
   if (atendimento || vendaCatalogo || venda || vitrine) add({ to: '/leads', label: 'Leads', icon: 'fa-people-group' });
   if (has('crm')) add({ to: '/crm', label: 'CRM', icon: 'fa-table-columns' });
   if (disparo) add({ to: '/campaigns', label: 'Campanhas', icon: 'fa-bullhorn' });
-
-  // Colaborador vê o Negócio (horários/frete/link), mas não Configuração/Ferramentas.
-  if (isEmployee) {
-    nav.push({ section: 'Geral' });
-    add({ to: '/business', label: 'Negócio', icon: 'fa-store' });
-    return nav;
-  }
 
   // ── Geral (dono) ──
   // "Negócio" (hub com Equipe + Instâncias) aparece para TODAS as contas.
@@ -212,9 +214,12 @@ export function Shell() {
   const SEARCH_HINT: Record<string, string> = { '/orders': 'Buscar pedidos…', '/leads': 'Buscar leads…', '/products': 'Buscar produtos…' };
   const isListSearch = location.pathname in SEARCH_HINT;
   const searchPlaceholder = SEARCH_HINT[location.pathname] || 'Buscar em pedidos, produtos, leads…';
-  const nav = buildNav(user?.role, modulos || []);
+  const permissions: string[] = Array.isArray((user as any)?.permissions) ? (user as any).permissions : [];
+  const nav = buildNav(user?.role, modulos || [], permissions);
   const mobile = mobileNav(nav);
   const isEmployee = user?.role === 'employee';
+  // Colaborador sem permissão pra esta página (acesso por URL direta) → tela de bloqueio.
+  const semAcesso = isEmployee && !employeeCanAccess(location.pathname, permissions);
 
   // Inadimplente além da tolerância → parede de cobrança (sem sidebar).
   if (blocked) {
@@ -299,7 +304,13 @@ export function Shell() {
           </div>
         </div>
         <div className="page-container">
-          <Outlet />
+          {semAcesso ? (
+            <div className="card" style={{ maxWidth: 460, margin: '3rem auto', textAlign: 'center', padding: '2.5rem' }}>
+              <i className="fa-solid fa-lock" style={{ fontSize: '2.4rem', color: '#f59e0b', display: 'block', marginBottom: 14 }} />
+              <h2 style={{ margin: '0 0 6px' }}>Sem acesso</h2>
+              <p style={{ color: 'var(--text-muted)' }}>Você não tem permissão para esta página. Fale com o dono da empresa.</p>
+            </div>
+          ) : <Outlet />}
         </div>
 
         {/* Bottom nav (mobile) */}
