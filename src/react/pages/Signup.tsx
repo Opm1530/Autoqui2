@@ -105,27 +105,15 @@ export function Signup() {
           <div style={{ textAlign: 'center', color: 'var(--text-muted)' }}><i className="fa-solid fa-spinner fa-spin" /> Carregando...</div>
         ) : (
           <>
-            <h4 style={{ margin: '0 0 8px' }}>Canal principal <span style={{ fontWeight: 400, color: 'var(--text-muted)', fontSize: '0.82rem' }}>(escolha 1)</span></h4>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(200px,1fr))', gap: 10, marginBottom: 20 }}>
-              {canais.map((f) => { const on = features.includes(f.key); return (
-                <button key={f.key} type="button" onClick={() => toggleCanal(f.key)} style={featCard(on)}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><i className={`fa-solid ${f.icon}`} style={{ color: 'var(--primary)' }} /><strong>{f.label}</strong></div>
-                  <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: '4px 0 8px' }}>{f.desc}</div>
-                  <div style={{ fontWeight: 800, color: 'var(--primary)' }}>{brl(preco(f.key))}<span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 400 }}>/mês</span></div>
-                </button>
-              ); })}
+            <h4 style={secTitle}>Canal principal <span style={secHint}>escolha 1</span></h4>
+            <div style={grid}>
+              {canais.map((f) => <FeatCard key={f.key} f={f} preco={preco(f.key)} on={features.includes(f.key)} tipo="canal" onClick={() => toggleCanal(f.key)} />)}
             </div>
 
             {adicionais.length > 0 && <>
-              <h4 style={{ margin: '0 0 8px' }}>Adicionais <span style={{ fontWeight: 400, color: 'var(--text-muted)', fontSize: '0.82rem' }}>(opcionais — mais itens, mais desconto)</span></h4>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(200px,1fr))', gap: 10, marginBottom: 20 }}>
-                {adicionais.map((f) => { const on = features.includes(f.key); return (
-                  <button key={f.key} type="button" onClick={() => toggleAdic(f.key)} style={featCard(on)}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><i className={`fa-solid ${on ? 'fa-square-check' : 'fa-square'}`} style={{ color: on ? 'var(--primary)' : 'var(--text-dim)' }} /><i className={`fa-solid ${f.icon}`} style={{ color: 'var(--text-muted)' }} /><strong>{f.label}</strong></div>
-                    <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: '4px 0 8px' }}>{f.desc}</div>
-                    <div style={{ fontWeight: 800, color: 'var(--primary)' }}>{brl(preco(f.key))}<span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 400 }}>/mês</span></div>
-                  </button>
-                ); })}
+              <h4 style={secTitle}>Adicionais <span style={secHint}>opcionais · mais itens, mais desconto</span></h4>
+              <div style={grid}>
+                {adicionais.map((f) => <FeatCard key={f.key} f={f} preco={preco(f.key)} on={features.includes(f.key)} tipo="adic" onClick={() => toggleAdic(f.key)} />)}
               </div>
             </>}
 
@@ -150,8 +138,30 @@ export function Signup() {
   );
 }
 
-const featCard = (on: boolean): React.CSSProperties => ({
-  textAlign: 'left', padding: '12px 14px', borderRadius: 12, cursor: 'pointer',
-  border: `2px solid ${on ? 'var(--primary)' : 'var(--border-color)'}`,
-  background: on ? 'rgba(132,204,22,0.08)' : 'var(--surface,#fff)', color: 'var(--text-main)',
-});
+const secTitle: React.CSSProperties = { margin: '0 0 10px', color: '#fff', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: 8 };
+const secHint: React.CSSProperties = { fontWeight: 400, color: 'rgba(255,255,255,0.5)', fontSize: '0.78rem' };
+const grid: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(210px,1fr))', gap: 12, marginBottom: 22 };
+
+function FeatCard({ f, preco, on, tipo, onClick }: { f: { key: string; label: string; icon: string; desc: string }; preco: number; on: boolean; tipo: 'canal' | 'adic'; onClick: () => void }) {
+  return (
+    <button type="button" onClick={onClick}
+      style={{
+        position: 'relative', textAlign: 'left', padding: '14px 15px', borderRadius: 16, cursor: 'pointer',
+        border: `1.5px solid ${on ? '#84cc16' : 'rgba(255,255,255,0.12)'}`,
+        background: on ? 'rgba(132,204,22,0.14)' : 'rgba(255,255,255,0.04)',
+        color: '#fff', transition: 'all 0.15s',
+        boxShadow: on ? '0 0 0 3px rgba(132,204,22,0.15)' : 'none',
+      }}>
+      {/* selo de seleção */}
+      <span style={{ position: 'absolute', top: 12, right: 12, width: 20, height: 20, borderRadius: tipo === 'canal' ? '50%' : 6, border: `2px solid ${on ? '#84cc16' : 'rgba(255,255,255,0.25)'}`, background: on ? '#84cc16' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        {on && <i className="fa-solid fa-check" style={{ color: '#12250f', fontSize: '0.7rem' }} />}
+      </span>
+      <div style={{ width: 38, height: 38, borderRadius: 11, background: on ? 'rgba(132,204,22,0.25)' : 'rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>
+        <i className={`fa-solid ${f.icon}`} style={{ color: on ? '#a3e635' : 'rgba(255,255,255,0.8)', fontSize: '1.05rem' }} />
+      </div>
+      <div style={{ fontWeight: 700, fontSize: '0.95rem', paddingRight: 22 }}>{f.label}</div>
+      <div style={{ fontSize: '0.76rem', color: 'rgba(255,255,255,0.55)', margin: '3px 0 10px', lineHeight: 1.4 }}>{f.desc}</div>
+      <div style={{ fontWeight: 800, fontSize: '1.05rem', color: '#a3e635' }}>{brl(preco)}<span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.45)', fontWeight: 400 }}> /mês</span></div>
+    </button>
+  );
+}
