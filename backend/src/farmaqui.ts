@@ -84,10 +84,11 @@ export async function handleIncoming(companyId: string, payload: any): Promise<v
 }
 
 // Cria um lead se ainda não existir (dedupe por telefone). Retorna true se criou.
-async function createLeadIfNew(companyId: string, phoneRaw: string, name: string, origem: string): Promise<boolean> {
+// Cria o lead se ainda não existir. Retorna o id do doc criado, ou null se já existia/ inválido.
+async function createLeadIfNew(companyId: string, phoneRaw: string, name: string, origem: string): Promise<string | null> {
   let phone = phoneRaw.replace(/\D/g, '');
   if (phone.length === 13 && phone.startsWith('55')) phone = phone.substring(2);
-  if (!phone || phone.length < 8) return false;
+  if (!phone || phone.length < 8) return null;
   let leads = await getAll('leads', [
     { field: 'empresaId', operator: '==', value: companyId },
     { field: 'whatsapp', operator: '==', value: phone },
@@ -96,10 +97,10 @@ async function createLeadIfNew(companyId: string, phoneRaw: string, name: string
     { field: 'empresaId', operator: '==', value: companyId },
     { field: 'telefone', operator: '==', value: phone },
   ]);
-  if (leads.length > 0) return false;
+  if (leads.length > 0) return null;
   const now = new Date().toISOString();
-  await db.collection('leads').add({ nome: name || phone, telefone: phone, whatsapp: phone, empresaId: companyId, origem, statusLead: 'lead', criadoEm: now });
-  return true;
+  const ref = await db.collection('leads').add({ nome: name || phone, telefone: phone, whatsapp: phone, empresaId: companyId, origem, statusLead: 'lead', criadoEm: now });
+  return ref.id;
 }
 
 // Extrai leads dos participantes de um grupo.
@@ -165,9 +166,9 @@ export async function createManualLead(uid: string, nome: string, telefone: stri
     const cap = await readCapture(companyId);
     if (cap.instancia) finalNome = (await fetchContactName(cap.instancia, phone).catch(() => '')) || '';
   }
-  const criado = await createLeadIfNew(companyId, phone, finalNome, 'manual');
-  if (!criado) throw new Error('ja_existe');
-  return { ok: true, nome: finalNome };
+  const id = await createLeadIfNew(companyId, phone, finalNome, 'manual');
+  if (!id) throw new Error('ja_existe');
+  return { ok: true, nome: finalNome, id };
 }
 
 // ── Painel (autenticado) ──

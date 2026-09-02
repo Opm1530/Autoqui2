@@ -6,6 +6,7 @@ import { crmApi, type CrmColuna, type CrmTag } from '../../../services/crmApi';
 import { toast } from '../../../services/toast';
 import { confirm } from '../../../services/confirm';
 import { useAuth } from '../../useAuth';
+import { NovoLeadModal } from '../Leads/NovoLeadModal';
 
 const uid = () => `col_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
 const CORES = ['#84cc16', '#0ea5e9', '#f59e0b', '#22c55e', '#ef4444', '#a855f7', '#ec4899', '#14b8a6', '#64748b'];
@@ -25,7 +26,7 @@ export function CRMBoard() {
     try { return new Set(JSON.parse(localStorage.getItem('crm_collapsed') || '[]')); } catch { return new Set(); }
   });
   const [verArquivados, setVerArquivados] = useState(false);
-  const [addOpen, setAddOpen] = useState(false);
+  const [addMode, setAddMode] = useState<null | 'choose' | 'base' | 'novo'>(null);
   const [tagMgrOpen, setTagMgrOpen] = useState(false);
   const [detail, setDetail] = useState<any | null>(null);
   const [editCol, setEditCol] = useState<CrmColuna | null>(null);
@@ -149,7 +150,7 @@ export function CRMBoard() {
           <button className="btn-secondary" onClick={() => setVerArquivados((s) => !s)}
             style={verArquivados ? { background: '#64748b', color: '#fff', borderColor: '#64748b' } : undefined}>
             <i className="fa-solid fa-box-archive" /> {verArquivados ? 'Ver ativos' : `Arquivados (${arquivados.length})`}</button>
-          <button className="btn-primary" onClick={() => setAddOpen(true)}><i className="fa-solid fa-plus" /> Adicionar do meu público</button>
+          <button className="btn-primary" onClick={() => setAddMode('choose')}><i className="fa-solid fa-plus" /> Adicionar lead</button>
         </div>
       </div>
 
@@ -210,7 +211,24 @@ export function CRMBoard() {
         </div>
       )}
 
-      {addOpen && <AddModal candidatos={foraDoBoard} onAdd={addAoBoard} onClose={() => setAddOpen(false)} />}
+      {addMode === 'choose' && (
+        <Overlay onClose={() => setAddMode(null)} title={<><i className="fa-solid fa-plus" /> Adicionar lead</>}>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', margin: '0 0 16px' }}>De onde vem o lead?</p>
+          <div style={{ display: 'grid', gap: 10 }}>
+            <button className="btn-secondary" style={{ justifyContent: 'flex-start', padding: '14px 16px', textAlign: 'left' }} onClick={() => setAddMode('base')}>
+              <i className="fa-solid fa-users" style={{ marginRight: 10, color: 'var(--primary)' }} />
+              <span><strong>Escolher da base</strong><br /><span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Leads/clientes que você já tem</span></span>
+            </button>
+            <button className="btn-secondary" style={{ justifyContent: 'flex-start', padding: '14px 16px', textAlign: 'left' }} onClick={() => setAddMode('novo')}>
+              <i className="fa-solid fa-user-plus" style={{ marginRight: 10, color: 'var(--primary)' }} />
+              <span><strong>Criar novo lead</strong><br /><span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Informe nome e número (edita o resto depois)</span></span>
+            </button>
+          </div>
+        </Overlay>
+      )}
+      {addMode === 'base' && <AddModal candidatos={foraDoBoard} onAdd={addAoBoard} onClose={() => setAddMode(null)} />}
+      {addMode === 'novo' && <NovoLeadModal onClose={() => setAddMode(null)}
+        onCreated={(id) => dataApi.update('leads', id, { crmColuna: colunas[0]?.id || 'novo', crmArquivado: false }).catch(() => { /* aparece em "Adicionar da base" se falhar */ })} />}
       {tagMgrOpen && <TagManager tags={tags} onSave={persistTags} onClose={() => setTagMgrOpen(false)} />}
       {editCol && <EditColumn col={editCol} onSave={(nome, cor) => { saveColEdit(editCol.id, nome, cor); setEditCol(null); }} onClose={() => setEditCol(null)} />}
       {detail && <DetailDrawer lead={detail} colunas={colunas} tags={tags} arquivado={!!detail.crmArquivado}
