@@ -174,7 +174,8 @@ export async function createManualLead(uid: string, nome: string, telefone: stri
 // ── Painel (autenticado) ──
 async function companyOf(uid: string): Promise<string> {
   const user = await loadUser(uid);
-  if (user.role !== 'owner' && user.role !== 'admin') throw new Error('forbidden');
+  // Qualquer membro da empresa (dono, admin ou colaborador) opera dentro da própria
+  // empresa — o acesso às páginas já é controlado pelas permissões do colaborador.
   if (!user.companyId) throw new Error('no_company');
   return user.companyId;
 }

@@ -14,8 +14,6 @@ import { farmaquiApi } from '../../../services/farmaquiApi';
 export function Leads() {
   const { user } = useAuth();
   const companyId = user?.companyId || '';
-  const isOwner = user?.role === 'owner';
-  const userStoreIds: string[] = (user as any)?.storeIds || ((user as any)?.storeId ? [(user as any).storeId] : []);
 
   const [leads, setLeads] = useState<any[]>([]);
   const [isOnlyCatalog, setIsOnlyCatalog] = useState(false);
@@ -43,8 +41,8 @@ export function Leads() {
     if (!companyId) return;
     const q = query(collection(db, 'leads'), where('empresaId', '==', companyId));
     const unsub = onSnapshot(q, (snap) => {
-      let list = snap.docs.map((d) => ({ id: d.id, ...d.data() })) as any[];
-      if (!isOwner) list = list.filter((l) => l.lojaId && userStoreIds.includes(l.lojaId));
+      const list = snap.docs.map((d) => ({ id: d.id, ...d.data() })) as any[];
+      // Colaborador vê todos os leads da empresa (acesso controlado por permissão de página).
       setLeads(list);
       setLoaded(true);
     });
@@ -100,7 +98,7 @@ export function Leads() {
             </button>
           ))}
         </div>
-        {isOwner && <button className="btn-add" style={{ marginLeft: 'auto' }} onClick={() => setNovoOpen(true)}>Novo lead<span className="btn-add-icon"><i className="fa-solid fa-plus" /></span></button>}
+        <button className="btn-add" style={{ marginLeft: 'auto' }} onClick={() => setNovoOpen(true)}>Novo lead<span className="btn-add-icon"><i className="fa-solid fa-plus" /></span></button>
       </div>
 
       {!loaded ? <SkeletonTable rows={8} cols={isOnlyCatalog ? 3 : 4} /> : (
