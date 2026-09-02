@@ -8,6 +8,7 @@ import { loadUser } from './currentUser.js';
 import { PUBLIC_BASE_URL, PANEL_URL } from './config.js';
 import { Timestamp } from 'firebase-admin/firestore';
 import { getPricing, computeTotal, CANAIS as PRICE_CANAIS, ADICIONAIS as PRICE_ADICIONAIS } from './pricing.js';
+import { findValidCoupon, applyCoupon, couponSnapshot, incCouponUse } from './coupons.js';
 
 const MP_API = 'https://api.mercadopago.com';
 const TRIAL_DIAS = 7; // teste grátis do autocadastro
@@ -20,7 +21,7 @@ function assertAdmin(u: any) { if (u.role !== 'admin') throw new Error('forbidde
 // ID token. Cria a empresa em teste de 7 dias + o doc users (role owner). O
 // backend força o papel e deriva o teto de lojas/módulos do PLANO — o usuário
 // não escolhe isso.
-export async function provisionSignup(uid: string, payload: { companyName: string; features?: string[] }): Promise<{ companyId: string }> {
+export async function provisionSignup(uid: string, payload: { companyName: string; features?: string[]; cupom?: string }): Promise<{ companyId: string }> {
   const companyName = String(payload?.companyName || '').trim();
   if (!companyName) throw new Error('dados_incompletos');
 
@@ -35,6 +36,13 @@ export async function provisionSignup(uid: string, payload: { companyName: strin
   const canal = features.find((f) => PRICE_CANAIS.has(f));
   if (!canal) throw new Error('sem_canal');
   const { total } = computeTotal(features, pricing);
+
+  // Cupom opcional (valida; se ok, aplica no total e guarda snapshot na assinatura).
+  let cupomSnap: any = null;
+  let totalFinal = total;
+  if (payload?.cupom) {
+    try { const c = await findValidCoupon(payload.cupom); cupomSnap = couponSnapshot(c); totalFinal = applyCoupon(total, c); await incCouponUse(c.id!); } catch { /* cupom inválido: ignora silenciosamente no cadastro */ }
+  }
 
   const authUser = await getAuth().getUser(uid);
   const email = authUser.email || '';
@@ -55,7 +63,8 @@ export async function provisionSignup(uid: string, payload: { companyName: strin
     metrics: { totalMessages: 0, totalPayments: 0 },
     assinatura: {
       // Modelo à la carte: guarda as features e o total calculado (sem plano fixo).
-      features, valor: total, planoNome: canal === 'vitrine' ? 'Vitrine' : 'Personalizado', maxLojas: 1,
+      features, valor: totalFinal, planoNome: canal === 'vitrine' ? 'Vitrine' : 'Personalizado', maxLojas: 1,
+      ...(cupomSnap ? { cupom: cupomSnap } : {}),
       status: 'trial', trialAte, inadimplenteDesde: null, atualizadoEm: Timestamp.now(),
     },
   });
@@ -160,8 +169,12 @@ async function resolveCharge(uid: string, _planId?: string): Promise<{ user: any
   const modulos: string[] = Array.isArray((company as any)?.modulos_ativos) ? (company as any).modulos_ativos : [];
   const valid = new Set([...PRICE_CANAIS, ...PRICE_ADICIONAIS]);
   const features: string[] = (Array.isArray(a.features) && a.features.length ? a.features : modulos).filter((f: string) => valid.has(f));
-  const valor = features.length ? computeTotal(features, await getPricing()).total : Number(a.valor);
+  let valor = features.length ? computeTotal(features, await getPricing()).total : Number(a.valor);
   if (!valor || valor <= 0) throw new Error('valor_invalido');
+  // Cupom do sistema (se ainda dentro da duração) desconta a mensalidade.
+  const cupom = a.cupom;
+  const cupomVigente = cupom && (!cupom.expiraEm || Date.now() < (cupom.expiraEm?.toMillis ? cupom.expiraEm.toMillis() : new Date(cupom.expiraEm).getTime()));
+  if (cupomVigente) valor = applyCoupon(valor, cupom);
   return { user, company, valor, reason: 'AutoQui — assinatura', extra: { features, valor } };
 }
 

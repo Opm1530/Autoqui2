@@ -5,6 +5,7 @@ import { Timestamp } from 'firebase-admin/firestore';
 import { getDoc, getAll, db } from './firebase.js';
 import { loadUser } from './currentUser.js';
 import { getPricing, computeTotal, CANAIS as PRICE_CANAIS, ADICIONAIS as PRICE_ADICIONAIS } from './pricing.js';
+import { applyCoupon } from './coupons.js';
 
 const GRACA_DIAS = 7; // prazo pra assinar quando o admin atribui plano a um cliente existente
 
@@ -98,9 +99,12 @@ export async function toggleTool(uid: string, toolKey: string, active: boolean):
   const valid = new Set([...PRICE_CANAIS, ...PRICE_ADICIONAIS]);
   const features = mods.filter((m) => valid.has(m));
   const { total } = computeTotal(features, await getPricing());
-  const assinatura = { ...((company as any)?.assinatura || {}), features, valor: total, atualizadoEm: Timestamp.now() };
+  const cupom = (company as any)?.assinatura?.cupom;
+  const cupomVigente = cupom && (!cupom.expiraEm || Date.now() < (cupom.expiraEm?.toMillis ? cupom.expiraEm.toMillis() : new Date(cupom.expiraEm).getTime()));
+  const valor = cupomVigente ? applyCoupon(total, cupom) : total;
+  const assinatura = { ...((company as any)?.assinatura || {}), features, valor, atualizadoEm: Timestamp.now() };
   await db.collection('companies').doc(companyId).update({ modulos_ativos: mods, assinatura });
-  return { modulos: mods, valor: total };
+  return { modulos: mods, valor };
 }
 
 export async function toggleCompanyStatus(uid: string, id: string, status: string): Promise<{ ok: boolean }> {

@@ -23,6 +23,7 @@ import {
 import { startCampaignJobs } from './campaigns.js';
 import { getCrmConfig, saveCrmConfig } from './crm.js';
 import { getPricing, savePricing } from './pricing.js';
+import { listCoupons, saveCoupon, deleteCoupon, validateCoupon } from './coupons.js';
 import { createDoc, updateDoc, deleteDoc } from './collections.js';
 import { loadUser } from './currentUser.js';
 import { assertInstanceOwner, assertCanCreate, shareQr, qrByToken, statusByToken } from './waInstances.js';
@@ -307,10 +308,15 @@ app.post('/api/plans/delete', requireAuth, wrap((req) => deletePlan(req.uid, Str
 
 // Autocadastro: o front cria a conta no Firebase e chama isto com o ID token.
 // Rate-limit pra não permitir criação de empresas em massa.
-app.post('/api/signup/provision', requireAuth, rateLimit(5, 60_000), wrap((req) => provisionSignup(req.uid, { companyName: String(req.body?.companyName || ''), features: Array.isArray(req.body?.features) ? req.body.features : [] })));
+app.post('/api/signup/provision', requireAuth, rateLimit(5, 60_000), wrap((req) => provisionSignup(req.uid, { companyName: String(req.body?.companyName || ''), features: Array.isArray(req.body?.features) ? req.body.features : [], cupom: req.body?.cupom ? String(req.body.cupom) : undefined })));
 
 app.get('/api/pricing', wrap(() => getPricing()));
 app.post('/api/pricing/save', requireAuth, wrap((req) => savePricing(req.uid, req.body || {})));
+
+app.get('/api/coupons', requireAuth, wrap((req) => listCoupons(req.uid)));
+app.post('/api/coupons/save', requireAuth, wrap((req) => saveCoupon(req.uid, req.body || {})));
+app.post('/api/coupons/delete', requireAuth, wrap((req) => deleteCoupon(req.uid, String(req.body?.id))));
+app.get('/api/coupons/validate', wrap((req) => validateCoupon(String(req.query.codigo || ''))));
 
 app.get('/api/crm/config', requireAuth, wrap((req) => getCrmConfig(req.uid)));
 app.post('/api/crm/config', requireAuth, wrap((req) => saveCrmConfig(req.uid, req.body || {})));

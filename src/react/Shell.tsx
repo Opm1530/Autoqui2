@@ -27,7 +27,7 @@ const TITLES: Record<string, string> = {
   '/schedule': 'Agenda', '/schedule-clients': 'Clientes',
   '/admin/dashboard': 'Dashboard', '/admin/companies': 'Clientes',
   '/admin/users': 'Usuários', '/admin/webhooks': 'Webhooks', '/admin/migration': 'Migração',
-  '/admin/pricing': 'Preços', '/billing': 'Assinatura', '/change-password': 'Alterar Senha',
+  '/admin/pricing': 'Preços', '/admin/coupons': 'Cupons', '/billing': 'Assinatura', '/change-password': 'Alterar Senha',
 };
 
 const ADMIN_NAV: NavEntry[] = [
@@ -35,6 +35,7 @@ const ADMIN_NAV: NavEntry[] = [
   { to: '/admin/companies', label: 'Clientes', icon: 'fa-building' },
   { to: '/admin/users', label: 'Usuários', icon: 'fa-users' },
   { to: '/admin/pricing', label: 'Preços', icon: 'fa-dollar-sign' },
+  { to: '/admin/coupons', label: 'Cupons', icon: 'fa-ticket' },
   { to: '/admin/webhooks', label: 'Webhooks', icon: 'fa-link' },
   { to: '/admin/migration', label: 'Migração', icon: 'fa-clone' },
 ];

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { authService } from '../../services/auth';
 import { pricingApi, CANAIS_FEAT, ADICIONAIS_FEAT, type Pricing } from '../../services/pricingApi';
+import { couponApi } from '../../services/couponApi';
 import { toast } from '../../services/toast';
 
 const CANAL_KEYS = new Set(CANAIS_FEAT.map((f) => f.key));
@@ -17,6 +18,9 @@ export function Signup() {
   const [pricing, setPricing] = useState<Pricing | null>(null);
   const [features, setFeatures] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+  const [cupomInput, setCupomInput] = useState('');
+  const [cupom, setCupom] = useState<{ codigo: string; tipo: 'percent' | 'fixo'; valor: number; duracaoMeses: number | null } | null>(null);
+  const [cupomMsg, setCupomMsg] = useState<{ ok: boolean; texto: string } | null>(null);
 
   useEffect(() => { pricingApi.get().then(setPricing).catch(() => toast.error('Não foi possível carregar os preços.')); }, []);
 
@@ -33,9 +37,25 @@ export function Signup() {
     const tier = (pricing?.descontos || []).filter((d) => addKeys.length >= d.min).sort((a, b) => b.pct - a.pct)[0];
     const pct = tier ? tier.pct : 0;
     const desc = Math.round(adicBruto * pct) / 100;
-    return { base, adicBruto, pct, desc, total: base + adicBruto - desc, temCanal: !!canal, qtdAdic: addKeys.length };
+    const subtotal = base + adicBruto - desc;
+    const cupomDesc = !cupom ? 0 : cupom.tipo === 'percent' ? Math.round(subtotal * cupom.valor) / 100 : Math.min(subtotal, cupom.valor);
+    return { base, adicBruto, pct, desc, subtotal, cupomDesc, total: Math.max(0, subtotal - cupomDesc), temCanal: !!canal, qtdAdic: addKeys.length };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [features, pricing]);
+  }, [features, pricing, cupom]);
+
+  async function aplicarCupom() {
+    const cod = cupomInput.trim();
+    if (!cod) return;
+    try {
+      const c = await couponApi.validate(cod);
+      setCupom(c);
+      const dur = c.duracaoMeses == null ? 'para sempre' : c.duracaoMeses === 1 ? 'no 1º mês' : `por ${c.duracaoMeses} meses`;
+      setCupomMsg({ ok: true, texto: `Cupom aplicado: ${c.tipo === 'percent' ? c.valor + '%' : 'R$ ' + c.valor.toFixed(2)} de desconto ${dur}.` });
+    } catch (e: any) {
+      setCupom(null);
+      setCupomMsg({ ok: false, texto: e.message === 'cupom_expirado' ? 'Cupom expirado.' : e.message === 'cupom_esgotado' ? 'Cupom esgotado.' : 'Cupom inválido.' });
+    }
+  }
 
   const toggleCanal = (k: string) => setFeatures((f) => [...f.filter((x) => !CANAL_KEYS.has(x)), k]); // 1 canal
   const toggleAdic = (k: string) => setFeatures((f) => (f.includes(k) ? f.filter((x) => x !== k) : [...f, k]));
@@ -52,7 +72,7 @@ export function Signup() {
     if (!totais.temCanal) { toast.warning('Escolha um canal principal (Catálogo ou Vitrine).'); return; }
     setLoading(true);
     try {
-      await authService.signUpOwner(email.trim(), password, companyName.trim(), features);
+      await authService.signUpOwner(email.trim(), password, companyName.trim(), features, cupom?.codigo);
       toast.success('Conta criada! Você tem 7 dias de teste grátis.');
       navigate('/dashboard');
     } catch (err: any) {
@@ -117,10 +137,19 @@ export function Signup() {
               </div>
             </>}
 
+            {/* Cupom */}
+            <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+              <input value={cupomInput} onChange={(e) => { setCupomInput(e.target.value.toUpperCase()); setCupom(null); setCupomMsg(null); }} placeholder="Cupom de desconto (opcional)"
+                style={{ flex: 1, padding: '11px 14px', borderRadius: 10, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.16)', color: '#fff', textTransform: 'uppercase' }} onKeyDown={(e) => e.key === 'Enter' && aplicarCupom()} />
+              <button type="button" className="btn-secondary" onClick={aplicarCupom}>Aplicar</button>
+            </div>
+            {cupomMsg && <p style={{ fontSize: '0.8rem', margin: '-4px 0 12px', color: cupomMsg.ok ? '#a3e635' : '#f87171' }}><i className={`fa-solid ${cupomMsg.ok ? 'fa-circle-check' : 'fa-circle-exclamation'}`} /> {cupomMsg.texto}</p>}
+
             {/* Resumo */}
             <div style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(132,204,22,0.35)', borderRadius: 14, padding: 16, marginBottom: 16 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', color: 'rgba(255,255,255,0.7)' }}><span>Canal + adicionais</span><span>{brl(totais.base + totais.adicBruto)}</span></div>
               {totais.desc > 0 && <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', color: '#a3e635', marginTop: 4 }}><span>Desconto ({totais.pct}% em {totais.qtdAdic} adicionais)</span><span>- {brl(totais.desc)}</span></div>}
+              {totais.cupomDesc > 0 && cupom && <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', color: '#a3e635', marginTop: 4 }}><span>Cupom {cupom.codigo}</span><span>- {brl(totais.cupomDesc)}</span></div>}
               <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 800, fontSize: '1.15rem', marginTop: 8, paddingTop: 8, borderTop: '1px solid rgba(255,255,255,0.12)' }}><span>Total mensal</span><span style={{ color: '#a3e635' }}>{brl(totais.total)}</span></div>
               <p style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.55)', margin: '8px 0 0' }}>Cobrado só após os 7 dias de teste. Cancele quando quiser.</p>
             </div>

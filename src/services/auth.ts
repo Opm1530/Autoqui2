@@ -132,7 +132,7 @@ class AuthService {
     // Faz a criação num app SECUNDÁRIO para não disparar o auto-logout do listener
     // (que desloga quem ainda não tem doc `users`). Só depois de provisionar é que
     // logamos na sessão principal — aí o doc já existe.
-    async signUpOwner(email: string, password: string, companyName: string, features: string[]): Promise<void> {
+    async signUpOwner(email: string, password: string, companyName: string, features: string[], cupom?: string): Promise<void> {
         const secondaryApp = initializeApp(firebaseConfig, 'SignupTmp');
         const secondaryAuth = getAuth(secondaryApp);
         try {
@@ -142,7 +142,7 @@ class AuthService {
             const resp = await fetch(`${API_BASE_URL}/api/signup/provision`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                body: JSON.stringify({ companyName, features }),
+                body: JSON.stringify({ companyName, features, cupom }),
             });
             const data = await resp.json().catch(() => ({}));
             if (!resp.ok) throw new Error(data.error || 'falha_ao_provisionar');
