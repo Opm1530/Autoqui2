@@ -305,10 +305,14 @@ export function Shell() {
         </div>
         <div className="page-container">
           {semAcesso ? (
-            <div className="card" style={{ maxWidth: 460, margin: '3rem auto', textAlign: 'center', padding: '2.5rem' }}>
-              <i className="fa-solid fa-lock" style={{ fontSize: '2.4rem', color: '#f59e0b', display: 'block', marginBottom: 14 }} />
-              <h2 style={{ margin: '0 0 6px' }}>Sem acesso</h2>
-              <p style={{ color: 'var(--text-muted)' }}>Você não tem permissão para esta página. Fale com o dono da empresa.</p>
+            <div style={{ minHeight: '70vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+              <div className="card" style={{ maxWidth: 440, width: '100%', textAlign: 'center', padding: '2.75rem 2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+                <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'rgba(245,158,11,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <i className="fa-solid fa-lock" style={{ fontSize: '1.6rem', color: '#f59e0b' }} />
+                </div>
+                <h2 style={{ margin: 0 }}>Sem acesso</h2>
+                <p style={{ color: 'var(--text-muted)', margin: 0, lineHeight: 1.5 }}>Você não tem permissão para esta página. Fale com o dono da empresa.</p>
+              </div>
             </div>
           ) : <Outlet />}
         </div>
