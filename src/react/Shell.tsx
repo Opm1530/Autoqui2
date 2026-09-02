@@ -27,7 +27,7 @@ const TITLES: Record<string, string> = {
   '/schedule': 'Agenda', '/schedule-clients': 'Clientes',
   '/admin/dashboard': 'Dashboard', '/admin/companies': 'Clientes',
   '/admin/users': 'Usuários', '/admin/webhooks': 'Webhooks', '/admin/migration': 'Migração',
-  '/admin/plans': 'Planos', '/admin/pricing': 'Preços', '/billing': 'Assinatura', '/change-password': 'Alterar Senha',
+  '/admin/pricing': 'Preços', '/billing': 'Assinatura', '/change-password': 'Alterar Senha',
 };
 
 const ADMIN_NAV: NavEntry[] = [

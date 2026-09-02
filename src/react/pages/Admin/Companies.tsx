@@ -4,7 +4,7 @@ import { adminApi } from '../../../services/adminApi';
 import { toast } from '../../../services/toast';
 import { confirm } from '../../../services/confirm';
 import { SkeletonTable } from '../../components/Skeleton';
-import { lojasLabel } from '../../util/plan';
+import { pricingApi } from '../../../services/pricingApi';
 
 const MODULE_OPTIONS = [
   { value: 'atendimento', label: 'IA de Atendimento' },
@@ -104,10 +104,10 @@ function CompanyModal({ editing, onClose, onSaved, onRemoved }: { editing: any |
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [modules, setModules] = useState<string[]>(editing?.modulos_ativos || ['atendimento']);
-  const [planId, setPlanId] = useState<string>(editing?.assinatura?.planId || '');
   const [isento, setIsento] = useState<boolean>(!!editing?.isento);
-  const [plans, setPlans] = useState<any[]>([]);
-  useEffect(() => { if (isEdit) dbService.getAll('planos').then((pl) => setPlans((pl as any[]).filter((p) => p.ativo !== false))).catch(() => {}); }, [isEdit]);
+  const [precos, setPrecos] = useState<Record<string, number>>({});
+  useEffect(() => { pricingApi.get().then((p) => setPrecos(p.precos || {})).catch(() => {}); }, []);
+  const totalMensal = modules.reduce((s, m) => s + (precos[m] || 0), 0);
   const [stores, setStores] = useState<StoreRow[]>(() => {
     const init = (editing?.stores || []) as any[];
     if (init.length) return init.map((s) => ({ id: s.id, name: s.name || '', address: s.address || '', active: s.active !== false, frete_ativo: s.frete_ativo !== false, instancia_id: s.instancia_id || null }));
@@ -166,7 +166,7 @@ function CompanyModal({ editing, onClose, onSaved, onRemoved }: { editing: any |
     setSaving(true);
     try {
       const data: any = { name, stores: validStores, limite_instancias: parseInt(limit) || 1, modulos_ativos: modules };
-      if (isEdit) { data.isento = isento; if (planId) data.planId = planId; }
+      if (isEdit) { data.isento = isento; }
       if (isEdit) {
         await adminApi.saveCompany(data, editing.id);
         toast.success('Cliente atualizado com sucesso!');
@@ -188,16 +188,6 @@ function CompanyModal({ editing, onClose, onSaved, onRemoved }: { editing: any |
           <div className="form-group"><label>Nome do Cliente</label><input type="text" value={name} onChange={(e) => setName(e.target.value)} required /></div>
           <div className="form-group"><label>Limite de Instâncias</label><input type="number" min="1" value={limit} onChange={(e) => setLimit(e.target.value)} required /></div>
 
-          {isEdit && (
-            <div className="form-group">
-              <label>Plano</label>
-              <select value={planId} onChange={(e) => setPlanId(e.target.value)}>
-                <option value="">— Sem plano —</option>
-                {plans.map((p) => <option key={p.id} value={p.id}>{p.nome} · R$ {Number(p.valor).toFixed(2)}/mês · {lojasLabel(p.maxLojas)}</option>)}
-              </select>
-              <small style={{ color: 'var(--text-muted)' }}>Ao atribuir um plano, o cliente tem 7 dias para assinar no Mercado Pago antes do bloqueio (a menos que já esteja ativo ou isento).</small>
-            </div>
-          )}
           {isEdit && (
             <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <input id="isento-chk" type="checkbox" checked={isento} onChange={(e) => setIsento(e.target.checked)} style={{ width: 'auto' }} />
@@ -238,6 +228,10 @@ function CompanyModal({ editing, onClose, onSaved, onRemoved }: { editing: any |
                 </button>
               );
             })}
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(132,204,22,0.08)', border: '1px solid rgba(132,204,22,0.3)', borderRadius: 10, padding: '10px 14px', marginBottom: 16 }}>
+            <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Mensalidade (soma das ferramentas · preços em <strong>Admin → Preços</strong>)</span>
+            <strong style={{ color: 'var(--primary)', fontSize: '1.05rem' }}>R$ {totalMensal.toFixed(2)}/mês</strong>
           </div>
 
           <button type="submit" className="btn-primary full-width" disabled={saving} style={{ marginTop: '1rem' }}>{saving ? 'Salvando...' : 'Salvar Cliente'}</button>
