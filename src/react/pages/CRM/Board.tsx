@@ -24,10 +24,11 @@ export function CRMBoard() {
   const [collapsed, setCollapsed] = useState<Set<string>>(() => {
     try { return new Set(JSON.parse(localStorage.getItem('crm_collapsed') || '[]')); } catch { return new Set(); }
   });
-  const [showArquivados, setShowArquivados] = useState(false);
+  const [verArquivados, setVerArquivados] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [tagMgrOpen, setTagMgrOpen] = useState(false);
   const [detail, setDetail] = useState<any | null>(null);
+  const [editCol, setEditCol] = useState<CrmColuna | null>(null);
 
   // ── Carga ──
   useEffect(() => {
@@ -56,7 +57,10 @@ export function CRMBoard() {
   const foraDoBoard = useMemo(() => leads.filter((l) => !l.crmColuna && !l.crmArquivado), [leads]);
   const colIds = useMemo(() => new Set(colunas.map((c) => c.id)), [colunas]);
 
-  const cardsDe = (colId: string, i: number) => noBoard.filter((l) => l.crmColuna === colId || (i === 0 && !colIds.has(l.crmColuna)));
+  const cardsDe = (colId: string, i: number) => {
+    const src = verArquivados ? arquivados : noBoard;
+    return src.filter((l) => l.crmColuna === colId || (i === 0 && !colIds.has(l.crmColuna)));
+  };
 
   // ── Ações em cards ──
   const moveTo = (lead: any, colId: string) => { if (lead.crmColuna === colId) return; dataApi.update('leads', lead.id, { crmColuna: colId }).catch(() => toast.error('Erro ao mover.')); };
@@ -73,11 +77,7 @@ export function CRMBoard() {
 
   // ── Colunas ──
   const addColuna = () => { const nome = 'Nova coluna'; persistColumns([...colunas, { id: uid(), nome, cor: CORES[colunas.length % CORES.length], ordem: colunas.length }]); };
-  const renomearColuna = async (c: CrmColuna) => {
-    const nome = await confirm.prompt({ title: 'Renomear coluna', message: 'Nome da coluna:', placeholder: c.nome, confirmText: 'Salvar' });
-    if (nome && nome.trim()) persistColumns(colunas.map((x) => (x.id === c.id ? { ...x, nome: nome.trim() } : x)));
-  };
-  const recolorColuna = (c: CrmColuna) => { const i = CORES.indexOf(c.cor); const cor = CORES[(i + 1) % CORES.length]; persistColumns(colunas.map((x) => (x.id === c.id ? { ...x, cor } : x))); };
+  const saveColEdit = (id: string, nome: string, cor: string) => persistColumns(colunas.map((x) => (x.id === id ? { ...x, nome: nome.trim() || x.nome, cor } : x)));
   const moverColuna = (idx: number, dir: -1 | 1) => { const j = idx + dir; if (j < 0 || j >= colunas.length) return; const arr = [...colunas]; [arr[idx], arr[j]] = [arr[j], arr[idx]]; persistColumns(arr); };
   const excluirColuna = async (c: CrmColuna) => {
     if (colunas.length <= 1) { toast.warning('Deixe ao menos uma coluna.'); return; }
@@ -146,7 +146,9 @@ export function CRMBoard() {
             <i className={`fa-solid ${density === 'full' ? 'fa-compress' : 'fa-expand'}`} /> {density === 'full' ? 'Compacto' : 'Largo'}
           </button>
           <button className="btn-secondary" onClick={() => setTagMgrOpen(true)}><i className="fa-solid fa-tags" /> Tags</button>
-          <button className="btn-secondary" onClick={() => setShowArquivados((s) => !s)}><i className="fa-solid fa-box-archive" /> {showArquivados ? 'Ocultar arquivados' : `Arquivados (${arquivados.length})`}</button>
+          <button className="btn-secondary" onClick={() => setVerArquivados((s) => !s)}
+            style={verArquivados ? { background: '#64748b', color: '#fff', borderColor: '#64748b' } : undefined}>
+            <i className="fa-solid fa-box-archive" /> {verArquivados ? 'Ver ativos' : `Arquivados (${arquivados.length})`}</button>
           <button className="btn-primary" onClick={() => setAddOpen(true)}><i className="fa-solid fa-plus" /> Adicionar do meu público</button>
         </div>
       </div>
@@ -165,19 +167,20 @@ export function CRMBoard() {
             );
             return (
               <div key={c.id} data-col-drop={c.id}
-                style={{ flexShrink: 0, width: density === 'compact' ? 220 : 280, background: 'var(--surface, #fff)', border: `1px solid ${hoverCol === c.id ? c.cor : 'var(--border-color)'}`, borderTop: `3px solid ${c.cor}`, borderRadius: 12, display: 'flex', flexDirection: 'column', maxHeight: '75vh' }}>
+                style={{ flexShrink: 0, width: density === 'compact' ? 220 : 280, background: 'var(--surface, #fff)', border: `1px solid ${hoverCol === c.id ? c.cor : 'var(--border-color)'}`, borderTop: `3px solid ${c.cor}`, borderRadius: 12, display: 'flex', flexDirection: 'column', minHeight: 360, maxHeight: 'calc(100vh - 220px)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 10px 8px' }}>
                   <span style={{ width: 9, height: 9, borderRadius: 3, background: c.cor, flexShrink: 0 }} />
                   <span style={{ fontWeight: 700, fontSize: '0.9rem', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.nome}</span>
                   <span style={{ color: 'var(--text-muted)', fontSize: '0.78rem', fontWeight: 700 }}>{cards.length}</span>
-                  <ColMenu c={c} idx={idx} total={colunas.length} onRename={() => renomearColuna(c)} onColor={() => recolorColuna(c)}
+                  <ColMenu idx={idx} total={colunas.length} onEdit={() => setEditCol(c)}
                     onLeft={() => moverColuna(idx, -1)} onRight={() => moverColuna(idx, 1)} onCollapse={() => toggleCollapse(c.id)} onDelete={() => excluirColuna(c)} />
                 </div>
                 <div style={{ padding: '0 8px 8px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8, flex: 1 }}>
                   {cards.length === 0 && <p style={{ color: 'var(--text-dim, #94a3b8)', fontSize: '0.8rem', textAlign: 'center', padding: '12px 0' }}>Vazio</p>}
                   {cards.map((l) => (
                     <Card key={l.id} lead={l} density={density} dim={dragId === l.id} tagCor={tagCor}
-                      onPointerDown={(e) => onCardPointerDown(e, l)} />
+                      onPointerDown={verArquivados ? undefined : (e) => onCardPointerDown(e, l)}
+                      onClick={verArquivados ? () => setDetail(l) : undefined} />
                   ))}
                 </div>
               </div>
@@ -189,24 +192,13 @@ export function CRMBoard() {
           </button>
         </div>
       ) : (
-        <ListaView leads={noBoard} colunas={colunas} tagCor={tagCor} onOpen={setDetail} />
+        <ListaView leads={verArquivados ? arquivados : noBoard} colunas={colunas} tagCor={tagCor} onOpen={setDetail} />
       )}
 
-      {showArquivados && (
-        <div className="card" style={{ marginTop: 16 }}>
-          <h4 style={{ margin: '0 0 10px' }}><i className="fa-solid fa-box-archive" /> Arquivados</h4>
-          {arquivados.length === 0 ? <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Nenhum card arquivado.</p> : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              {arquivados.map((l) => (
-                <div key={l.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 0', borderBottom: '1px solid var(--border-color)' }}>
-                  <span style={{ flex: 1, fontWeight: 600 }}>{l.nome || l.leadName || leadPhone(l)}</span>
-                  <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>{leadPhone(l)}</span>
-                  <button className="btn-secondary" style={{ padding: '4px 10px', fontSize: '0.78rem' }} onClick={() => desarquivar(l)}><i className="fa-solid fa-rotate-left" /> Restaurar</button>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+      {verArquivados && (
+        <p style={{ marginTop: 12, color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+          <i className="fa-solid fa-box-archive" /> Mostrando <strong>arquivados</strong> nas colunas em que estavam. Toque em "Ver ativos" para voltar.
+        </p>
       )}
 
       {/* Ghost de arraste */}
@@ -220,20 +212,22 @@ export function CRMBoard() {
 
       {addOpen && <AddModal candidatos={foraDoBoard} onAdd={addAoBoard} onClose={() => setAddOpen(false)} />}
       {tagMgrOpen && <TagManager tags={tags} onSave={persistTags} onClose={() => setTagMgrOpen(false)} />}
-      {detail && <DetailDrawer lead={detail} colunas={colunas} tags={tags}
+      {editCol && <EditColumn col={editCol} onSave={(nome, cor) => { saveColEdit(editCol.id, nome, cor); setEditCol(null); }} onClose={() => setEditCol(null)} />}
+      {detail && <DetailDrawer lead={detail} colunas={colunas} tags={tags} arquivado={!!detail.crmArquivado}
         onMove={(cid: string) => { moveTo(detail, cid); setDetail((d: any) => ({ ...d, crmColuna: cid })); }}
-        onToggleTag={(t: string) => toggleTag(detail, t)} onArquivar={() => arquivar(detail)} onRemover={() => removerDoBoard(detail)} onClose={() => setDetail(null)} />}
+        onToggleTag={(t: string) => toggleTag(detail, t)} onArquivar={() => arquivar(detail)}
+        onRestaurar={() => { desarquivar(detail); setDetail(null); }} onRemover={() => removerDoBoard(detail)} onClose={() => setDetail(null)} />}
     </div>
   );
 }
 
 // ── Card ──
-function Card({ lead, density, dim, tagCor, onPointerDown }: { lead: any; density: string; dim: boolean; tagCor: (n: string) => string; onPointerDown: (e: React.PointerEvent) => void }) {
+function Card({ lead, density, dim, tagCor, onPointerDown, onClick }: { lead: any; density: string; dim: boolean; tagCor: (n: string) => string; onPointerDown?: (e: React.PointerEvent) => void; onClick?: () => void }) {
   const phone = leadPhone(lead);
   const ltags: string[] = Array.isArray(lead.tags) ? lead.tags : [];
   return (
-    <div onPointerDown={onPointerDown}
-      style={{ background: 'var(--bg-color, #f8fafc)', border: '1px solid var(--border-color)', borderRadius: 10, padding: density === 'compact' ? '7px 9px' : '10px 11px', cursor: 'grab', opacity: dim ? 0.35 : 1, touchAction: 'none', userSelect: 'none' }}>
+    <div onPointerDown={onPointerDown} onClick={onClick}
+      style={{ background: 'var(--bg-color, #f8fafc)', border: '1px solid var(--border-color)', borderRadius: 10, padding: density === 'compact' ? '7px 9px' : '10px 11px', cursor: onPointerDown ? 'grab' : 'pointer', opacity: dim ? 0.35 : 1, touchAction: onPointerDown ? 'none' : 'auto', userSelect: 'none' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         <div className="lead-avatar" style={{ width: 26, height: 26, fontSize: '0.68rem', flexShrink: 0 }}>{(lead.nome?.[0] || lead.leadName?.[0] || 'C').toUpperCase()}</div>
         <div style={{ minWidth: 0, flex: 1 }}>
@@ -254,7 +248,7 @@ function Card({ lead, density, dim, tagCor, onPointerDown }: { lead: any; densit
 }
 
 // ── Menu da coluna ──
-function ColMenu({ idx, total, onRename, onColor, onLeft, onRight, onCollapse, onDelete }: any) {
+function ColMenu({ idx, total, onEdit, onLeft, onRight, onCollapse, onDelete }: any) {
   const [open, setOpen] = useState(false);
   return (
     <div style={{ position: 'relative' }}>
@@ -264,8 +258,7 @@ function ColMenu({ idx, total, onRename, onColor, onLeft, onRight, onCollapse, o
           <div onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 40 }} />
           <div style={{ position: 'absolute', right: 0, top: 22, zIndex: 41, background: 'var(--surface, #fff)', border: '1px solid var(--border-color)', borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.15)', padding: 6, minWidth: 170 }}>
             {[
-              { i: 'fa-pen', l: 'Renomear', f: onRename },
-              { i: 'fa-palette', l: 'Mudar cor', f: onColor },
+              { i: 'fa-pen', l: 'Editar', f: onEdit },
               { i: 'fa-chevron-left', l: 'Mover ←', f: onLeft, dis: idx === 0 },
               { i: 'fa-chevron-right', l: 'Mover →', f: onRight, dis: idx === total - 1 },
               { i: 'fa-compress', l: 'Recolher', f: onCollapse },
@@ -370,7 +363,7 @@ function TagManager({ tags, onSave, onClose }: { tags: CrmTag[]; onSave: (t: Crm
 }
 
 // ── Detalhe do card ──
-function DetailDrawer({ lead, colunas, tags, onMove, onToggleTag, onArquivar, onRemover, onClose }: any) {
+function DetailDrawer({ lead, colunas, tags, arquivado, onMove, onToggleTag, onArquivar, onRestaurar, onRemover, onClose }: any) {
   const phone = leadPhone(lead);
   const ltags: string[] = Array.isArray(lead.tags) ? lead.tags : [];
   return (
@@ -394,8 +387,35 @@ function DetailDrawer({ lead, colunas, tags, onMove, onToggleTag, onArquivar, on
       </div>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
         {phone && <a className="btn-secondary" href={`https://wa.me/${phone}`} target="_blank" rel="noreferrer" style={{ textDecoration: 'none' }}><i className="fa-brands fa-whatsapp" /> WhatsApp</a>}
-        <button className="btn-secondary" onClick={onArquivar}><i className="fa-solid fa-box-archive" /> Arquivar</button>
+        {arquivado
+          ? <button className="btn-primary" onClick={onRestaurar}><i className="fa-solid fa-rotate-left" /> Restaurar</button>
+          : <button className="btn-secondary" onClick={onArquivar}><i className="fa-solid fa-box-archive" /> Arquivar</button>}
         <button className="btn-secondary" style={{ color: '#ef4444', borderColor: 'rgba(239,68,68,0.35)' }} onClick={onRemover}><i className="fa-solid fa-xmark" /> Tirar do CRM</button>
+      </div>
+    </Overlay>
+  );
+}
+
+// ── Editar coluna (nome + cor num popup só) ──
+function EditColumn({ col, onSave, onClose }: { col: CrmColuna; onSave: (nome: string, cor: string) => void; onClose: () => void }) {
+  const [nome, setNome] = useState(col.nome);
+  const [cor, setCor] = useState(col.cor);
+  return (
+    <Overlay onClose={onClose} title={<><i className="fa-solid fa-pen" /> Editar coluna</>}>
+      <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Nome</label>
+      <input value={nome} onChange={(e) => setNome(e.target.value)} className="config-input" style={{ width: '100%', margin: '4px 0 16px' }} autoFocus onKeyDown={(e) => e.key === 'Enter' && nome.trim() && onSave(nome, cor)} />
+      <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Cor</label>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, margin: '8px 0 20px' }}>
+        {CORES.map((c) => (
+          <button key={c} onClick={() => setCor(c)} title={c}
+            style={{ width: 32, height: 32, borderRadius: 8, background: c, border: cor === c ? '3px solid var(--text-main)' : '3px solid transparent', cursor: 'pointer' }}>
+            {cor === c && <i className="fa-solid fa-check" style={{ color: '#fff', fontSize: '0.8rem' }} />}
+          </button>
+        ))}
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+        <button className="btn-secondary" onClick={onClose}>Cancelar</button>
+        <button className="btn-primary" disabled={!nome.trim()} onClick={() => onSave(nome, cor)}><i className="fa-solid fa-check" /> Salvar</button>
       </div>
     </Overlay>
   );
