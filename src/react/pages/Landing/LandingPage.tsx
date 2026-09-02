@@ -55,7 +55,7 @@ export function LandingPage() {
           <a href="#faq" className="lp-nav-link" onClick={scrollTo('faq')}>Suporte</a>
           <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
             <Link to={painelTo} className="lp-btn-login">{user ? 'Dashboard' : 'Entrar no painel'}</Link>
-            {!user && <Link to="/signup" className="lp-btn-primary-lp" style={{ padding: '0.55rem 1.2rem' }}>Fazer cadastro</Link>}
+            {!user && <Link to="/signup" className="lp-btn-signup">Fazer cadastro</Link>}
           </div>
         </div>
       </nav>

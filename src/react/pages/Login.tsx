@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { authService } from '../../services/auth';
 import { toast } from '../../services/toast';
 
@@ -58,6 +59,9 @@ export function Login() {
           {loading ? <i className="fa-solid fa-spinner fa-spin" /> : <><i className="fa-solid fa-arrow-right-to-bracket" /> Entrar</>}
         </button>
 
+        <p style={{ textAlign: 'center', margin: '1.25rem 0 0', fontSize: '0.9rem', color: 'rgba(255,255,255,0.7)' }}>
+          Não tem conta? <Link to="/signup" style={{ color: 'var(--primary)', fontWeight: 700 }}>Fazer cadastro</Link>
+        </p>
         <p className="login-foot">AutoQui · Painel de gestão</p>
       </form>
     </div>

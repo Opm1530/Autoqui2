@@ -65,16 +65,16 @@ export function Signup() {
     }
   }
 
-  const card: React.CSSProperties = { maxWidth: step === 1 ? 480 : 720, width: '100%', margin: '5vh auto', padding: '2.5rem 3rem 3rem' };
-  const inp: React.CSSProperties = { width: '100%', padding: '14px 16px', borderRadius: 10 };
+  const card: React.CSSProperties = { maxWidth: step === 1 ? 460 : 720, width: '100%', margin: '5vh auto', padding: '2.5rem 3rem 3rem', background: '#102a1c', color: '#fff', borderRadius: 22, boxShadow: '0 30px 70px -24px rgba(16,42,28,0.5)' };
+  const inp: React.CSSProperties = { width: '100%', padding: '14px 16px', borderRadius: 10, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.16)', color: '#fff' };
 
   return (
     <div className="login-page-container">
-      <div className="card glass" style={card}>
+      <div style={card}>
         <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
           <img src="/logo.png" alt="AutoQui" style={{ width: 56, borderRadius: 14 }} />
           <h2 style={{ marginTop: '1rem' }}>{step === 1 ? 'Criar sua conta' : 'Selecione suas funcionalidades'}</h2>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: 6 }}>
+          <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: '0.9rem', marginTop: 6 }}>
             {step === 1 ? '7 dias de teste grátis. Sem cartão para começar.' : 'Monte seu plano. Você só paga após o teste — e pode mudar depois.'}
           </p>
           <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginTop: 12 }}>
@@ -130,11 +130,11 @@ export function Signup() {
             </>}
 
             {/* Resumo */}
-            <div className="card" style={{ background: 'rgba(132,204,22,0.06)', border: '1px solid rgba(132,204,22,0.3)', marginBottom: 16 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', color: 'var(--text-muted)' }}><span>Canal + adicionais</span><span>{brl(totais.base + totais.adicBruto)}</span></div>
-              {totais.desc > 0 && <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', color: '#16a34a', marginTop: 4 }}><span>Desconto ({totais.pct}% em {totais.qtdAdic} adicionais)</span><span>- {brl(totais.desc)}</span></div>}
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 800, fontSize: '1.15rem', marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--border-color)' }}><span>Total mensal</span><span style={{ color: 'var(--primary)' }}>{brl(totais.total)}</span></div>
-              <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: '8px 0 0' }}>Cobrado só após os 7 dias de teste. Cancele quando quiser.</p>
+            <div style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(132,204,22,0.35)', borderRadius: 14, padding: 16, marginBottom: 16 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', color: 'rgba(255,255,255,0.7)' }}><span>Canal + adicionais</span><span>{brl(totais.base + totais.adicBruto)}</span></div>
+              {totais.desc > 0 && <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', color: '#a3e635', marginTop: 4 }}><span>Desconto ({totais.pct}% em {totais.qtdAdic} adicionais)</span><span>- {brl(totais.desc)}</span></div>}
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 800, fontSize: '1.15rem', marginTop: 8, paddingTop: 8, borderTop: '1px solid rgba(255,255,255,0.12)' }}><span>Total mensal</span><span style={{ color: '#a3e635' }}>{brl(totais.total)}</span></div>
+              <p style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.55)', margin: '8px 0 0' }}>Cobrado só após os 7 dias de teste. Cancele quando quiser.</p>
             </div>
 
             <div style={{ display: 'flex', gap: 10 }}>
