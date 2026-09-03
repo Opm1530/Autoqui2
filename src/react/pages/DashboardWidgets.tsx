@@ -169,17 +169,22 @@ export function SubscriptionCard({ sub }: { sub: any }) {
   const bloqueada = !!sub?.bloqueada;
   const statusMap: Record<string, { label: string; cls: string }> = {
     authorized: { label: 'Ativa', cls: 'success' },
+    pix: { label: 'Ativa · PIX', cls: 'success' },
     trial: { label: 'Em teste', cls: 'info' },
     pending: { label: 'Pendente', cls: 'warning' },
     cancelled: { label: 'Cancelada', cls: 'danger' },
     rejected: { label: 'Recusada', cls: 'danger' },
   };
-  const key = bloqueada ? 'cancelled' : emTrial ? 'trial' : (a?.status || 'pending');
+  // PIX pago libera 30 dias via pixPagoAte, mesmo com status cru "pending".
+  const pixRaw = a?.pixPagoAte;
+  const pixMs = !pixRaw ? null : typeof pixRaw === 'number' ? pixRaw : typeof pixRaw === 'string' ? new Date(pixRaw).getTime() : (pixRaw._seconds ?? pixRaw.seconds) ? (pixRaw._seconds ?? pixRaw.seconds) * 1000 : null;
+  const pixAtivo = !!(pixMs && Date.now() < pixMs);
+  const key = bloqueada ? 'cancelled' : pixAtivo ? 'pix' : emTrial ? 'trial' : (a?.status || 'pending');
   const st = statusMap[key] || { label: key, cls: 'info' };
 
   const title = bloqueada ? 'Regularize sua assinatura'
     : emTrial ? 'Você está no período de teste'
-      : key === 'authorized' ? 'Sua assinatura está ativa'
+      : (key === 'authorized' || key === 'pix') ? 'Sua assinatura está ativa'
         : 'Ative sua assinatura';
   const subtitle = bloqueada ? 'Pagamento pendente — regularize para não perder o acesso ao painel.'
     : emTrial ? `Teste grátis — ${sub?.diasRestantesTrial ?? 0} dia(s) restantes.`
