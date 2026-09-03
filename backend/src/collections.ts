@@ -17,6 +17,7 @@ const COLL: Record<string, CollCfg> = {
   combos: { company: 'empresaId', serverTs: ['criadoEm'] },
   loja_config: { company: 'empresaId' },
   leads: { company: 'empresaId', updateTs: 'updatedAt' },
+  complementos: { company: 'empresaId' },
   clientes: { company: 'companyId' },
   agendamentos: { company: 'companyId' },
   campanhas: { company: 'cliente_id', serverTs: ['criadoEm'], tsFields: ['data_agendamento'] },

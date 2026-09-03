@@ -110,13 +110,20 @@ export async function createCatalogOrder(
   if (!config) throw new Error('loja_nao_encontrada');
   const companyId = config.empresaId;
 
-  // 2. Carrega produtos e combos da empresa.
-  const [products, combos] = await Promise.all([
+  // 2. Carrega produtos, combos e complementos da empresa.
+  const [products, combos, complementos] = await Promise.all([
     getAll('products', { field: 'companyId', operator: '==', value: companyId }),
     getAll('combos', { field: 'empresaId', operator: '==', value: companyId }),
+    getAll('complementos', { field: 'empresaId', operator: '==', value: companyId }).catch(() => []),
   ]);
   const productById = new Map(products.map((p: any) => [p.id, p]));
   const comboById = new Map(combos.map((c: any) => [c.id, c]));
+  const compById = new Map((complementos as any[]).map((g: any) => [g.id, g]));
+  // Grupos de complementos de um produto: referências (complementoIds) ou embutido (legado).
+  const gruposDoProduto = (prod: any): any[] =>
+    Array.isArray(prod.complementoIds) && prod.complementoIds.length
+      ? prod.complementoIds.map((id: string) => compById.get(id)).filter(Boolean)
+      : (Array.isArray(prod.gruposOpcoes) ? prod.gruposOpcoes : []);
 
   // 3. Monta itens com PREÇO DO SERVIDOR e valida estoque.
   const items: any[] = [];
@@ -158,7 +165,7 @@ export async function createCatalogOrder(
       // Complementos: recalcula preço e valida mín/máx a partir dos grupos SALVOS (nunca confia no preço do cliente).
       let extra = 0;
       const opcoesNomes: string[] = [];
-      const grupos: any[] = Array.isArray(prod.gruposOpcoes) ? prod.gruposOpcoes : [];
+      const grupos: any[] = gruposDoProduto(prod);
       if (grupos.length) {
         const escolhidos: string[] = Array.isArray(line.opcoes) ? line.opcoes.map(String) : [];
         for (const g of grupos) {

@@ -7,6 +7,7 @@ export const EMPLOYEE_PAGES: PageDef[] = [
   { key: 'products', label: 'Produtos', route: '/products', icon: 'fa-box', mods: ['venda_catalogo', 'vitrine'] },
   { key: 'categories', label: 'Categorias', route: '/categories', icon: 'fa-tags', mods: ['venda_catalogo', 'vitrine'] },
   { key: 'combos', label: 'Combos', route: '/combos', icon: 'fa-layer-group', mods: ['venda_catalogo'] },
+  { key: 'complementos', label: 'Complementos', route: '/complementos', icon: 'fa-plus-minus', mods: ['venda_catalogo'] },
   { key: 'catalog-settings', label: 'Configuração', route: '/catalog-settings', icon: 'fa-sliders', mods: ['venda_catalogo', 'vitrine'] },
   { key: 'leads', label: 'Leads', route: '/leads', icon: 'fa-people-group', mods: ['venda_catalogo', 'vitrine', 'atendimento', 'farmaqui'] },
   { key: 'crm', label: 'CRM', route: '/crm', icon: 'fa-table-columns', mods: ['crm'] },

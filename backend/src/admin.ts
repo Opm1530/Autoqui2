@@ -81,7 +81,7 @@ export async function saveCompany(uid: string, payload: { id?: string; data: any
 // — só um por conta; CAMADAS (IA, campanhas) somam livremente.
 const TOOLS = new Set(['venda_catalogo', 'vitrine', 'atendimento', 'agendamento', 'disparo', 'ecommerce', 'farmaqui', 'crm']);
 // Páginas que um colaborador pode receber acesso (validação das permissões).
-const PAGE_KEYS = new Set(['orders', 'products', 'categories', 'combos', 'catalog-settings', 'leads', 'crm', 'campaigns', 'farmaqui', 'ecommerce', 'schedule', 'business', 'instances']);
+const PAGE_KEYS = new Set(['orders', 'products', 'categories', 'combos', 'complementos', 'catalog-settings', 'leads', 'crm', 'campaigns', 'farmaqui', 'ecommerce', 'schedule', 'business', 'instances']);
 const sanitizePermissions = (v: any): string[] => (Array.isArray(v) ? v : []).map((k) => String(k)).filter((k) => PAGE_KEYS.has(k));
 const CANAIS = new Set(['venda_catalogo', 'vitrine', 'agendamento', 'ecommerce', 'farmaqui']);
 export async function toggleTool(uid: string, toolKey: string, active: boolean): Promise<{ modulos: string[]; valor?: number }> {

@@ -76,11 +76,17 @@ export function Catalog({ storeId: storeIdProp }: { storeId?: string } = {}) {
         if (!company || !store) { setData({ notFound: true }); setLoading(false); return; }
 
         const modulos = company.modulos_ativos || [];
-        const [productsRaw, categories, combosRaw] = (await Promise.all([
+        const [productsRaw0, categories, combosRaw, complementosRaw] = (await Promise.all([
           dbService.getAll('products', { field: 'companyId', operator: '==', value: company.id }),
           dbService.getAll('categories', { field: 'companyId', operator: '==', value: company.id }),
           dbService.getAll('combos', { field: 'empresaId', operator: '==', value: company.id }).catch(() => []),
-        ])) as [any[], any[], any[]];
+          dbService.getAll('complementos', { field: 'empresaId', operator: '==', value: company.id }).catch(() => []),
+        ])) as [any[], any[], any[], any[]];
+        // Resolve os complementos (referências) em cada produto → product.gruposOpcoes.
+        const compMap = new Map((complementosRaw as any[]).map((g) => [g.id, g]));
+        const productsRaw = (productsRaw0 as any[]).map((p) => (Array.isArray(p.complementoIds) && p.complementoIds.length)
+          ? { ...p, gruposOpcoes: p.complementoIds.map((id: string) => compMap.get(id)).filter(Boolean) }
+          : p);
 
         const config = lojaConfigs[0] || {};
         // Preview: overrides passados pela tela de Configuração (?preview=1&pt=...&c1=...)

@@ -21,7 +21,7 @@ const HELP_WA = 'https://wa.me/5564999983832'; // atendimento da plataforma (ite
 const TITLES: Record<string, string> = {
   '/dashboard': 'Dashboard', '/tools': 'Ferramentas', '/ecommerce': 'E-commerce', '/farmaqui': 'FarmaQui', '/farmaqui/recompra': 'FarmaQui', '/farmaqui/grupo': 'FarmaQui', '/orders': 'Pedidos', '/products': 'Produtos',
   '/leads': 'Leads', '/crm': 'CRM', '/business': 'Negócio', '/users': 'Usuários',
-  '/combos': 'Combos', '/categories': 'Categorias',
+  '/combos': 'Combos', '/complementos': 'Complementos', '/categories': 'Categorias',
   '/instances': 'Instâncias', '/catalog-settings': 'Configuração', '/farmaqui-settings': 'Configuração', '/farmaqui/atendimento': 'Atendimento',
   '/mercado-pago': 'Mercado Pago', '/campaigns': 'Campanhas',
   '/schedule': 'Agenda', '/schedule-clients': 'Clientes',
@@ -63,10 +63,11 @@ function buildNav(role: string | undefined, modulos: string[], permissions: stri
   const add = (item: NavItem) => { const key = item.to || item.label; if (!seen.has(key)) { seen.add(key); nav.push(item); } };
 
   // Dropdown de "Produtos": Catálogo + (Combos) + Categorias.
-  const produtosDropdown = (label: string, comCombos: boolean): NavItem => ({
+  const produtosDropdown = (label: string, comCombos: boolean, comComplementos = false): NavItem => ({
     label, icon: 'fa-box', children: [
       { to: '/products', label: 'Catálogo', icon: 'fa-boxes-stacked' },
       ...(comCombos ? [{ to: '/combos', label: 'Combos', icon: 'fa-layer-group' }] : []),
+      ...(comComplementos ? [{ to: '/complementos', label: 'Complementos', icon: 'fa-plus-minus' }] : []),
       { to: '/categories', label: 'Categorias', icon: 'fa-tags' },
     ],
   });
@@ -82,7 +83,7 @@ function buildNav(role: string | undefined, modulos: string[], permissions: stri
     add({ to: '/schedule', label: 'Agenda', icon: 'fa-calendar-alt' });
   } else if (vendaCatalogo || venda) {
     add({ to: '/orders', label: 'Pedidos', icon: 'fa-clipboard-list' });
-    add(produtosDropdown('Produtos', true));
+    add(produtosDropdown('Produtos', true, true));
   } else if (ecommerce) {
     add({ to: '/ecommerce', label: 'E-commerce', icon: 'fa-store' });
   } else if (farmaqui) {

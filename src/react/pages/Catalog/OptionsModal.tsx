@@ -76,6 +76,7 @@ export function OptionsModal({ product, onClose, onConfirm }: {
                         <span style={{ width: 20, height: 20, flexShrink: 0, borderRadius: isSingle(g) ? '50%' : 6, border: `2px solid ${on ? 'var(--primary-cat, #84cc16)' : '#cbd5e1'}`, background: on ? 'var(--primary-cat, #84cc16)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                           {on && <i className="fa-solid fa-check" style={{ color: '#fff', fontSize: '0.65rem' }} />}
                         </span>
+                        {(it as any).imagemPath && (it as any).downloadToken && <img src={getImageUrl(it)} alt="" style={{ width: 34, height: 34, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }} />}
                         <span style={{ flex: 1, fontSize: '0.9rem' }}>{it.nome}</span>
                         {it.preco > 0 && <span style={{ color: '#65a30d', fontWeight: 700, fontSize: '0.85rem' }}>+ {brl(it.preco)}</span>}
                       </button>

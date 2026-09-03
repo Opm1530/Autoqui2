@@ -10,6 +10,7 @@ import { Orders } from './pages/Orders/Orders';
 import { Products } from './pages/Products/Products';
 import { Categories } from './pages/Products/Categories';
 import { Combos } from './pages/Products/Combos';
+import { Complementos } from './pages/Products/Complementos';
 import { MercadoPago } from './pages/MercadoPago';
 import { Users } from './pages/Users';
 import { Instances } from './pages/Instances';
@@ -123,6 +124,7 @@ export function App() {
             <Route path="/products" element={<Products />} />
             <Route path="/categories" element={<Categories />} />
             <Route path="/combos" element={<Combos />} />
+            <Route path="/complementos" element={<Complementos />} />
             <Route path="/leads" element={<Leads />} />
             <Route path="/crm" element={<CRMBoard />} />
             <Route path="/business" element={<Stores />} />
