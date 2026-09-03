@@ -338,7 +338,9 @@ export function computeAccess(company: any, toleranciaDias: number): { bloqueada
   const livre = (emTrial = false, dias = 0) => ({ bloqueada: false, emTrial, diasRestantesTrial: dias });
   if (!company || company.isento) return livre();
   const a = company.assinatura;
-  if (!a || !a.planId) return livre();
+  // Sujeito a teste/cobrança quem tem plano legado OU funcionalidades/valor (à la carte).
+  const temAssinatura = a && (a.planId || (Array.isArray(a.features) && a.features.length) || Number(a.valor) > 0);
+  if (!temAssinatura) return livre();
   if (a.status === 'authorized') return livre();
 
   // PIX avulso: liberado enquanto os 30 dias pagos não venceram.

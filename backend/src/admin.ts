@@ -46,7 +46,8 @@ export async function saveCompany(uid: string, payload: { id?: string; data: any
         ...(company?.assinatura || {}),
         planId: data.planId, planoNome: plano.nome, valor: plano.valor, maxLojas: plano.maxLojas || 1,
         status: jaAtivo ? 'authorized' : 'pending',
-        trialAte: jaAtivo ? (company?.assinatura?.trialAte || null) : Timestamp.fromMillis(Date.now() + GRACA_DIAS * 86400000),
+        // Nunca reinicia um teste já existente — só define se ainda não houver.
+        trialAte: jaAtivo ? (company?.assinatura?.trialAte || null) : (company?.assinatura?.trialAte || Timestamp.fromMillis(Date.now() + GRACA_DIAS * 86400000)),
         atualizadoEm: Timestamp.now(),
       };
     }
