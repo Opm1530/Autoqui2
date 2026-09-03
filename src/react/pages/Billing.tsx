@@ -88,8 +88,8 @@ export function Billing({ wall = false }: { wall?: boolean }) {
     setRefreshing(true);
     try {
       const { status } = await subscriptionApi.refresh();
-      if (status === 'authorized') { toast.success('Pagamento confirmado! Assinatura ativa.'); await load(); }
-      else toast.warning('Ainda não consta como autorizado no Mercado Pago. Se acabou de pagar, aguarde alguns minutos e tente de novo.');
+      if (status === 'authorized' || status === 'pix_ok') { toast.success('Pagamento confirmado! Acesso liberado.'); await load(); }
+      else toast.warning('Ainda não consta como pago no Mercado Pago. Se acabou de pagar, aguarde alguns minutos e tente de novo.');
     } catch (e: any) { toast.error('Erro ao atualizar: ' + (e.message || e)); }
     finally { setRefreshing(false); }
   }

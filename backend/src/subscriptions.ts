@@ -223,16 +223,31 @@ export async function refreshSubscriptionStatus(uid: string): Promise<{ status: 
   if (!user.companyId) throw new Error('no_company');
   const company = await getDoc('companies', user.companyId);
   const a = (company as any)?.assinatura || {};
-  const preId = a.mpPreapprovalId;
-  if (!preId) return { status: a.status || 'none' };
   const token = await platformToken();
-  const resp = await fetch(`${MP_API}/preapproval/${preId}`, { headers: { Authorization: `Bearer ${token}` } });
-  const pre = await resp.json().catch(() => null);
-  if (!pre?.status) return { status: a.status || 'unknown' };
-  const patch: any = { status: pre.status, atualizadoEm: Timestamp.now() };
-  if (pre.status === 'authorized') patch.inadimplenteDesde = null;
-  await db.collection('companies').doc(user.companyId).set({ assinatura: { ...a, ...patch } }, { merge: true });
-  return { status: pre.status };
+
+  // 1) Cartão recorrente (preapproval): autorizado → assinatura ativa.
+  const preId = a.mpPreapprovalId;
+  if (preId) {
+    const resp = await fetch(`${MP_API}/preapproval/${preId}`, { headers: { Authorization: `Bearer ${token}` } });
+    const pre = await resp.json().catch(() => null);
+    if (pre?.status === 'authorized') {
+      await db.collection('companies').doc(user.companyId).set({ assinatura: { ...a, status: 'authorized', inadimplenteDesde: null, atualizadoEm: Timestamp.now() } }, { merge: true });
+      return { status: 'authorized' };
+    }
+  }
+
+  // 2) PIX avulso: último pagamento aprovado → libera +30 dias.
+  const pixId = a.ultimoPixId;
+  if (pixId) {
+    const r = await fetch(`${MP_API}/v1/payments/${pixId}`, { headers: { Authorization: `Bearer ${token}` } });
+    const pay = await r.json().catch(() => null);
+    if (pay?.status === 'approved') {
+      await aplicarPixAssinatura(user.companyId, String(pay?.metadata?.plan_id || ''), String(pay.id));
+      return { status: 'pix_ok' };
+    }
+  }
+
+  return { status: a.status || 'pending' };
 }
 
 // ── PIX avulso (1 mês) — alternativa manual ao cartão recorrente ────────────
