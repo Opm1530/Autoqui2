@@ -33,37 +33,41 @@ export function Complementos() {
   if (list === null) return <SkeletonTable rows={4} />;
 
   return (
-    <div style={{ maxWidth: 820 }}>
-      <div className="page-heading" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
-        <div><h1>Complementos</h1><p>Crie grupos de opções (adicionais, tamanhos, talheres…) uma vez e reutilize nos produtos.</p></div>
-        <button className="btn-primary" onClick={() => setEdit(vazio())}><i className="fa-solid fa-plus" /> Novo complemento</button>
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, flexWrap: 'wrap', marginBottom: '1.75rem' }}>
+        <div className="page-heading" style={{ marginBottom: 0 }}><h1>Complementos</h1><p>Crie grupos de opções (adicionais, tamanhos, talheres…) uma vez e reutilize nos produtos.</p></div>
+        <button className="btn-add" onClick={() => setEdit(vazio())}>Novo complemento<span className="btn-add-icon"><i className="fa-solid fa-plus" /></span></button>
       </div>
 
-      {list.length === 0 ? (
-        <div className="card" style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
-          <i className="fa-solid fa-layer-group" style={{ fontSize: '2rem', color: 'var(--primary)', display: 'block', marginBottom: 10 }} />
-          Nenhum complemento ainda. Crie o primeiro (ex.: "Adicionais", "Escolha o tamanho").
+      <div className="card">
+        <div className="table-container">
+          <table className="data-table">
+            <thead><tr><th>Complemento</th><th>Regras</th><th>Opções</th><th style={{ width: 80, textAlign: 'right' }}>Ações</th></tr></thead>
+            <tbody>
+              {list.length === 0 ? (
+                <tr><td colSpan={4} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>Nenhum complemento cadastrado ainda. Crie o primeiro (ex.: "Adicionais", "Escolha o tamanho").</td></tr>
+              ) : list.map((g) => (
+                <tr key={g.id}>
+                  <td>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <div style={{ width: 42, height: 42, borderRadius: 8, flexShrink: 0, background: 'rgba(132,204,22,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><i className="fa-solid fa-layer-group" style={{ color: 'var(--primary)' }} /></div>
+                      <div style={{ fontWeight: 600 }}>{g.nome}</div>
+                    </div>
+                  </td>
+                  <td><span className="badge" style={{ background: g.obrigatorio ? 'rgba(239,68,68,0.1)' : 'var(--surface-hover,#f1f5f9)', color: g.obrigatorio ? '#ef4444' : 'var(--text-muted)' }}>{g.obrigatorio ? 'Obrigatório' : 'Opcional'} · {tipoTxt(g)}</span></td>
+                  <td style={{ color: 'var(--text-muted)', fontSize: '0.85rem', maxWidth: 320 }}>
+                    <span style={{ display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{(g.itens || []).map((it) => it.nome + (it.preco > 0 ? ` (+${it.preco.toFixed(2)})` : '')).join(', ')}</span>
+                  </td>
+                  <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                    <button className="btn-secondary" style={{ padding: '4px 9px', marginRight: 6 }} onClick={() => setEdit(g)}><i className="fa-solid fa-pen" /></button>
+                    <button className="btn-secondary" style={{ padding: '4px 9px', color: '#ef4444' }} onClick={() => remover(g)}><i className="fa-solid fa-trash" /></button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-      ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(240px,1fr))', gap: 12 }}>
-          {list.map((g) => (
-            <div key={g.id} className="card" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
-                <strong>{g.nome}</strong>
-                <div style={{ display: 'flex', gap: 4 }}>
-                  <button className="btn-secondary" style={{ padding: '3px 8px' }} onClick={() => setEdit(g)}><i className="fa-solid fa-pen" /></button>
-                  <button className="btn-secondary" style={{ padding: '3px 8px', color: '#ef4444' }} onClick={() => remover(g)}><i className="fa-solid fa-trash" /></button>
-                </div>
-              </div>
-              <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{g.obrigatorio ? 'Obrigatório' : 'Opcional'} · {tipoTxt(g)} · {(g.itens || []).length} opções</div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
-                {(g.itens || []).slice(0, 6).map((it) => <span key={it.id} className="badge" style={{ background: 'var(--surface-hover,#f1f5f9)', color: 'var(--text-muted)', fontSize: '0.72rem' }}>{it.nome}{it.preco > 0 ? ` +${it.preco.toFixed(2)}` : ''}</span>)}
-                {(g.itens || []).length > 6 && <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)' }}>+{g.itens.length - 6}</span>}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+      </div>
 
       {edit && <GrupoModal grupo={edit} companyId={companyId} onClose={() => setEdit(null)} onSaved={() => { setEdit(null); load(); }} />}
     </div>
