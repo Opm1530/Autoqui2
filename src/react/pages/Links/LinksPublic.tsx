@@ -1,6 +1,27 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { dbService } from '../../../services/db';
+import { API_BASE_URL } from '../../../services/api';
+
+// 1ª visita do visitante hoje? (para contar visitantes únicos)
+function linksFirstToday(): boolean {
+  try {
+    const key = 'lk_seen_' + new Date().toISOString().slice(0, 10);
+    if (localStorage.getItem(key)) return false;
+    localStorage.setItem(key, '1');
+    return true;
+  } catch { return false; }
+}
+// Coleta leve (fire-and-forget) — mesma rota da vitrine.
+function linksTrack(tipo: 'links_view' | 'links_click', empresaId: string, lojaId: string, linkId?: string) {
+  if (!empresaId) return;
+  try {
+    const body: any = { empresaId, lojaId, tipo };
+    if (tipo === 'links_view') body.firstToday = linksFirstToday();
+    if (linkId) body.linkId = linkId;
+    fetch(`${API_BASE_URL}/api/track`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), keepalive: true }).catch(() => {});
+  } catch { /* ignore */ }
+}
 
 export interface LinkItem { id: string; titulo: string; url: string; ativo?: boolean; imagemPath?: string; downloadToken?: string }
 export interface RedeItem { tipo: string; url: string }
@@ -40,7 +61,7 @@ export function botaoStyle(t: LinksTema): React.CSSProperties {
 
 // Render puro (reutilizado no preview do editor). `minH` controla a altura do fundo:
 // '100dvh' na página pública (tela toda), '100%' no preview embutido (frame).
-export function LinksView({ page, company, minH = '100%' }: { page: LinksPage; company?: any; minH?: string }) {
+export function LinksView({ page, company, minH = '100%', onLinkClick }: { page: LinksPage; company?: any; minH?: string; onLinkClick?: (id: string) => void }) {
   const t = { ...TEMA_PADRAO, ...(page.tema || {}) };
   const links = (page.links || []).filter((l) => l.ativo !== false && l.titulo && l.url);
   const avatar = imgUrl(page.avatarPath, page.avatarToken) || (company?.logoUrl || '');
@@ -64,7 +85,7 @@ export function LinksView({ page, company, minH = '100%' }: { page: LinksPage; c
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {links.map((l) => (
-            <a key={l.id} href={l.url} target="_blank" rel="noreferrer" style={botaoStyle(t)}>
+            <a key={l.id} href={l.url} target="_blank" rel="noreferrer" style={botaoStyle(t)} onClick={() => onLinkClick?.(l.id)}>
               {imgUrl(l.imagemPath, l.downloadToken)
                 ? <img src={imgUrl(l.imagemPath, l.downloadToken)} alt="" style={{ width: 32, height: 32, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }} />
                 : <span style={{ width: 32, flexShrink: 0 }} />}
@@ -85,7 +106,7 @@ export function LinksView({ page, company, minH = '100%' }: { page: LinksPage; c
 export function LinksPublic({ storeId: storeIdProp }: { storeId?: string } = {}) {
   const params = useParams();
   const storeId = storeIdProp || params.storeId || '';
-  const [state, setState] = useState<{ page: LinksPage; company: any } | null | undefined>(undefined);
+  const [state, setState] = useState<{ page: LinksPage; company: any; empresaId: string } | null | undefined>(undefined);
 
   useEffect(() => {
     if (!storeId) { setState(null); return; }
@@ -96,8 +117,10 @@ export function LinksPublic({ storeId: storeIdProp }: { storeId?: string } = {})
         const page: LinksPage | null = cfg?.linksPage || null;
         if (!page || page.ativo === false) { setState(null); return; }
         let company: any = null;
-        if (cfg?.empresaId) company = await dbService.get('companies', cfg.empresaId).catch(() => null);
-        setState({ page, company });
+        const empresaId = cfg?.empresaId || '';
+        if (empresaId) company = await dbService.get('companies', empresaId).catch(() => null);
+        setState({ page, company, empresaId });
+        linksTrack('links_view', empresaId, storeId); // conta a visita
       } catch { setState(null); }
     })();
   }, [storeId]);
@@ -111,5 +134,5 @@ export function LinksPublic({ storeId: storeIdProp }: { storeId?: string } = {})
 
   if (state === undefined) return <div style={{ minHeight: '100dvh', background: '#102a1c' }} />;
   if (!state) return <div style={{ minHeight: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f6f9f2', color: '#16251c' }}>Página não encontrada.</div>;
-  return <LinksView page={state.page} company={state.company} minH="100dvh" />;
+  return <LinksView page={state.page} company={state.company} minH="100dvh" onLinkClick={(id) => linksTrack('links_click', state.empresaId, storeId, id)} />;
 }

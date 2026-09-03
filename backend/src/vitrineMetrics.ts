@@ -5,7 +5,7 @@ import { FieldValue } from 'firebase-admin/firestore';
 import { db, getAll } from './firebase.js';
 import { loadUser } from './currentUser.js';
 
-const TIPOS = new Set(['view', 'produto', 'whatsapp', 'lp_view', 'lp_cta', 'cart_add', 'checkout', 'pay_start']);
+const TIPOS = new Set(['view', 'produto', 'whatsapp', 'lp_view', 'lp_cta', 'cart_add', 'checkout', 'pay_start', 'links_view', 'links_click']);
 const diaOf = (ms: number) => new Date(ms).toISOString().slice(0, 10); // YYYY-MM-DD
 const docId = (empresaId: string, dia: string) => `${empresaId}__${dia}`;
 
@@ -23,8 +23,11 @@ export async function trackEvent(body: any) {
   // Visitante único do dia: o front sinaliza quando é a 1ª visita dele hoje.
   if (tipo === 'view' && body?.firstToday) inc['uniqueVisitors'] = FieldValue.increment(1);
   if (tipo === 'lp_view' && body?.firstToday) inc['lpUnique'] = FieldValue.increment(1);
+  if (tipo === 'links_view' && body?.firstToday) inc['linksUnique'] = FieldValue.increment(1);
   // Cliques por produto (mapa produtoId → contagem).
   if (tipo === 'produto' && body?.produtoId) inc[`prod.${String(body.produtoId).replace(/[.#$/[\]]/g, '_')}`] = FieldValue.increment(1);
+  // Cliques por link da página de links (mapa linkId → contagem).
+  if (tipo === 'links_click' && body?.linkId) inc[`link.${String(body.linkId).replace(/[.#$/[\]]/g, '_')}`] = FieldValue.increment(1);
 
   await ref.set({ empresaId, dia, lojaId: String(body?.lojaId || ''), updatedAt: now, ...inc }, { merge: true });
   return { ok: true };
@@ -174,5 +177,49 @@ export async function getLandingMetrics(uid: string, daysRaw: number) {
   const conversao = views > 0 ? Math.round((cliques / views) * 1000) / 10 : 0;
   const data = { days, views, uniques, cliques, leadsPeriodo, leadsTotal: leadsAll.length, conversao, serie };
   lpCache.set(key, { at: Date.now(), data });
+  return data;
+}
+
+// Métricas da Página de Links (estilo Linktree): visitas → cliques por link.
+const linksCache = new Map<string, { at: number; data: any }>();
+export async function getLinksMetrics(uid: string, daysRaw: number) {
+  const companyId = await companyOf(uid);
+  const days = [7, 30, 90].includes(daysRaw) ? daysRaw : 30;
+  const key = `${companyId}:${days}`;
+  const hit = linksCache.get(key);
+  if (hit && Date.now() - hit.at < TTL) return hit.data;
+
+  const dias: string[] = [];
+  for (let i = 0; i < days; i++) dias.push(diaOf(Date.now() - i * 86400000));
+  const refs = dias.map((d) => db.collection('vitrine_daily').doc(docId(companyId, d)));
+  const snaps = await db.getAll(...refs);
+
+  let views = 0, uniques = 0, cliques = 0;
+  const linkClicks: Record<string, number> = {};
+  const serie: { dia: string; views: number; cliques: number }[] = [];
+  snaps.forEach((s, i) => {
+    const d = (s.exists ? s.data() : {}) as any;
+    const v = Number(d.links_view || 0), c = Number(d.links_click || 0);
+    views += v; uniques += Number(d.linksUnique || 0); cliques += c;
+    Object.entries(d.link || {}).forEach(([lid, n]) => { linkClicks[lid] = (linkClicks[lid] || 0) + Number(n); });
+    serie.push({ dia: dias[i], views: v, cliques: c });
+  });
+  serie.reverse();
+
+  // Resolve os títulos dos links a partir da config (loja_config.linksPage.links).
+  const topIds = Object.entries(linkClicks).sort((a, b) => b[1] - a[1]).slice(0, 6);
+  let topLinks: { titulo: string; cliques: number }[] = [];
+  if (topIds.length) {
+    const cfgs = await getAll('loja_config', [{ field: 'empresaId', operator: '==', value: companyId }]).catch(() => []);
+    const nameById = new Map<string, string>();
+    (cfgs as any[]).forEach((c) => (c?.linksPage?.links || []).forEach((l: any) => {
+      if (l?.id) nameById.set(String(l.id).replace(/[.#$/[\]]/g, '_'), l.titulo || 'Link');
+    }));
+    topLinks = topIds.map(([id, c]) => ({ titulo: nameById.get(id) || 'Link', cliques: c }));
+  }
+
+  const conversao = views > 0 ? Math.round((cliques / views) * 1000) / 10 : 0;
+  const data = { days, views, uniques, cliques, conversao, serie, topLinks };
+  linksCache.set(key, { at: Date.now(), data });
   return data;
 }

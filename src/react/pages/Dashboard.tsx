@@ -72,6 +72,8 @@ export function Dashboard() {
   const [vmDays, setVmDays] = useState(30);
   const [lp, setLp] = useState<any | null>(null);
   const [lpDays, setLpDays] = useState(30);
+  const [linksM, setLinksM] = useState<any | null>(null);
+  const [linksDays, setLinksDays] = useState(30);
   const [funnel, setFunnel] = useState<any | null>(null);
   const [funnelRange, setFunnelRange] = useState('30');
   const [fkpi, setFkpi] = useState<any | null>(null);
@@ -221,6 +223,12 @@ export function Dashboard() {
     vitrineApi.metrics(vmDays).then(setVm).catch(() => {});
   }, [isVitrine, vmDays]);
 
+  const isLinks = modulos.includes('links');
+  useEffect(() => {
+    if (!isLinks) return;
+    vitrineApi.linksMetrics(linksDays).then(setLinksM).catch(() => {});
+  }, [isLinks, linksDays]);
+
   const isFarma = modulos.includes('farmaqui');
   useEffect(() => {
     if (!isFarma) return;
@@ -329,6 +337,8 @@ export function Dashboard() {
       </div>
 
       {isVitrine && <VitrineBlock m={vm} days={vmDays} setDays={setVmDays} />}
+
+      {isLinks && <LinksBlock m={linksM} days={linksDays} setDays={setLinksDays} />}
 
       {isFarma && (
         <>
@@ -563,6 +573,81 @@ function LandingBlock({ m, days, setDays }: { m: any | null; days: number; setDa
                   <span><i className="fa-solid fa-square" style={{ color: 'var(--primary)', marginRight: 5 }} />Visitas</span>
                   <span><i className="fa-solid fa-square" style={{ color: 'var(--success)', marginRight: 5 }} />Cliques no WhatsApp</span>
                 </div>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// Métricas da Página de Links (estilo Linktree): visitas, cliques e top links.
+function LinksBlock({ m, days, setDays }: { m: any | null; days: number; setDays: (d: number) => void }) {
+  const maxV = m ? Math.max(1, ...m.serie.map((s: any) => s.views)) : 1;
+  return (
+    <div style={{ marginTop: '0.5rem', marginBottom: '1.5rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: '1rem' }}>
+        <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 10 }}><i className="fa-solid fa-link" style={{ color: 'var(--primary)' }} /> Sua página de links</h3>
+        <select className="config-select" style={{ width: 'auto' }} value={days} onChange={(e) => setDays(Number(e.target.value))}>
+          <option value={7}>Últimos 7 dias</option>
+          <option value={30}>Últimos 30 dias</option>
+          <option value={90}>Últimos 90 dias</option>
+        </select>
+      </div>
+      {!m ? <SkeletonBox height={110} /> : (
+        <>
+          <div className="dashboard-grid">
+            <StatCard label="Visitas na página" value={fmtInt(m.views)} subtitle={`${fmtInt(m.uniques)} visitantes únicos`} />
+            <StatCard green label="Cliques nos links" value={fmtInt(m.cliques)} subtitle={`${m.conversao}% de cliques por visita`} />
+            <StatCard label="Média por visita" value={m.views > 0 ? (Math.round((m.cliques / m.views) * 10) / 10).toString() : '0'} subtitle="cliques por visitante" />
+          </div>
+          <div className="dash-viz" style={{ marginTop: '1rem' }}>
+            <div className="dash-col" style={{ flex: 1 }}>
+              <div className="card viz-card">
+                <div className="viz-head"><h4>Visitas por dia</h4></div>
+                {m.serie.every((s: any) => s.views === 0) ? (
+                  <p style={{ color: 'var(--text-dim)', fontSize: '0.85rem', margin: '1rem 0 0' }}>Sem visitas ainda. Divulgue o link da sua página para começar a medir.</p>
+                ) : (
+                  <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 140, marginTop: 16 }}>
+                    {m.serie.map((s: any, i: number) => (
+                      <div key={i} title={`${s.dia}: ${s.views} visitas, ${s.cliques} cliques`}
+                        style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', height: '100%', gap: 2 }}>
+                        <div style={{ height: `${(s.views / maxV) * 100}%`, minHeight: s.views ? 3 : 0, background: 'var(--primary)', borderRadius: '4px 4px 0 0' }} />
+                        <div style={{ height: `${(s.cliques / maxV) * 100}%`, minHeight: s.cliques ? 3 : 0, background: 'var(--success)', borderRadius: '4px 4px 0 0' }} />
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div style={{ display: 'flex', gap: 16, marginTop: 12, fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                  <span><i className="fa-solid fa-square" style={{ color: 'var(--primary)', marginRight: 5 }} />Visitas</span>
+                  <span><i className="fa-solid fa-square" style={{ color: 'var(--success)', marginRight: 5 }} />Cliques</span>
+                </div>
+              </div>
+            </div>
+            <div className="dash-col" style={{ flex: 1 }}>
+              <div className="card viz-card">
+                <div className="viz-head"><h4>Links mais clicados</h4></div>
+                {(!m.topLinks || m.topLinks.length === 0) ? (
+                  <p style={{ color: 'var(--text-dim)', fontSize: '0.85rem', margin: '1rem 0 0' }}>Nenhum clique registrado ainda.</p>
+                ) : (
+                  <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {m.topLinks.map((l: any, i: number) => {
+                      const maxC = Math.max(1, ...m.topLinks.map((x: any) => x.cliques));
+                      return (
+                        <div key={i}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: 4 }}>
+                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '75%' }}>{l.titulo}</span>
+                            <strong>{fmtInt(l.cliques)}</strong>
+                          </div>
+                          <div style={{ height: 6, borderRadius: 999, background: 'var(--surface-hover)' }}>
+                            <div style={{ height: '100%', width: `${(l.cliques / maxC) * 100}%`, borderRadius: 999, background: 'var(--primary)' }} />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             </div>
           </div>
