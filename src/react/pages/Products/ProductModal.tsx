@@ -6,6 +6,18 @@ import type { Product, Category } from './helpers';
 
 type GalleryImg = { imagemPath: string; downloadToken: string };
 
+// Complementos/opções (estilo iFood): grupos com itens; regras de mín/máx/obrigatório.
+export interface OpcaoItem { id: string; nome: string; preco: number }
+export interface GrupoOpcao { id: string; nome: string; min: number; max: number; obrigatorio: boolean; itens: OpcaoItem[] }
+const gid = () => `g_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 5)}`;
+function sanitizeGrupos(grupos: GrupoOpcao[]): GrupoOpcao[] {
+  return (grupos || []).map((g) => ({
+    id: g.id || gid(), nome: String(g.nome || '').trim(), obrigatorio: !!g.obrigatorio,
+    min: Math.max(0, Number(g.min) || 0), max: Math.max(0, Number(g.max) || 0),
+    itens: (g.itens || []).map((i) => ({ id: i.id || gid(), nome: String(i.nome || '').trim(), preco: Math.max(0, Number(i.preco) || 0) })).filter((i) => i.nome),
+  })).filter((g) => g.nome && g.itens.length);
+}
+
 interface ItemDraft {
   tempId: string;
   name: string;
@@ -16,6 +28,7 @@ interface ItemDraft {
   observation: string;
   variations: string;       // "P, M, G" — separado por vírgula (modo vitrine)
   priceOnRequest: boolean;  // preço sob consulta (modo vitrine)
+  gruposOpcoes: GrupoOpcao[]; // complementos (modo catálogo)
   galleryExisting: GalleryImg[]; // fotos já salvas (edição)
   galleryFiles: File[];          // fotos novas a subir
   galleryPreviews: string[];     // previews (existentes + novas, na mesma ordem)
@@ -30,7 +43,7 @@ let seq = 0;
 const newTempId = () => `prod_${Date.now()}_${seq++}`;
 
 function emptyDraft(): ItemDraft {
-  return { tempId: newTempId(), name: '', price: '', categoryId: '', stock: '', duration: '', observation: '', variations: '', priceOnRequest: false, galleryExisting: [], galleryFiles: [], galleryPreviews: [], promoActive: false, promoName: '', promoPrice: '', file: null, previewUrl: null };
+  return { tempId: newTempId(), name: '', price: '', categoryId: '', stock: '', duration: '', observation: '', variations: '', priceOnRequest: false, gruposOpcoes: [], galleryExisting: [], galleryFiles: [], galleryPreviews: [], promoActive: false, promoName: '', promoPrice: '', file: null, previewUrl: null };
 }
 
 interface Props {
@@ -66,6 +79,7 @@ export function ProductModal({ companyId, isOwner, isAgendamento, isVitrine, lab
         observation: editProduct.observation || '',
         variations: Array.isArray((editProduct as any).variations) ? (editProduct as any).variations.join(', ') : '',
         priceOnRequest: !!(editProduct as any).priceOnRequest,
+        gruposOpcoes: Array.isArray((editProduct as any).gruposOpcoes) ? (editProduct as any).gruposOpcoes : [],
         galleryExisting: (editProduct.gallery || []) as GalleryImg[],
         galleryFiles: [],
         galleryPreviews: getGalleryUrls(editProduct),
@@ -153,6 +167,8 @@ export function ProductModal({ companyId, isOwner, isAgendamento, isVitrine, lab
           observation: it.observation || '',
           variations: variationsArr,
           priceOnRequest: isVitrine ? it.priceOnRequest : false,
+          // Complementos só no catálogo (com carrinho). Vitrine/agendamento não usam.
+          gruposOpcoes: (!isVitrine && !isAgendamento) ? sanitizeGrupos(it.gruposOpcoes) : [],
           ...(isVitrine ? { gallery } : {}),
           ...imageData,
         };
@@ -307,6 +323,10 @@ function ItemCard({ it, isAgendamento, isVitrine, labelSingular, categories, onP
           </div>
         </div>
 
+        {!isVitrine && !isAgendamento && (
+          <GroupsEditor grupos={it.gruposOpcoes} onChange={(g) => onPatch(it.tempId, { gruposOpcoes: g })} />
+        )}
+
         {isAgendamento && (
           <div style={{ marginTop: 12 }} className="field">
             <label>Observação</label>
@@ -376,6 +396,63 @@ function ItemCard({ it, isAgendamento, isVitrine, labelSingular, categories, onP
       <button type="button" className="btn-remove-item" onClick={() => onRemove(it.tempId)} title="Remover item">
         <i className="fa-solid fa-times" />
       </button>
+    </div>
+  );
+}
+
+// ── Editor de complementos/opções (catálogo) ──
+function GroupsEditor({ grupos, onChange }: { grupos: GrupoOpcao[]; onChange: (g: GrupoOpcao[]) => void }) {
+  const [open, setOpen] = useState(grupos.length > 0);
+  const upd = (i: number, p: Partial<GrupoOpcao>) => onChange(grupos.map((g, j) => (j === i ? { ...g, ...p } : g)));
+  const addGrupo = () => { onChange([...grupos, { id: gid(), nome: '', min: 0, max: 1, obrigatorio: false, itens: [{ id: gid(), nome: '', preco: 0 }] }]); setOpen(true); };
+  const rmGrupo = (i: number) => onChange(grupos.filter((_, j) => j !== i));
+  const addItem = (i: number) => upd(i, { itens: [...grupos[i].itens, { id: gid(), nome: '', preco: 0 }] });
+  const updItem = (i: number, j: number, p: Partial<OpcaoItem>) => upd(i, { itens: grupos[i].itens.map((it, k) => (k === j ? { ...it, ...p } : it)) });
+  const rmItem = (i: number, j: number) => upd(i, { itens: grupos[i].itens.filter((_, k) => k !== j) });
+
+  const inp: React.CSSProperties = { padding: '7px 9px', borderRadius: 8, border: '1px solid var(--border-color)', background: 'var(--bg-color,#f8fafc)', color: 'var(--text-main)', fontSize: '0.88rem' };
+
+  return (
+    <div style={{ marginTop: 14, border: '1px solid var(--border-color)', borderRadius: 12, padding: 12 }}>
+      <button type="button" onClick={() => (open ? setOpen(false) : (grupos.length ? setOpen(true) : addGrupo()))}
+        style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-main)', fontWeight: 700, fontSize: '0.92rem', padding: 0 }}>
+        <i className={`fa-solid ${open ? 'fa-chevron-down' : 'fa-chevron-right'}`} style={{ color: 'var(--primary)' }} />
+        <i className="fa-solid fa-layer-group" style={{ color: 'var(--primary)' }} />
+        Complementos / Opções {grupos.length > 0 && <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>({grupos.length} grupo{grupos.length !== 1 ? 's' : ''})</span>}
+      </button>
+      {open && (
+        <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {grupos.length === 0 && <p style={{ color: 'var(--text-muted)', fontSize: '0.82rem', margin: 0 }}>Ex.: "Escolha o sabor" (obrigatório), "Adicionais" (opcional, com preço), "Talheres".</p>}
+          {grupos.map((g, i) => (
+            <div key={g.id} style={{ background: 'var(--bg-color,#f8fafc)', borderRadius: 10, padding: 10, border: '1px solid var(--border-color)' }}>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
+                <input value={g.nome} onChange={(e) => upd(i, { nome: e.target.value })} placeholder="Nome do grupo (ex: Adicionais)" style={{ ...inp, flex: 1 }} />
+                <button type="button" onClick={() => rmGrupo(i)} title="Remover grupo" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444' }}><i className="fa-solid fa-trash" /></button>
+              </div>
+              <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginBottom: 8, fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <input type="checkbox" checked={g.obrigatorio} onChange={(e) => upd(i, { obrigatorio: e.target.checked, min: e.target.checked ? Math.max(1, g.min) : 0 })} /> Obrigatório
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 5 }}>mín <input type="number" min="0" value={g.min} onChange={(e) => upd(i, { min: Number(e.target.value) })} style={{ ...inp, width: 56, padding: '4px 6px' }} /></label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 5 }}>máx <input type="number" min="0" value={g.max} onChange={(e) => upd(i, { max: Number(e.target.value) })} style={{ ...inp, width: 56, padding: '4px 6px' }} /></label>
+                <span style={{ fontSize: '0.75rem' }}>(máx 0 ou 1 = escolha única/ilimitado)</span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {g.itens.map((it, j) => (
+                  <div key={it.id} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                    <input value={it.nome} onChange={(e) => updItem(i, j, { nome: e.target.value })} placeholder="Opção (ex: Granola)" style={{ ...inp, flex: 1 }} />
+                    <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>R$</span>
+                    <input type="number" min="0" step="0.01" value={it.preco} onChange={(e) => updItem(i, j, { preco: Number(e.target.value) })} placeholder="0.00" style={{ ...inp, width: 80 }} />
+                    <button type="button" onClick={() => rmItem(i, j)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-dim)' }}><i className="fa-solid fa-xmark" /></button>
+                  </div>
+                ))}
+                <button type="button" onClick={() => addItem(i)} style={{ alignSelf: 'flex-start', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--primary)', fontSize: '0.82rem', fontWeight: 600, padding: 0 }}><i className="fa-solid fa-plus" /> Adicionar opção</button>
+              </div>
+            </div>
+          ))}
+          <button type="button" onClick={addGrupo} className="btn-secondary" style={{ alignSelf: 'flex-start' }}><i className="fa-solid fa-plus" /> Novo grupo</button>
+        </div>
+      )}
     </div>
   );
 }

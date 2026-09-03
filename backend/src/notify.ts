@@ -33,8 +33,9 @@ function buildVars(order: any, lead: any): Record<string, string> {
     item: i.item || i.name || '',
     quantidade: i.quantidade || i.qty || 1,
     preco: i.preco || i.price || 0,
+    opcoes: Array.isArray(i.opcoes) ? i.opcoes : [],
   }));
-  const lista = itens.map((i: any) => `${i.quantidade}x ${i.item}`).join(', ');
+  const lista = itens.map((i: any) => `${i.quantidade}x ${i.item}${i.opcoes.length ? ` (${i.opcoes.join(', ')})` : ''}`).join(', ');
   return {
     nome_lead: lead?.nome || lead?.name || order.clientName || order.nome || 'Cliente',
     telefone_lead: (lead?.telefone || '').split('@')[0] || order.clientPhone || '',

@@ -104,7 +104,9 @@ export function CheckoutModals({ cart, subtotal, storeId, companyId, data, onClo
   const total = subtotal + taxa - desconto;
 
   const buildCartPayload = () => Array.from(cart.entries()).map(([id, { qty, product }]) =>
-    product.isCombo ? { id: id.replace(/^combo_/, ''), qty, isCombo: true } : { id, qty });
+    product.isCombo
+      ? { id: id.replace(/^combo_/, ''), qty, isCombo: true }
+      : { id: product.baseId || id, qty, opcoes: (product.opcoesEscolhidas || []).map((o: any) => o.itemId) });
 
   async function postOrder(paymentMethod: string, extra: any = {}) {
     const resp = await fetch(`${API_BASE_URL}/api/orders`, {
@@ -125,8 +127,14 @@ export function CheckoutModals({ cart, subtotal, storeId, companyId, data, onClo
     return (
       <>
         {Array.from(cart.values()).map(({ product, qty }, i) => {
-          const price = product.promotionalActive ? (product.promotionalPrice || product.price) : product.price;
-          return <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.88rem', padding: '4px 0' }}><span>{qty}x {product.name}</span><span>R$ {(price * qty).toFixed(2)}</span></div>;
+          const price = product.opcoesEscolhidas?.length ? product.price : (product.promotionalActive ? (product.promotionalPrice || product.price) : product.price);
+          const ops = (product.opcoesEscolhidas || []).map((o: any) => o.nome).join(', ');
+          return (
+            <div key={i} style={{ padding: '4px 0' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.88rem' }}><span>{qty}x {product.name}</span><span>R$ {(price * qty).toFixed(2)}</span></div>
+              {ops && <div style={{ fontSize: '0.75rem', color: '#94a3b8', paddingLeft: 14 }}>+ {ops}</div>}
+            </div>
+          );
         })}
         {taxa > 0 && <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', padding: '4px 0', color: '#94a3b8' }}><span><i className="fa-solid fa-truck" style={{ marginRight: 4 }} />{resolvedBairro.nome ? `Entrega (${resolvedBairro.nome})` : 'Taxa de Entrega'}</span><span>+ R$ {taxa.toFixed(2)}</span></div>}
         {desconto > 0 && coupon && <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', padding: '4px 0', color: '#10b981' }}><span><i className="fa-solid fa-tag" style={{ marginRight: 4 }} />Cupom {coupon.codigo}</span><span>- R$ {desconto.toFixed(2)}</span></div>}

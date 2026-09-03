@@ -30,7 +30,7 @@ export function OrderModal({ order, companyId, storeName, clientName, clientPhon
   const itens = Array.isArray(order.itens)
     ? order.itens
     : Array.isArray(order.items)
-    ? order.items.map((i: any) => ({ item: i.item || i.name, quantidade: i.quantidade || i.qty || 1, preco: i.preco || i.price || 0, observacao: i.observacao }))
+    ? order.items.map((i: any) => ({ item: i.item || i.name, quantidade: i.quantidade || i.qty || 1, preco: i.preco || i.price || 0, observacao: i.observacao, opcoes: i.opcoes }))
     : [];
 
   const taxa = parseFloat(order.taxaAplicada || order.taxaEntrega || 0) || 0;
@@ -162,6 +162,7 @@ export function OrderModal({ order, companyId, storeName, clientName, clientPhon
                   <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 1rem', borderBottom: idx < itens.length - 1 ? '1px solid rgba(23, 37, 28, 0.05)' : 'none' }}>
                     <div>
                       <span style={{ fontWeight: 600 }}>{i.quantidade}x {i.item}</span>
+                      {Array.isArray(i.opcoes) && i.opcoes.length > 0 && <small style={{ display: 'block', color: 'var(--text-muted)' }}>+ {i.opcoes.join(', ')}</small>}
                       {i.observacao && <small style={{ display: 'block', color: 'var(--text-dim)' }}>Obs: {i.observacao}</small>}
                     </div>
                     <span style={{ color: 'var(--primary)', fontWeight: 700, whiteSpace: 'nowrap' }}>R$ {(i.preco || 0).toFixed(2)}</span>

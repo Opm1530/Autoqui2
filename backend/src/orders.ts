@@ -9,7 +9,7 @@ import { notifyNewOrder, notifyPaymentReceived, notifyStatusChange } from './not
 import { createPixCharge, getPayment } from './mercadopago.js';
 import { Timestamp } from 'firebase-admin/firestore';
 
-type CartLine = { id: string; qty: number; isCombo?: boolean };
+type CartLine = { id: string; qty: number; isCombo?: boolean; opcoes?: string[] };
 
 export interface CreateOrderInput {
   storeId: string;
@@ -153,9 +153,27 @@ export async function createCatalogOrder(
       const prod: any = productById.get(line.id);
       if (!prod || prod.active === false) throw new Error('produto_indisponivel');
       if (prod.stock != null && prod.stock < qty) throw new Error(`sem_estoque:${prod.name}`);
-      const price = prod.promotionalActive ? num(prod.promotionalPrice, num(prod.price)) : num(prod.price);
+      const base = prod.promotionalActive ? num(prod.promotionalPrice, num(prod.price)) : num(prod.price);
+
+      // Complementos: recalcula preço e valida mín/máx a partir dos grupos SALVOS (nunca confia no preço do cliente).
+      let extra = 0;
+      const opcoesNomes: string[] = [];
+      const grupos: any[] = Array.isArray(prod.gruposOpcoes) ? prod.gruposOpcoes : [];
+      if (grupos.length) {
+        const escolhidos: string[] = Array.isArray(line.opcoes) ? line.opcoes.map(String) : [];
+        for (const g of grupos) {
+          const itensG = (g.itens || []).filter((it: any) => escolhidos.includes(String(it.id)));
+          const minReq = g.obrigatorio ? Math.max(1, Number(g.min) || 0) : (Number(g.min) || 0);
+          if (itensG.length < minReq) throw new Error(`opcao_obrigatoria:${g.nome}`);
+          if (Number(g.max) > 0 && itensG.length > Number(g.max)) throw new Error(`opcao_excedida:${g.nome}`);
+          for (const it of itensG) { extra += num(it.preco); opcoesNomes.push(it.nome); }
+        }
+      }
+      const price = base + extra;
       subtotal += price * qty;
-      items.push({ productId: prod.id, name: prod.name, qty, price, subtotal: price * qty });
+      const item: any = { productId: prod.id, name: prod.name, qty, price, subtotal: price * qty };
+      if (opcoesNomes.length) item.opcoes = opcoesNomes;
+      items.push(item);
       if (prod.stock != null) deductions.push({ productId: prod.id, qty });
     }
   }

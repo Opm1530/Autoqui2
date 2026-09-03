@@ -4,6 +4,7 @@ import { dbService } from '../../../services/db';
 import { toast } from '../../../services/toast';
 import { getImageUrl, getProductGallery, getCategoryCover, storeStatusLabel, isFreteAbertoAgora, isStoreOpen, getNextOpenTime, getStoreHorario, DIAS_NOME } from './helpers';
 import { CheckoutModals } from './CheckoutModals';
+import { OptionsModal } from './OptionsModal';
 import { trackVitrine } from './track';
 import './catalog-vitrine.css';
 import './catalog.css';
@@ -28,6 +29,7 @@ export function Catalog({ storeId: storeIdProp }: { storeId?: string } = {}) {
   const [cartOpen, setCartOpen] = useState(false);
   const [varSel, setVarSel] = useState<Record<string, string>>({}); // variação escolhida por produto (modo vitrine)
   const [detail, setDetail] = useState<any | null>(null);           // produto aberto no modal de detalhe (vitrine)
+  const [optionsFor, setOptionsFor] = useState<any | null>(null);   // produto com complementos aberto pra escolher opções
   const [detailImg, setDetailImg] = useState(0);                    // índice da foto no modal
   const [vitrineCat, setVitrineCat] = useState('');                 // categoria selecionada no carrossel (vitrine); '' = todas
   const gridRef = useRef<HTMLDivElement>(null);                     // âncora do botão do banner (vitrine)
@@ -152,16 +154,26 @@ export function Catalog({ storeId: storeIdProp }: { storeId?: string } = {}) {
 
   const totalQty = useMemo(() => { let t = 0; cart.forEach(({ qty }) => t += qty); return t; }, [cart]);
   const subtotal = useMemo(() => {
-    let t = 0; cart.forEach(({ product, qty }) => { const price = product.promotionalActive ? (product.promotionalPrice || product.price) : product.price; t += price * qty; }); return t;
+    let t = 0; cart.forEach(({ product, qty }) => { const price = product.opcoesEscolhidas?.length ? product.price : (product.promotionalActive ? (product.promotionalPrice || product.price) : product.price); t += price * qty; }); return t;
   }, [cart]);
 
   function addProduct(p: any) {
     if (p.stock === 0) return;
+    // Produto com complementos → abre popup de opções; senão adiciona direto.
+    if (Array.isArray(p.gruposOpcoes) && p.gruposOpcoes.length) { setOptionsFor(p); return; }
+    addLine(p, [], Number(p.promotionalActive ? (p.promotionalPrice || p.price) : p.price) || 0);
+  }
+  // Adiciona uma linha ao carrinho (com ou sem opções). Linhas com opções diferentes
+  // do mesmo produto ficam separadas (chave inclui as opções escolhidas).
+  function addLine(p: any, opcoesEscolhidas: { grupoId: string; grupoNome: string; itemId: string; nome: string; preco: number }[], unit: number) {
     funnelTrack('cart_add');
+    const sig = opcoesEscolhidas.map((o) => o.itemId).sort().join(',');
+    const cartId = sig ? `${p.id}__${sig}` : p.id;
     setCart((prev) => {
-      const n = new Map(prev); const ex = n.get(p.id); const max = p.stock ?? Infinity;
+      const n = new Map(prev); const ex = n.get(cartId); const max = p.stock ?? Infinity;
       if ((ex?.qty || 0) >= max) { toast.warning(`Estoque máximo atingido (${p.stock} un.)`); return prev; }
-      n.set(p.id, { product: p, qty: (ex?.qty || 0) + 1 }); return n;
+      const lineProduct = { ...p, id: cartId, baseId: p.id, price: unit, opcoesEscolhidas };
+      n.set(cartId, { product: lineProduct, qty: (ex?.qty || 0) + 1 }); return n;
     });
   }
   function addCombo(c: any) {
@@ -182,7 +194,7 @@ export function Catalog({ storeId: storeIdProp }: { storeId?: string } = {}) {
     const toCheck: { id: string; qty: number; label: string }[] = [];
     cart.forEach(({ product, qty }, id) => {
       if (product.isCombo) (product.produtos || []).forEach((cp: any) => toCheck.push({ id: cp.id, qty, label: product.name }));
-      else toCheck.push({ id, qty, label: product.name });
+      else toCheck.push({ id: product.baseId || id, qty, label: product.name });
     });
     for (const item of toCheck) {
       try {
@@ -583,10 +595,11 @@ export function Catalog({ storeId: storeIdProp }: { storeId?: string } = {}) {
             <div style={{ flex: 1, overflowY: 'auto', minHeight: 80 }}>
               {cart.size === 0 ? <p style={{ textAlign: 'center', color: '#94a3b8', padding: '20px 0' }}>Seu carrinho está vazio.</p>
                 : Array.from(cart.entries()).map(([id, { product, qty }]) => {
-                  const price = product.promotionalActive ? (product.promotionalPrice || product.price) : product.price;
+                  const price = product.opcoesEscolhidas?.length ? product.price : (product.promotionalActive ? (product.promotionalPrice || product.price) : product.price);
+                  const ops = (product.opcoesEscolhidas || []).map((o: any) => o.nome).join(', ');
                   return (
                     <div key={id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-                      <div style={{ flex: 1 }}><p style={{ margin: 0, fontWeight: 600, fontSize: '0.95rem' }}>{product.name}</p><p style={{ margin: '4px 0 0', color: '#94a3b8', fontSize: '0.8rem' }}>R$ {price.toFixed(2)} cada</p></div>
+                      <div style={{ flex: 1 }}><p style={{ margin: 0, fontWeight: 600, fontSize: '0.95rem' }}>{product.name}</p>{ops && <p style={{ margin: '2px 0 0', color: '#94a3b8', fontSize: '0.75rem' }}>+ {ops}</p>}<p style={{ margin: '4px 0 0', color: '#94a3b8', fontSize: '0.8rem' }}>R$ {price.toFixed(2)} cada</p></div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                         <button onClick={() => changeQty(id, -1)} style={{ width: 28, height: 28, borderRadius: '50%', background: 'rgba(255,255,255,0.1)', color: 'white', border: 'none', cursor: 'pointer', fontSize: '1rem' }}>-</button>
                         <span style={{ minWidth: 24, textAlign: 'center', fontWeight: 700 }}>{qty}</span>
@@ -606,6 +619,11 @@ export function Catalog({ storeId: storeIdProp }: { storeId?: string } = {}) {
       )}
 
       {/* CHECKOUT */}
+      {optionsFor && (
+        <OptionsModal product={optionsFor} onClose={() => setOptionsFor(null)}
+          onConfirm={(opcoes, unit) => { addLine(optionsFor, opcoes, unit); setOptionsFor(null); }} />
+      )}
+
       {checkoutOpen && (
         <CheckoutModals cart={cart} subtotal={subtotal} storeId={storeId} companyId={data.company.id}
           data={{ store, config, design, pixKey: data.pixKey, isMpActive: data.isMpActive, flatBairros: data.flatBairros, taxaGenerica: data.taxaGenerica, cuponsList: data.cuponsList }}
