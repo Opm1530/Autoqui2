@@ -17,7 +17,7 @@ import {
 } from './admin.js';
 import {
   connectPlatformMp, platformMpStatus, disconnectPlatformMp,
-  savePlan, deletePlan, subscribe, subscribePix, subscriptionPixStatus, refreshSubscriptionStatus, cancelSubscription, mySubscription,
+  savePlan, deletePlan, subscribe, subscribePix, subscriptionPixStatus, refreshSubscriptionStatus, paymentHistory, cancelSubscription, mySubscription,
   handleSubscriptionWebhook, provisionSignup, listPublicPlans, isCompanyBlocked,
 } from './subscriptions.js';
 import { startCampaignJobs } from './campaigns.js';
@@ -328,6 +328,7 @@ app.get('/api/subscription/pix-status', requireAuth, wrap((req) => subscriptionP
 app.post('/api/subscription/cancel', requireAuth, wrap((req) => cancelSubscription(req.uid, req.body?.companyId)));
 app.get('/api/subscription/mine', requireAuth, wrap((req) => mySubscription(req.uid)));
 app.post('/api/subscription/refresh', requireAuth, wrap((req) => refreshSubscriptionStatus(req.uid)));
+app.get('/api/subscription/payments', requireAuth, wrap((req) => paymentHistory(req.uid)));
 
 app.post('/api/orders/intervene', requireAuth, wrap((req) => sendIntervention(req.uid, String(req.body?.orderId), String(req.body?.message || ''))));
 

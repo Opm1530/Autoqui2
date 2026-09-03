@@ -250,6 +250,26 @@ export async function refreshSubscriptionStatus(uid: string): Promise<{ status: 
   return { status: a.status || 'pending' };
 }
 
+// Histórico de pagamentos da empresa no Mercado Pago (busca por external_reference).
+export async function paymentHistory(uid: string): Promise<{ pagamentos: any[] }> {
+  const user = await getUser(uid);
+  if (!user.companyId) throw new Error('no_company');
+  const token = await platformToken();
+  const url = `${MP_API}/v1/payments/search?external_reference=${encodeURIComponent(user.companyId)}&sort=date_created&criteria=desc&limit=30`;
+  const resp = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+  const data = await resp.json().catch(() => ({}));
+  const results = Array.isArray((data as any)?.results) ? (data as any).results : [];
+  const pagamentos = results.map((p: any) => ({
+    id: String(p.id),
+    data: p.date_approved || p.date_created || null,
+    valor: Number(p.transaction_amount) || 0,
+    metodo: p.payment_method_id || p.payment_type_id || '',
+    status: p.status || 'unknown',
+    descricao: p.description || '',
+  }));
+  return { pagamentos };
+}
+
 // ── PIX avulso (1 mês) — alternativa manual ao cartão recorrente ────────────
 // Gera um pagamento PIX pontual. Quando aprovado (webhook ou polling), libera
 // +30 dias via `pixPagoAte`. Não renova sozinho — o cliente paga a cada mês.

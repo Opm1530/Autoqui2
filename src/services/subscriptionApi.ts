@@ -31,4 +31,5 @@ export const subscriptionApi = {
   cancel: (companyId?: string) => req('/api/subscription/cancel', 'POST', { companyId }),
   mine: () => req('/api/subscription/mine', 'GET'),
   refresh: (): Promise<{ status: string }> => req('/api/subscription/refresh', 'POST'),
+  payments: (): Promise<{ pagamentos: { id: string; data: string | null; valor: number; metodo: string; status: string; descricao: string }[] }> => req('/api/subscription/payments', 'GET'),
 };

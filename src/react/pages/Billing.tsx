@@ -10,6 +10,18 @@ import { pricingApi, ALL_FEAT, CANAIS_FEAT } from '../../services/pricingApi';
 const CANAL_KEYS = new Set(CANAIS_FEAT.map((f) => f.key));
 const featLabel = (k: string) => ALL_FEAT.find((f) => f.key === k)?.label || k;
 
+const PAY_STATUS: Record<string, { label: string; color: string }> = {
+  approved: { label: 'Aprovado', color: '#34d399' },
+  pending: { label: 'Pendente', color: '#fbbf24' },
+  in_process: { label: 'Processando', color: '#fbbf24' },
+  authorized: { label: 'Autorizado', color: '#34d399' },
+  rejected: { label: 'Recusado', color: '#f87171' },
+  cancelled: { label: 'Cancelado', color: '#f87171' },
+  refunded: { label: 'Estornado', color: '#94a3b8' },
+  charged_back: { label: 'Chargeback', color: '#f87171' },
+};
+const METODO: Record<string, string> = { pix: 'PIX', credit_card: 'Cartão de crédito', debit_card: 'Cartão de débito', account_money: 'Saldo MP', ticket: 'Boleto' };
+
 const STATUS_LABEL: Record<string, { label: string; color: string }> = {
   authorized: { label: 'Ativa', color: '#34d399' },
   trial: { label: 'Teste grátis', color: '#a3e635' },
@@ -30,6 +42,8 @@ export function Billing({ wall = false }: { wall?: boolean }) {
   const [busy, setBusy] = useState('');
   const [pix, setPix] = useState<{ paymentId: string; qrCode: string; qrCodeBase64: string; valor: number } | null>(null);
   const [pixBusy, setPixBusy] = useState('');
+  const [pagamentos, setPagamentos] = useState<any[] | null>(null);
+  useEffect(() => { subscriptionApi.payments().then((r) => setPagamentos(r.pagamentos || [])).catch(() => setPagamentos([])); }, []);
 
   async function load() {
     const [mine, pr] = await Promise.all([
@@ -213,6 +227,30 @@ export function Billing({ wall = false }: { wall?: boolean }) {
             </div>
           </div>
           <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '12px 0 0' }}>Adicione ou remova funcionalidades em <strong>Ferramentas</strong> — o valor se ajusta automaticamente.</p>
+        </div>
+      )}
+
+      {/* Histórico de pagamentos */}
+      {pagamentos && pagamentos.length > 0 && (
+        <div className="card" style={{ marginBottom: '1.5rem' }}>
+          <h4 style={{ margin: '0 0 12px' }}><i className="fa-solid fa-clock-rotate-left" style={{ color: 'var(--primary)' }} /> Histórico de pagamentos</h4>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.88rem' }}>
+              <thead><tr style={{ textAlign: 'left', color: 'var(--text-muted)' }}>
+                <th style={{ padding: '6px 8px' }}>Data</th><th style={{ padding: '6px 8px' }}>Valor</th><th style={{ padding: '6px 8px' }}>Método</th><th style={{ padding: '6px 8px' }}>Status</th>
+              </tr></thead>
+              <tbody>
+                {pagamentos.map((p) => { const st = PAY_STATUS[p.status] || { label: p.status, color: '#94a3b8' }; return (
+                  <tr key={p.id} style={{ borderTop: '1px solid var(--border-color)' }}>
+                    <td style={{ padding: '7px 8px' }}>{p.data ? new Date(p.data).toLocaleDateString('pt-BR') : '—'}</td>
+                    <td style={{ padding: '7px 8px', fontWeight: 600 }}>R$ {Number(p.valor).toFixed(2)}</td>
+                    <td style={{ padding: '7px 8px', textTransform: 'capitalize' }}>{METODO[p.metodo] || p.metodo || '—'}</td>
+                    <td style={{ padding: '7px 8px' }}><span className="badge" style={{ background: st.color + '22', color: st.color }}>{st.label}</span></td>
+                  </tr>
+                ); })}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
