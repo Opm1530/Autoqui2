@@ -38,14 +38,15 @@ export function botaoStyle(t: LinksTema): React.CSSProperties {
   return { ...base, borderRadius: radius, background: t.botaoCor, color: t.botaoTexto, border: 'none' };
 }
 
-// Render puro (reutilizado no preview do editor).
-export function LinksView({ page, company }: { page: LinksPage; company?: any }) {
+// Render puro (reutilizado no preview do editor). `minH` controla a altura do fundo:
+// '100dvh' na página pública (tela toda), '100%' no preview embutido (frame).
+export function LinksView({ page, company, minH = '100%' }: { page: LinksPage; company?: any; minH?: string }) {
   const t = { ...TEMA_PADRAO, ...(page.tema || {}) };
   const links = (page.links || []).filter((l) => l.ativo !== false && l.titulo && l.url);
   const avatar = imgUrl(page.avatarPath, page.avatarToken) || (company?.logoUrl || '');
   const nome = page.titulo || company?.name || '';
   return (
-    <div style={{ minHeight: '100%', ...fundoStyle(t), display: 'flex', justifyContent: 'center', padding: '48px 18px' }}>
+    <div style={{ minHeight: minH, ...fundoStyle(t), display: 'flex', justifyContent: 'center', padding: '48px 18px', boxSizing: 'border-box' }}>
       <div style={{ width: '100%', maxWidth: 480, textAlign: 'center', color: t.texto }}>
         {avatar
           ? <img src={avatar} alt="" style={{ width: 92, height: 92, borderRadius: '50%', objectFit: 'cover', margin: '0 auto', border: `3px solid ${t.botaoCor}` }} />
@@ -101,9 +102,14 @@ export function LinksPublic({ storeId: storeIdProp }: { storeId?: string } = {})
     })();
   }, [storeId]);
 
-  useEffect(() => { if (state?.page?.titulo) document.title = state.page.titulo; }, [state]);
+  useEffect(() => {
+    if (state?.page?.titulo) document.title = state.page.titulo;
+    // Pinta o fundo do body com a cor do tema (evita branco no overscroll/barras).
+    const cor = state?.page?.tema?.fundoCor;
+    if (cor) { document.body.style.background = cor; return () => { document.body.style.background = ''; }; }
+  }, [state]);
 
-  if (state === undefined) return <div style={{ minHeight: '100vh', background: '#102a1c' }} />;
-  if (!state) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f6f9f2', color: '#16251c' }}>Página não encontrada.</div>;
-  return <div style={{ minHeight: '100vh' }}><LinksView page={state.page} company={state.company} /></div>;
+  if (state === undefined) return <div style={{ minHeight: '100dvh', background: '#102a1c' }} />;
+  if (!state) return <div style={{ minHeight: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f6f9f2', color: '#16251c' }}>Página não encontrada.</div>;
+  return <LinksView page={state.page} company={state.company} minH="100dvh" />;
 }
