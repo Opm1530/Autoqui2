@@ -13,7 +13,7 @@ import { connectMp, disconnectMp, mpStatus } from './mercadopago.js';
 import {
   saveCompany, toggleCompanyStatus, setCompanyStores,
   createEmployee, updateUser, setUserActive, deleteUser, saveWebhooks,
-  previewRemoveStore, removeStore, toggleTool,
+  previewRemoveStore, removeStore, toggleTool, getAdminMetrics,
 } from './admin.js';
 import {
   connectPlatformMp, platformMpStatus, disconnectPlatformMp,
@@ -229,6 +229,7 @@ const wrap = (fn: (req: any) => Promise<any>) => async (req: any, res: any) => {
 };
 
 app.post('/api/companies/save', requireAuth, wrap((req) => saveCompany(req.uid, { id: req.body?.id, data: req.body?.data, owner: req.body?.owner })));
+app.get('/api/admin/metrics', requireAuth, wrap((req) => getAdminMetrics(req.uid)));
 app.post('/api/companies/toggle-status', requireAuth, wrap((req) => toggleCompanyStatus(req.uid, String(req.body?.id), String(req.body?.status))));
 app.post('/api/companies/preview-remove-store', requireAuth, wrap((req) => previewRemoveStore(req.uid, String(req.body?.companyId), String(req.body?.storeId))));
 app.post('/api/companies/remove-store', requireAuth, wrap((req) => removeStore(req.uid, String(req.body?.companyId), String(req.body?.storeId))));

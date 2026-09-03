@@ -61,6 +61,7 @@ export async function provisionSignup(uid: string, payload: { companyName: strin
     isento: false,
     modulos_ativos: features,
     metrics: { totalMessages: 0, totalPayments: 0 },
+    criadoEm: Timestamp.now(),
     assinatura: {
       // Modelo à la carte: guarda as features e o total calculado (sem plano fixo).
       features, valor: totalFinal, planoNome: canal === 'vitrine' ? 'Vitrine' : 'Personalizado', maxLojas: 1,

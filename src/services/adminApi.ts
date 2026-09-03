@@ -2,6 +2,14 @@
 import { API_BASE_URL } from './api';
 import { auth } from '../firebase/config';
 
+export interface AdminMetrics {
+  totalClientes: number; pagantes: number; emTeste: number; isentos: number; bloqueados: number; semAssinatura: number;
+  mrr: number; ticketMedio: number;
+  statusDist: { label: string; count: number; color: string }[];
+  receitaPorCanal: { canal: string; valor: number }[];
+  novosPorMes: { label: string; count: number }[];
+}
+
 async function authFetch(path: string, body: any) {
   const user = auth.currentUser;
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
@@ -12,7 +20,19 @@ async function authFetch(path: string, body: any) {
   return data;
 }
 
+async function authGet(path: string) {
+  const user = auth.currentUser;
+  const headers: Record<string, string> = {};
+  if (user) { try { headers['Authorization'] = `Bearer ${await user.getIdToken()}`; } catch { /* ignore */ } }
+  const resp = await fetch(`${API_BASE_URL}${path}`, { headers });
+  const data = await resp.json().catch(() => ({}));
+  if (!resp.ok) throw new Error(data.error || 'erro');
+  return data;
+}
+
 export const adminApi = {
+  // dashboard admin
+  metrics: (): Promise<AdminMetrics> => authGet('/api/admin/metrics'),
   // companies
   saveCompany: (data: any, id?: string, owner?: { email: string; password: string }) => authFetch('/api/companies/save', { id, data, owner }),
   toggleCompanyStatus: (id: string, status: string) => authFetch('/api/companies/toggle-status', { id, status }),

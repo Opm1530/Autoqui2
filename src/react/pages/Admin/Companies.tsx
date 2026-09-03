@@ -175,12 +175,16 @@ function CompanyModal({ editing, onClose, onSaved, onRemoved }: { editing: any |
     const validStores = stores.filter((s) => s.name.trim() && s.address.trim()).map((s, i) => ({
       id: s.id || `store_${Date.now()}_${i}`, name: s.name.trim(), address: s.address.trim(), active: s.active, frete_ativo: s.frete_ativo, instancia_id: s.instancia_id,
     }));
-    if (validStores.length === 0) { toast.warning('É necessário cadastrar pelo menos 1 loja!'); return; }
+    // Na criação a loja é obrigatória; na edição é opcional (mantém as existentes).
+    if (!isEdit && validStores.length === 0) { toast.warning('É necessário cadastrar pelo menos 1 loja!'); return; }
     if (!isEdit && (!email.trim() || !password)) { toast.warning('Informe e-mail e senha do dono.'); return; }
 
     setSaving(true);
     try {
-      const data: any = { name, stores: validStores, limite_instancias: parseInt(limit) || 1, modulos_ativos: modules };
+      const data: any = { name, limite_instancias: parseInt(limit) || 1, modulos_ativos: modules };
+      // Só envia lojas se houver alguma preenchida — assim a edição sem mexer nas
+      // lojas não as apaga (o backend mantém as existentes quando nada é enviado).
+      if (validStores.length > 0) data.stores = validStores;
       if (isEdit) { data.isento = isento; }
       if (isEdit) {
         await adminApi.saveCompany(data, editing.id);
@@ -218,13 +222,13 @@ function CompanyModal({ editing, onClose, onSaved, onRemoved }: { editing: any |
             </div>
           )}
 
-          <h3>Lojas / Unidades <span style={{ color: '#ef4444' }}>*</span></h3>
-          <p style={{ fontSize: '0.85em', color: '#999', marginTop: -8, marginBottom: 12 }}>Mínimo de 1 loja obrigatória</p>
+          <h3>Lojas / Unidades {!isEdit && <span style={{ color: '#ef4444' }}>*</span>}</h3>
+          <p style={{ fontSize: '0.85em', color: '#999', marginTop: -8, marginBottom: 12 }}>{isEdit ? 'Opcional — deixe como está para não alterar as lojas.' : 'Mínimo de 1 loja obrigatória'}</p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 12 }}>
             {stores.map((s, i) => (
               <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                <input type="text" placeholder="Nome da Loja" value={s.name} onChange={(e) => patchStore(i, { name: e.target.value })} style={{ flex: 1 }} required />
-                <input type="text" placeholder="Endereço Completo" value={s.address} onChange={(e) => patchStore(i, { address: e.target.value })} style={{ flex: 2 }} required />
+                <input type="text" placeholder="Nome da Loja" value={s.name} onChange={(e) => patchStore(i, { name: e.target.value })} style={{ flex: 1 }} required={!isEdit} />
+                <input type="text" placeholder="Endereço Completo" value={s.address} onChange={(e) => patchStore(i, { address: e.target.value })} style={{ flex: 2 }} required={!isEdit} />
                 <button type="button" title="Remover" onClick={() => removeStore(i)} style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', color: '#ef4444', borderRadius: 8, width: 36, height: 36, cursor: 'pointer', flexShrink: 0 }}>✕</button>
               </div>
             ))}

@@ -6,6 +6,7 @@ import { getDoc, getAll, db } from './firebase.js';
 import { loadUser } from './currentUser.js';
 import { getPricing, computeTotal, CANAIS as PRICE_CANAIS, ADICIONAIS as PRICE_ADICIONAIS } from './pricing.js';
 import { applyCoupon } from './coupons.js';
+import { computeAccess } from './subscriptions.js';
 
 const GRACA_DIAS = 7; // prazo pra assinar quando o admin atribui plano a um cliente existente
 
@@ -22,19 +23,19 @@ export async function saveCompany(uid: string, payload: { id?: string; data: any
   assertAdmin(user);
   const data = payload.data || {};
   const stores = Array.isArray(data.stores) ? data.stores : [];
-  if (stores.length === 0) throw new Error('stores_obrigatorio');
 
   if (payload.id) {
-    // Mescla com as lojas existentes por id — preserva campos que o form não envia
-    // (ex.: subdominio, e qualquer config futura da loja).
-    const existentes: any[] = (await getDoc('companies', payload.id))?.stores || [];
-    const mergedStores = stores.map((ns: any) => { const old = existentes.find((o) => o.id === ns.id); return old ? { ...old, ...ns } : ns; });
+    // Edição: loja é OPCIONAL. Se o form não mandar lojas, mantém as existentes
+    // intactas. Se mandar, mescla por id (preserva subdominio e configs da loja).
     const patch: any = {
       name: data.name,
-      stores: mergedStores,
       limite_instancias: data.limite_instancias || 1,
       modulos_ativos: data.modulos_ativos || ['atendimento'],
     };
+    if (stores.length > 0) {
+      const existentes: any[] = (await getDoc('companies', payload.id))?.stores || [];
+      patch.stores = stores.map((ns: any) => { const old = existentes.find((o) => o.id === ns.id); return old ? { ...old, ...ns } : ns; });
+    }
     if (typeof data.isento === 'boolean') patch.isento = data.isento;
 
     // Admin atribuindo um plano ao cliente: define o tier (teto de lojas + módulos)
@@ -60,7 +61,8 @@ export async function saveCompany(uid: string, payload: { id?: string; data: any
     return { id: payload.id };
   }
 
-  // Criação: cria o usuário dono no Firebase Auth
+  // Criação: exige ao menos 1 loja e cria o usuário dono no Firebase Auth
+  if (stores.length === 0) throw new Error('stores_obrigatorio');
   if (!payload.owner?.email || !payload.owner?.password) throw new Error('owner_obrigatorio');
   const owner = await getAuth().createUser({ email: payload.owner.email, password: payload.owner.password });
   const ref = await db.collection('companies').add({
@@ -71,6 +73,7 @@ export async function saveCompany(uid: string, payload: { id?: string; data: any
     ownerId: owner.uid,
     modulos_ativos: data.modulos_ativos || ['atendimento'],
     metrics: { totalMessages: 0, totalPayments: 0 },
+    criadoEm: Timestamp.now(),
   });
   await db.collection('users').doc(owner.uid).set({ uid: owner.uid, email: payload.owner.email, role: 'owner', companyId: ref.id });
   return { id: ref.id };
@@ -309,4 +312,84 @@ export async function saveWebhooks(uid: string, data: any): Promise<{ ok: boolea
     venda: data.venda || '', disparo: data.disparo || '', updatedAt: new Date(),
   });
   return { ok: true };
+}
+
+// ─── DASHBOARD ADMIN (visão do dono da plataforma) ───────────────────────────
+// Agrega os clientes (companies): total, pagantes, em teste, isentos, bloqueados,
+// receita mensal recorrente (MRR = soma dos valores das assinaturas ativas),
+// distribuição por situação, receita por canal e novos clientes por mês.
+const CANAL_LABEL: Record<string, string> = {
+  venda_catalogo: 'Catálogo', vitrine: 'Vitrine', farmaqui: 'FarmaQui',
+  ecommerce: 'E-commerce', agendamento: 'Agendamento',
+};
+const MESES_PT_ABREV = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+
+export async function getAdminMetrics(uid: string) {
+  const user = await getUser(uid);
+  assertAdmin(user);
+  const companies = await getAll('companies', []).catch(() => []) as any[];
+
+  let pagantes = 0, emTeste = 0, isentos = 0, bloqueados = 0, semAssinatura = 0, mrr = 0;
+  const receitaCanal: Record<string, number> = {};
+  const novos: Record<string, number> = {};
+
+  const toMs = (v: any): number => (v?.toMillis ? v.toMillis() : v?._seconds ? v._seconds * 1000 : v ? new Date(v).getTime() : 0);
+  const now = new Date();
+  // Últimos 6 meses (chave YYYY-M) para o gráfico de crescimento.
+  const meses: { key: string; label: string }[] = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const key = `${d.getFullYear()}-${d.getMonth()}`;
+    meses.push({ key, label: MESES_PT_ABREV[d.getMonth()] });
+    novos[key] = 0;
+  }
+
+  for (const c of companies) {
+    const a = c.assinatura || {};
+    const valor = Number(a.valor) || 0;
+    const features: string[] = Array.isArray(a.features) && a.features.length ? a.features : (Array.isArray(c.modulos_ativos) ? c.modulos_ativos : []);
+    const temAssinatura = valor > 0 || features.some((f) => PRICE_CANAIS.has(f) || PRICE_ADICIONAIS.has(f)) || !!a.planId;
+    const acc = computeAccess(c, 5);
+
+    if (c.isento) isentos++;
+    else if (!temAssinatura) semAssinatura++;
+    else if (acc.emTrial) emTeste++;
+    else if (acc.bloqueada) bloqueados++;
+    else {
+      pagantes++;
+      mrr += valor;
+      const canal = features.find((f) => PRICE_CANAIS.has(f)) || 'outros';
+      receitaCanal[canal] = (receitaCanal[canal] || 0) + valor;
+    }
+
+    // Crescimento por mês de criação.
+    const criadoMs = toMs(c.criadoEm);
+    if (criadoMs) {
+      const d = new Date(criadoMs);
+      const key = `${d.getFullYear()}-${d.getMonth()}`;
+      if (key in novos) novos[key]++;
+    }
+  }
+
+  const statusDist = [
+    { label: 'Pagantes', count: pagantes, color: '#84cc16' },
+    { label: 'Em teste', count: emTeste, color: '#facc15' },
+    { label: 'Isentos', count: isentos, color: '#38bdf8' },
+    { label: 'Bloqueados', count: bloqueados, color: '#ef4444' },
+    { label: 'Sem assinatura', count: semAssinatura, color: '#94a3b8' },
+  ].filter((s) => s.count > 0);
+
+  const receitaPorCanal = Object.entries(receitaCanal)
+    .map(([k, v]) => ({ canal: CANAL_LABEL[k] || 'Outros', valor: Math.round(v * 100) / 100 }))
+    .sort((a, b) => b.valor - a.valor);
+
+  const novosPorMes = meses.map((m) => ({ label: m.label, count: novos[m.key] }));
+
+  return {
+    totalClientes: companies.length,
+    pagantes, emTeste, isentos, bloqueados, semAssinatura,
+    mrr: Math.round(mrr * 100) / 100,
+    ticketMedio: pagantes > 0 ? Math.round((mrr / pagantes) * 100) / 100 : 0,
+    statusDist, receitaPorCanal, novosPorMes,
+  };
 }
