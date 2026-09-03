@@ -9,7 +9,7 @@ import { authService } from '../services/auth';
 import { dbService } from '../services/db';
 import { orderNotification } from '../services/orderNotification';
 import { subscriptionApi } from '../services/subscriptionApi';
-import { pagesForModules, employeeCanAccess } from './util/pages';
+import { employeeCanAccess } from './util/pages';
 import { Billing } from './pages/Billing';
 import { useAuth } from './useAuth';
 
@@ -73,14 +73,6 @@ function buildNav(role: string | undefined, modulos: string[], permissions: stri
 
   add({ to: '/dashboard', label: 'Dashboard', icon: 'fa-chart-line' });
 
-  // ── Colaborador: menu montado só com as páginas liberadas pra ele ──
-  if (isEmployee) {
-    const pages = pagesForModules(modulos).filter((p) => permissions.includes(p.key));
-    if (pages.length) nav.push({ section: 'Acesso' });
-    pages.forEach((p) => add({ to: p.route, label: p.label, icon: p.icon }));
-    return nav;
-  }
-
   // ── Canal (só um ativo por vez) ──
   if (vitrine) {
     add(produtosDropdown('Produtos', true));
@@ -118,7 +110,34 @@ function buildNav(role: string | undefined, modulos: string[], permissions: stri
   if (role === 'owner') add({ to: '/tools', label: 'Ferramentas', icon: 'fa-shapes' });
   // Assinatura e Alterar senha → menu do usuário (rodapé).
   // Mercado Pago → Configuração › Pagamento.
+
+  // Colaborador: mantém a MESMA estrutura do menu, só remove o que ele não pode acessar.
+  if (isEmployee) return filterNavForEmployee(nav, permissions);
   return nav;
+}
+
+// Filtra o menu do dono pelas permissões do colaborador, preservando grupos/seções.
+// (Dashboard sempre; itens de dropdown filtrados individualmente; grupos/seções vazios somem.)
+function filterNavForEmployee(nav: NavEntry[], permissions: string[]): NavEntry[] {
+  const ok = (to?: string) => !!to && employeeCanAccess(to, permissions);
+  const out: NavEntry[] = [];
+  for (const e of nav) {
+    if ('divider' in e || 'section' in e) { out.push(e); continue; }
+    if (e.children) {
+      const children = e.children.filter((c) => ok(c.to));
+      if (children.length) out.push({ ...e, children });
+      continue;
+    }
+    if (ok(e.to)) out.push(e);
+  }
+  // Remove seções/divisores que ficaram sem itens depois deles.
+  return out.filter((e, i) => {
+    if ('section' in e || 'divider' in e) {
+      const next = out[i + 1];
+      return next && !('section' in next) && !('divider' in next);
+    }
+    return true;
+  });
 }
 
 // Achata a árvore de nav em itens navegáveis (com rota), expandindo dropdowns.
