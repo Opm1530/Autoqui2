@@ -25,9 +25,13 @@ export async function saveCompany(uid: string, payload: { id?: string; data: any
   if (stores.length === 0) throw new Error('stores_obrigatorio');
 
   if (payload.id) {
+    // Mescla com as lojas existentes por id — preserva campos que o form não envia
+    // (ex.: subdominio, e qualquer config futura da loja).
+    const existentes: any[] = (await getDoc('companies', payload.id))?.stores || [];
+    const mergedStores = stores.map((ns: any) => { const old = existentes.find((o) => o.id === ns.id); return old ? { ...old, ...ns } : ns; });
     const patch: any = {
       name: data.name,
-      stores,
+      stores: mergedStores,
       limite_instancias: data.limite_instancias || 1,
       modulos_ativos: data.modulos_ativos || ['atendimento'],
     };
@@ -147,7 +151,12 @@ export async function setCompanyStores(uid: string, companyId: string | undefine
     }
   }
 
-  await db.collection('companies').doc(targetId).update({ stores });
+  // Mescla com as lojas atuais por id — preserva o subdominio (e outros campos que
+  // o front não envia). Lojas ausentes no payload são removidas (comportamento esperado).
+  const atual = await getDoc('companies', targetId);
+  const existentes: any[] = atual?.stores || [];
+  const merged = stores.map((ns: any) => { const old = existentes.find((o) => o.id === ns.id); return old ? { ...old, ...ns } : ns; });
+  await db.collection('companies').doc(targetId).update({ stores: merged });
   return { ok: true };
 }
 
