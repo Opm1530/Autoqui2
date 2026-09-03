@@ -244,14 +244,14 @@ export function Shell() {
   // Inadimplente além da tolerância → parede de cobrança (sem sidebar).
   if (blocked) {
     return (
-      <div className="app-container" style={{ display: 'block', minHeight: '100vh' }}>
+      <div className="app-container" style={{ display: 'block', height: '100vh', overflowY: 'auto' }}>
         <div className="topbar glass" style={{ justifyContent: 'space-between' }}>
           <div className="topbar-left"><h2 className="page-title">Assinatura</h2></div>
           <button className="logout-btn" title="Sair" onClick={() => authService.logout()}>
             <span className="icon"><i style={{ color: '#FFF', fontSize: '1rem' }} className="fa-solid fa-arrow-right-from-bracket" /></span>
           </button>
         </div>
-        <div className="page-container"><Billing wall /></div>
+        <div className="page-container" style={{ paddingBottom: 40 }}><Billing wall /></div>
       </div>
     );
   }
