@@ -4,6 +4,7 @@ import { subscriptionApi } from '../../services/subscriptionApi';
 import { toast } from '../../services/toast';
 import { confirm } from '../../services/confirm';
 import { useAuth } from '../useAuth';
+import { authService } from '../../services/auth';
 import { SkeletonCards } from '../components/Skeleton';
 import { pricingApi, ALL_FEAT, CANAIS_FEAT } from '../../services/pricingApi';
 
@@ -142,10 +143,15 @@ export function Billing({ wall = false }: { wall?: boolean }) {
   return (
     <div style={{ maxWidth: 720, margin: wall ? '2rem auto' : '0 auto' }}>
       {wall && (
-        <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
-          <i className="fa-solid fa-triangle-exclamation" style={{ fontSize: '2.5rem', color: '#fbbf24', display: 'block', marginBottom: 12 }} />
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 8, marginBottom: '1.5rem' }}>
+          <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'rgba(251,191,36,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <i className="fa-solid fa-triangle-exclamation" style={{ fontSize: '1.7rem', color: '#fbbf24' }} />
+          </div>
           <h2 style={{ margin: 0 }}>Regularize sua assinatura</h2>
-          <p style={{ color: 'var(--text-muted)' }}>O acesso ao painel está suspenso até a regularização do pagamento.</p>
+          <p style={{ color: 'var(--text-muted)', margin: 0 }}>O acesso ao painel está suspenso até a regularização do pagamento.</p>
+          <button className="btn-link" style={{ marginTop: 4, background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '0.85rem', textDecoration: 'underline' }} onClick={() => authService.logout()}>
+            <i className="fa-solid fa-arrow-right-from-bracket" /> Sair da conta
+          </button>
         </div>
       )}
       {!wall && (
