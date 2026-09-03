@@ -30,4 +30,5 @@ export const subscriptionApi = {
   pixStatus: (paymentId: string): Promise<{ status: string }> => req(`/api/subscription/pix-status?paymentId=${encodeURIComponent(paymentId)}`, 'GET'),
   cancel: (companyId?: string) => req('/api/subscription/cancel', 'POST', { companyId }),
   mine: () => req('/api/subscription/mine', 'GET'),
+  refresh: (): Promise<{ status: string }> => req('/api/subscription/refresh', 'POST'),
 };

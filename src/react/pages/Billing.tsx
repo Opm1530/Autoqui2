@@ -83,6 +83,17 @@ export function Billing({ wall = false }: { wall?: boolean }) {
     return () => { stop = true; clearInterval(timer); };
   }, [pix]);
 
+  const [refreshing, setRefreshing] = useState(false);
+  async function jaPaguei() {
+    setRefreshing(true);
+    try {
+      const { status } = await subscriptionApi.refresh();
+      if (status === 'authorized') { toast.success('Pagamento confirmado! Assinatura ativa.'); await load(); }
+      else toast.warning('Ainda não consta como autorizado no Mercado Pago. Se acabou de pagar, aguarde alguns minutos e tente de novo.');
+    } catch (e: any) { toast.error('Erro ao atualizar: ' + (e.message || e)); }
+    finally { setRefreshing(false); }
+  }
+
   async function cancel() {
     const ok = await confirm.danger('Cancelar Assinatura', 'Deseja cancelar sua assinatura? O acesso pode ser suspenso.');
     if (!ok) return;
@@ -138,6 +149,13 @@ export function Billing({ wall = false }: { wall?: boolean }) {
               <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.03em' }}>Sua assinatura</div>
               <div style={{ fontWeight: 800, fontSize: '1.25rem', margin: '2px 0 6px', color: 'var(--primary)' }}>R$ {total.toFixed(2)}<span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 400 }}>/mês</span></div>
               {badge && <span className="badge" style={{ background: badge.color + '22', color: badge.color, border: `1px solid ${badge.color}44` }}><i className="fa-solid fa-circle" style={{ fontSize: '0.5rem', marginRight: 5, verticalAlign: 'middle' }} />{badge.label}</span>}
+              {assinatura.status === 'pending' && (
+                <div style={{ marginTop: 8 }}>
+                  <button className="btn-link" style={{ fontSize: '0.82rem', color: 'var(--primary)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontWeight: 700 }} disabled={refreshing} onClick={jaPaguei}>
+                    <i className={`fa-solid ${refreshing ? 'fa-spinner fa-spin' : 'fa-rotate'}`} /> Já paguei? Atualizar status
+                  </button>
+                </div>
+              )}
             </div>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end' }}>

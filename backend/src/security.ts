@@ -47,7 +47,8 @@ export function verifyMpSignature(req: Request): boolean {
 
   const sig = String(req.headers['x-signature'] || '');
   const requestId = String(req.headers['x-request-id'] || '');
-  const dataId = String((req.body?.data?.id ?? req.query['data.id'] ?? req.query['id'] ?? '')).trim();
+  // O MP exige o data.id alfanumérico em minúsculo no manifesto.
+  const dataId = String((req.body?.data?.id ?? req.query['data.id'] ?? req.query['id'] ?? '')).trim().toLowerCase();
 
   const parts = Object.fromEntries(
     sig.split(',').map((kv) => kv.split('=').map((s) => s.trim())).filter((p) => p.length === 2)

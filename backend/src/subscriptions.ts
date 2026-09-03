@@ -216,6 +216,25 @@ export async function subscribe(uid: string, planId?: string): Promise<{ init_po
   return { init_point: data.init_point };
 }
 
+// "Já paguei?" — consulta o Mercado Pago e sincroniza o status (caso o webhook
+// não tenha chegado). Se o preapproval está autorizado, marca a assinatura como ativa.
+export async function refreshSubscriptionStatus(uid: string): Promise<{ status: string }> {
+  const user = await getUser(uid);
+  if (!user.companyId) throw new Error('no_company');
+  const company = await getDoc('companies', user.companyId);
+  const a = (company as any)?.assinatura || {};
+  const preId = a.mpPreapprovalId;
+  if (!preId) return { status: a.status || 'none' };
+  const token = await platformToken();
+  const resp = await fetch(`${MP_API}/preapproval/${preId}`, { headers: { Authorization: `Bearer ${token}` } });
+  const pre = await resp.json().catch(() => null);
+  if (!pre?.status) return { status: a.status || 'unknown' };
+  const patch: any = { status: pre.status, atualizadoEm: Timestamp.now() };
+  if (pre.status === 'authorized') patch.inadimplenteDesde = null;
+  await db.collection('companies').doc(user.companyId).set({ assinatura: { ...a, ...patch } }, { merge: true });
+  return { status: pre.status };
+}
+
 // ── PIX avulso (1 mês) — alternativa manual ao cartão recorrente ────────────
 // Gera um pagamento PIX pontual. Quando aprovado (webhook ou polling), libera
 // +30 dias via `pixPagoAte`. Não renova sozinho — o cliente paga a cada mês.

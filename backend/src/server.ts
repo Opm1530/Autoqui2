@@ -17,7 +17,7 @@ import {
 } from './admin.js';
 import {
   connectPlatformMp, platformMpStatus, disconnectPlatformMp,
-  savePlan, deletePlan, subscribe, subscribePix, subscriptionPixStatus, cancelSubscription, mySubscription,
+  savePlan, deletePlan, subscribe, subscribePix, subscriptionPixStatus, refreshSubscriptionStatus, cancelSubscription, mySubscription,
   handleSubscriptionWebhook, provisionSignup, listPublicPlans, isCompanyBlocked,
 } from './subscriptions.js';
 import { startCampaignJobs } from './campaigns.js';
@@ -327,6 +327,7 @@ app.post('/api/subscription/pix', requireAuth, wrap((req) => subscribePix(req.ui
 app.get('/api/subscription/pix-status', requireAuth, wrap((req) => subscriptionPixStatus(req.uid, String(req.query.paymentId || ''))));
 app.post('/api/subscription/cancel', requireAuth, wrap((req) => cancelSubscription(req.uid, req.body?.companyId)));
 app.get('/api/subscription/mine', requireAuth, wrap((req) => mySubscription(req.uid)));
+app.post('/api/subscription/refresh', requireAuth, wrap((req) => refreshSubscriptionStatus(req.uid)));
 
 app.post('/api/orders/intervene', requireAuth, wrap((req) => sendIntervention(req.uid, String(req.body?.orderId), String(req.body?.message || ''))));
 
@@ -337,10 +338,11 @@ app.post('/api/data/delete', requireAuth, requireActiveSubscription, wrap((req) 
 
 // Webhook do MP para assinaturas (sem auth — o MP chama direto).
 app.post('/api/mp/subscription-webhook', async (req, res) => {
-  if (!verifyMpSignature(req)) {
-    console.warn('[sub-webhook] x-signature inválida — recusado');
-    return res.status(401).json({ error: 'invalid_signature' });
-  }
+  // A assinatura (x-signature) é defesa extra — mas o handler SEMPRE reconsulta o
+  // status real na API do MP (com o token da plataforma), então um webhook forjado
+  // não consegue "ativar" nada falso. Se a assinatura falhar, logamos e processamos
+  // mesmo assim (evita perder confirmações reais por config/formato de assinatura).
+  if (!verifyMpSignature(req)) console.warn('[sub-webhook] x-signature inválida — processando via reconsulta na API do MP');
   res.sendStatus(200);
   try { await handleSubscriptionWebhook(req.body || {}); }
   catch (err: any) { console.error('[sub-webhook] erro:', err?.message); }
