@@ -85,13 +85,14 @@ export function Signup() {
     }
   }
 
-  const card: React.CSSProperties = { maxWidth: step === 1 ? 460 : 720, width: '100%', margin: '5vh auto', padding: '2.5rem 3rem 3rem', background: '#102a1c', color: '#fff', borderRadius: 22, boxShadow: '0 30px 70px -24px rgba(16,42,28,0.5)' };
+  // Card com altura limitada à tela e rolagem INTERNA (o botão de ação fica fixo no rodapé).
+  const card: React.CSSProperties = { maxWidth: step === 1 ? 460 : 720, width: '100%', margin: 'auto', padding: '2.5rem 3rem 3rem', background: '#102a1c', color: '#fff', borderRadius: 22, boxShadow: '0 30px 70px -24px rgba(16,42,28,0.5)', maxHeight: 'calc(100vh - 40px)', display: 'flex', flexDirection: 'column' };
   const inp: React.CSSProperties = { width: '100%', padding: '14px 16px', borderRadius: 10, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.16)', color: '#fff' };
 
   return (
     <div className="login-page-container">
       <div style={card}>
-        <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+        <div style={{ textAlign: 'center', marginBottom: '1.5rem', flexShrink: 0 }}>
           <img src="/logo.png" alt="AutoQui" style={{ width: 56, borderRadius: 14 }} />
           <h2 style={{ marginTop: '1rem' }}>{step === 1 ? 'Criar sua conta' : 'Selecione suas funcionalidades'}</h2>
           <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: '0.9rem', marginTop: 6 }}>
@@ -125,6 +126,8 @@ export function Signup() {
           <div style={{ textAlign: 'center', color: 'var(--text-muted)' }}><i className="fa-solid fa-spinner fa-spin" /> Carregando...</div>
         ) : (
           <>
+           {/* Área rolável (o rodapé com o botão fica fixo fora dela) */}
+           <div style={{ overflowY: 'auto', flex: 1, minHeight: 0, margin: '0 -0.5rem', padding: '0 0.5rem' }}>
             <h4 style={secTitle}>Canal principal <span style={secHint}>escolha 1</span></h4>
             <div style={grid}>
               {canais.map((f) => <FeatCard key={f.key} f={f} preco={preco(f.key)} on={features.includes(f.key)} tipo="canal" onClick={() => toggleCanal(f.key)} />)}
@@ -154,7 +157,9 @@ export function Signup() {
               <p style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.55)', margin: '8px 0 0' }}>Cobrado só após os 7 dias de teste. Cancele quando quiser.</p>
             </div>
 
-            <div style={{ display: 'flex', gap: 10 }}>
+           </div>
+
+            <div style={{ display: 'flex', gap: 10, flexShrink: 0, paddingTop: 14 }}>
               <button type="button" className="btn-secondary" onClick={() => setStep(1)}><i className="fa-solid fa-arrow-left" /> Voltar</button>
               <button type="button" className="btn-primary" style={{ flex: 1, justifyContent: 'center' }} disabled={loading || !totais.temCanal} onClick={finalizar}>
                 {loading ? <i className="fa-solid fa-spinner fa-spin" /> : <>Começar teste grátis · {brl(totais.total)}/mês</>}
