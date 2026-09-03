@@ -103,8 +103,22 @@ export function Billing({ wall = false }: { wall?: boolean }) {
 
   if (loading) return <SkeletonCards count={2} lines={2} />;
 
+  // PIX pago: acesso liberado por 30 dias (pixPagoAte), mesmo com status cru "pending".
+  const toMs = (v: any): number | null => {
+    if (!v) return null;
+    if (typeof v === 'number') return v;
+    if (typeof v === 'string') { const m = new Date(v).getTime(); return isNaN(m) ? null : m; }
+    const s = v._seconds ?? v.seconds; return typeof s === 'number' ? s * 1000 : null;
+  };
+  const pixMs = toMs(assinatura?.pixPagoAte);
+  const pixAtivo = !!(pixMs && Date.now() < pixMs);
+  const pixDias = pixAtivo ? Math.ceil((pixMs! - Date.now()) / 86400000) : 0;
+  const pixAte = pixAtivo ? new Date(pixMs!).toLocaleDateString('pt-BR') : '';
+
   // Em teste, mostra "Teste grátis" mesmo que o status cru seja outro (ex.: cancelou no meio).
-  const badge = trial.emTrial ? STATUS_LABEL.trial : (assinatura?.status ? STATUS_LABEL[assinatura.status] : null);
+  const badge = pixAtivo ? { label: 'Ativa · PIX', color: '#34d399' }
+    : trial.emTrial ? STATUS_LABEL.trial
+    : (assinatura?.status ? STATUS_LABEL[assinatura.status] : null);
   // À la carte: tem o que cobrar quando há funcionalidades ativas e ainda não pagou.
   const temPlanoParaPagar = !!(assinatura && features.length && assinatura.status !== 'authorized' && assinatura.status !== 'cancelled');
   const bruto = features.reduce((s, k) => s + (precos[k] || 0), 0);
@@ -149,7 +163,8 @@ export function Billing({ wall = false }: { wall?: boolean }) {
               <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.03em' }}>Sua assinatura</div>
               <div style={{ fontWeight: 800, fontSize: '1.25rem', margin: '2px 0 6px', color: 'var(--primary)' }}>R$ {total.toFixed(2)}<span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 400 }}>/mês</span></div>
               {badge && <span className="badge" style={{ background: badge.color + '22', color: badge.color, border: `1px solid ${badge.color}44` }}><i className="fa-solid fa-circle" style={{ fontSize: '0.5rem', marginRight: 5, verticalAlign: 'middle' }} />{badge.label}</span>}
-              {assinatura.status === 'pending' && (
+              {pixAtivo && <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: 6 }}><i className="fa-solid fa-circle-check" style={{ color: '#34d399' }} /> Pago via PIX · válido até <strong>{pixAte}</strong> ({pixDias} dia{pixDias !== 1 ? 's' : ''} restante{pixDias !== 1 ? 's' : ''})</div>}
+              {assinatura.status === 'pending' && !pixAtivo && (
                 <div style={{ marginTop: 8 }}>
                   <button className="btn-link" style={{ fontSize: '0.82rem', color: 'var(--primary)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontWeight: 700 }} disabled={refreshing} onClick={jaPaguei}>
                     <i className={`fa-solid ${refreshing ? 'fa-spinner fa-spin' : 'fa-rotate'}`} /> Já paguei? Atualizar status
