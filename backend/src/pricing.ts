@@ -5,12 +5,12 @@ import { loadUser } from './currentUser.js';
 
 // Canais (escolha 1) e adicionais (somam). Espelha CANAIS do admin.
 export const CANAIS = new Set(['venda_catalogo', 'vitrine', 'farmaqui', 'ecommerce', 'agendamento']);
-export const ADICIONAIS = new Set(['crm', 'disparo', 'atendimento']);
+export const ADICIONAIS = new Set(['crm', 'disparo', 'atendimento', 'links']);
 const FEATURES = [...CANAIS, ...ADICIONAIS];
 
 const DEFAULT_PRECOS: Record<string, number> = {
   venda_catalogo: 163, vitrine: 43, farmaqui: 0, ecommerce: 0, agendamento: 0,
-  crm: 0, disparo: 0, atendimento: 0,
+  crm: 0, disparo: 0, atendimento: 0, links: 0,
 };
 // Desconto aplicado sobre a soma dos ADICIONAIS, conforme a quantidade deles.
 const DEFAULT_DESCONTOS = [{ min: 2, pct: 10 }, { min: 3, pct: 20 }];

@@ -11,6 +11,7 @@ export const EMPLOYEE_PAGES: PageDef[] = [
   { key: 'catalog-settings', label: 'Configuração', route: '/catalog-settings', icon: 'fa-sliders', mods: ['venda_catalogo', 'vitrine'] },
   { key: 'leads', label: 'Leads', route: '/leads', icon: 'fa-people-group', mods: ['venda_catalogo', 'vitrine', 'atendimento', 'farmaqui'] },
   { key: 'crm', label: 'CRM', route: '/crm', icon: 'fa-table-columns', mods: ['crm'] },
+  { key: 'links', label: 'Links', route: '/links-editor', icon: 'fa-link', mods: ['links'] },
   { key: 'campaigns', label: 'Campanhas', route: '/campaigns', icon: 'fa-bullhorn', mods: ['disparo'] },
   { key: 'farmaqui', label: 'FarmaQui', route: '/farmaqui', icon: 'fa-prescription-bottle-medical', mods: ['farmaqui'] },
   { key: 'ecommerce', label: 'E-commerce', route: '/ecommerce', icon: 'fa-store', mods: ['ecommerce'] },

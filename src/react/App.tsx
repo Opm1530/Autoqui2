@@ -16,6 +16,8 @@ import { Users } from './pages/Users';
 import { Instances } from './pages/Instances';
 import { Leads } from './pages/Leads/Leads';
 import { CRMBoard } from './pages/CRM/Board';
+import { LinksEditor } from './pages/Links/LinksEditor';
+import { LinksPublic } from './pages/Links/LinksPublic';
 import { CatalogSettings } from './pages/Configuration/CatalogSettings';
 import { Stores } from './pages/Stores';
 import { Campaigns } from './pages/Campaigns/Campaigns';
@@ -85,6 +87,20 @@ function StorefrontHost({ host }: { host: string }) {
   return <LandingPage />;
 }
 
+// /links num subdomínio → resolve o host e mostra a página de links da loja.
+function LinksHostRoute() {
+  const host = window.location.hostname;
+  const [storeId, setStoreId] = useState<string | null | undefined>(undefined);
+  useEffect(() => {
+    if (MAIN_HOSTS.includes(host)) { setStoreId(null); return; }
+    fetch(`${API_BASE_URL}/api/domains/store-by-host?host=${encodeURIComponent(host)}`)
+      .then((r) => r.json()).then((d) => setStoreId(d.storeId || null)).catch(() => setStoreId(null));
+  }, [host]);
+  if (storeId === undefined) return null;
+  if (!storeId) return <LandingPage />;
+  return <LinksPublic storeId={storeId} />;
+}
+
 function LoginRoute() {
   const { user, loading } = useAuth();
   if (loading) return null;
@@ -106,6 +122,8 @@ export function App() {
         <Routes>
           {/* Rotas públicas (sem login) */}
           <Route path="/catalog/:storeId" element={<Catalog />} />
+          <Route path="/links/:storeId" element={<LinksPublic />} />
+          <Route path="/links" element={<LinksHostRoute />} />
           <Route path="/qr/:token" element={<QRPage />} />
           <Route path="/lp-preview" element={<LandingPreviewRoute />} />
 
@@ -127,6 +145,7 @@ export function App() {
             <Route path="/complementos" element={<Complementos />} />
             <Route path="/leads" element={<Leads />} />
             <Route path="/crm" element={<CRMBoard />} />
+            <Route path="/links-editor" element={<LinksEditor />} />
             <Route path="/business" element={<Stores />} />
             <Route path="/users" element={<Users />} />
             <Route path="/instances" element={<Instances />} />

@@ -31,5 +31,6 @@ export const ADICIONAIS_FEAT = [
   { key: 'crm', label: 'CRM (Kanban)', icon: 'fa-table-columns', desc: 'Quadro de leads/clientes com tags e etapas' },
   { key: 'disparo', label: 'Campanhas', icon: 'fa-bullhorn', desc: 'Disparo em massa no WhatsApp' },
   { key: 'atendimento', label: 'Atendente IA', icon: 'fa-robot', desc: 'IA que atende no WhatsApp (em breve)' },
+  { key: 'links', label: 'Página de Links', icon: 'fa-link', desc: 'Página de links (estilo Linktree) personalizável' },
 ];
 export const ALL_FEAT = [...CANAIS_FEAT, ...ADICIONAIS_FEAT];

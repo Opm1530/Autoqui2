@@ -29,6 +29,7 @@ const TOOLS: Tool[] = [
   { key: 'atendimento', name: 'Atendente IA', desc: 'Uma IA que atende, tira dúvidas e qualifica seus clientes no WhatsApp, 24 horas por dia.', icon: 'fa-robot', color: '#22c55e', group: 'camada', open: '/leads', soon: true },
   { key: 'disparo', name: 'Campanhas', desc: 'Dispare mensagens em massa para toda a sua base no WhatsApp, com inteligência anti-banimento.', icon: 'fa-bullhorn', color: '#ef4444', group: 'camada', open: '/campaigns' },
   { key: 'crm', name: 'CRM (Kanban)', desc: 'Organize seus leads e clientes num quadro Kanban: colunas personalizáveis, tags, arrastar-e-soltar, lista e arquivamento. Usa a sua base de leads.', icon: 'fa-table-columns', color: '#84cc16', group: 'camada', open: '/crm' },
+  { key: 'links', name: 'Página de Links', desc: 'Uma página de links estilo Linktree, totalmente personalizável (cores, fundo, botões, avatar e redes sociais). Ideal para a bio do Instagram.', icon: 'fa-link', color: '#a855f7', group: 'camada', open: '/links-editor' },
 ];
 
 export function Tools() {
