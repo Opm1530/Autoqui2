@@ -88,17 +88,19 @@ function StorefrontHost({ host }: { host: string }) {
 }
 
 // /links num subdomínio → resolve o host e mostra a página de links da loja.
+// Funciona tanto pra subdomínio de loja (tem storeId) quanto de landing FarmaQui
+// (só companyId) — nesse caso a LinksPublic acha a loja com linksPage pela empresa.
 function LinksHostRoute() {
   const host = window.location.hostname;
-  const [storeId, setStoreId] = useState<string | null | undefined>(undefined);
+  const [res, setRes] = useState<{ storeId?: string | null; companyId?: string } | null | undefined>(undefined);
   useEffect(() => {
-    if (MAIN_HOSTS.includes(host)) { setStoreId(null); return; }
+    if (MAIN_HOSTS.includes(host)) { setRes(null); return; }
     fetch(`${API_BASE_URL}/api/domains/store-by-host?host=${encodeURIComponent(host)}`)
-      .then((r) => r.json()).then((d) => setStoreId(d.storeId || null)).catch(() => setStoreId(null));
+      .then((r) => r.json()).then((d) => setRes(d.companyId || d.storeId ? d : null)).catch(() => setRes(null));
   }, [host]);
-  if (storeId === undefined) return null;
-  if (!storeId) return <LandingPage />;
-  return <LinksPublic storeId={storeId} />;
+  if (res === undefined) return null;
+  if (!res || (!res.storeId && !res.companyId)) return <LandingPage />;
+  return <LinksPublic storeId={res.storeId || undefined} companyId={res.companyId} />;
 }
 
 function LoginRoute() {

@@ -46,7 +46,9 @@ export function LinksEditor() {
   }, [storeId]);
 
   const store = useMemo(() => stores.find((s) => s.id === storeId), [stores, storeId]);
-  const shareUrl = store?.subdominio ? `https://${store.subdominio}/links` : `${window.location.origin}/links/${storeId}`;
+  // Subdomínio da loja (catálogo/vitrine) ou, na FarmaQui, o host da landing.
+  const subHost = store?.subdominio || company?.farmaqui?.landing?.host || '';
+  const shareUrl = subHost ? `https://${subHost}/links` : `${window.location.origin}/links/${storeId}`;
 
   const set = (p: Partial<LinksPage>) => setPage((x) => (x ? { ...x, ...p } : x));
   const setTema = (p: Partial<LinksPage['tema']>) => setPage((x) => (x ? { ...x, tema: { ...x.tema, ...p } } : x));

@@ -102,28 +102,38 @@ export function LinksView({ page, company, minH = '100%', onLinkClick }: { page:
   );
 }
 
-// Página pública (rota) — resolve a config pelo storeId.
-export function LinksPublic({ storeId: storeIdProp }: { storeId?: string } = {}) {
+// Página pública (rota) — resolve a config pelo storeId, ou pela empresa
+// (companyId) quando o subdomínio é de landing FarmaQui e não tem storeId.
+export function LinksPublic({ storeId: storeIdProp, companyId }: { storeId?: string; companyId?: string } = {}) {
   const params = useParams();
   const storeId = storeIdProp || params.storeId || '';
-  const [state, setState] = useState<{ page: LinksPage; company: any; empresaId: string } | null | undefined>(undefined);
+  const [state, setState] = useState<{ page: LinksPage; company: any; empresaId: string; lojaId: string } | null | undefined>(undefined);
 
   useEffect(() => {
-    if (!storeId) { setState(null); return; }
+    if (!storeId && !companyId) { setState(null); return; }
     (async () => {
       try {
-        const cfgs = (await dbService.getAll('loja_config', { field: 'lojaId', operator: '==', value: storeId })) as any[];
-        const cfg = cfgs[0];
+        // Busca a config da loja: por storeId (lojaId) ou, sem ele, pela empresa
+        // pegando a primeira loja que tenha uma página de links configurada.
+        let cfg: any = null;
+        if (storeId) {
+          const cfgs = (await dbService.getAll('loja_config', { field: 'lojaId', operator: '==', value: storeId })) as any[];
+          cfg = cfgs[0];
+        } else if (companyId) {
+          const cfgs = (await dbService.getAll('loja_config', { field: 'empresaId', operator: '==', value: companyId })) as any[];
+          cfg = cfgs.find((c) => c?.linksPage) || cfgs[0];
+        }
         const page: LinksPage | null = cfg?.linksPage || null;
         if (!page || page.ativo === false) { setState(null); return; }
+        const empresaId = cfg?.empresaId || companyId || '';
+        const lojaId = cfg?.lojaId || storeId || '';
         let company: any = null;
-        const empresaId = cfg?.empresaId || '';
         if (empresaId) company = await dbService.get('companies', empresaId).catch(() => null);
-        setState({ page, company, empresaId });
-        linksTrack('links_view', empresaId, storeId); // conta a visita
+        setState({ page, company, empresaId, lojaId });
+        linksTrack('links_view', empresaId, lojaId); // conta a visita
       } catch { setState(null); }
     })();
-  }, [storeId]);
+  }, [storeId, companyId]);
 
   useEffect(() => {
     if (state?.page?.titulo) document.title = state.page.titulo;
@@ -134,5 +144,5 @@ export function LinksPublic({ storeId: storeIdProp }: { storeId?: string } = {})
 
   if (state === undefined) return <div style={{ minHeight: '100dvh', background: '#102a1c' }} />;
   if (!state) return <div style={{ minHeight: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f6f9f2', color: '#16251c' }}>Página não encontrada.</div>;
-  return <LinksView page={state.page} company={state.company} minH="100dvh" onLinkClick={(id) => linksTrack('links_click', state.empresaId, storeId, id)} />;
+  return <LinksView page={state.page} company={state.company} minH="100dvh" onLinkClick={(id) => linksTrack('links_click', state.empresaId, state.lojaId, id)} />;
 }
