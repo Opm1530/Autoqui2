@@ -141,7 +141,7 @@ export function Billing({ wall = false }: { wall?: boolean }) {
             </div>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end' }}>
-            {assinatura.status === 'authorized' && <button className="btn-secondary" style={{ color: '#f87171', borderColor: 'rgba(239,68,68,0.35)' }} onClick={cancel}>Cancelar assinatura</button>}
+            {assinatura.status === 'authorized' && user?.role === 'owner' && <button className="btn-secondary" style={{ color: '#f87171', borderColor: 'rgba(239,68,68,0.35)' }} onClick={cancel}>Cancelar assinatura</button>}
             {temPlanoParaPagar && (
               <>
                 <button className="btn-primary" style={{ justifyContent: 'center' }} disabled={busy === 'go'} onClick={() => subscribe()}>

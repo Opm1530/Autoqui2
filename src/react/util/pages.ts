@@ -23,7 +23,7 @@ export const pagesForModules = (mods: string[]): PageDef[] =>
   EMPLOYEE_PAGES.filter((p) => p.always || (p.mods || []).some((m) => mods.includes(m)));
 
 // O colaborador sempre pode ver estas (independe de permissão).
-export const ALWAYS_ALLOWED = new Set(['/dashboard', '/change-password']);
+export const ALWAYS_ALLOWED = new Set(['/dashboard', '/change-password', '/billing']);
 
 // Descobre a qual página (key) um pathname pertence — casa pelo prefixo de rota mais longo.
 // Ex.: /farmaqui/atendimento e /farmaqui-settings → 'farmaqui'. null = página fora do
