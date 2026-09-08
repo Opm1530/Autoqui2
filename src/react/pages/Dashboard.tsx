@@ -463,6 +463,17 @@ function OrigemDonut({ leads }: { leads: any[] | null }) {
 
 // Bloco de métricas da Vitrine: funil (visitas → cliques → WhatsApp → leads),
 // conversão, visitas por dia e produtos mais clicados.
+// Estado vazio de um card de visualização — ocupa a altura toda e fica centralizado
+// (em vez de um texto solto no topo deixando o card meio vazio).
+function VizEmpty({ icon, children }: { icon: string; children: React.ReactNode }) {
+  return (
+    <div style={{ flex: 1, minHeight: 150, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, textAlign: 'center', color: 'var(--text-dim)', padding: '1rem 0' }}>
+      <i className={`fa-solid ${icon}`} style={{ fontSize: '1.7rem', opacity: 0.35 }} />
+      <p style={{ margin: 0, fontSize: '0.85rem', maxWidth: 260 }}>{children}</p>
+    </div>
+  );
+}
+
 function VitrineBlock({ m, days, setDays }: { m: VitrineMetrics | null; days: number; setDays: (d: number) => void }) {
   const maxV = m ? Math.max(1, ...m.serie.map((s) => s.views)) : 1;
   return (
@@ -485,14 +496,14 @@ function VitrineBlock({ m, days, setDays }: { m: VitrineMetrics | null; days: nu
             <StatCard label="Leads capturados" value={fmtInt(m.leadsPeriodo)} subtitle={`${fmtInt(m.leadsTotal)} no total`} />
           </div>
 
-          <div className="dash-viz" style={{ marginTop: '1rem' }}>
-            <div className="dash-col" style={{ flex: 2 }}>
+          <div className="dash-viz cols-2" style={{ marginTop: '1rem' }}>
+            <div className="dash-col">
               <div className="card viz-card">
                 <div className="viz-head"><h4>Visitas por dia</h4></div>
                 {m.serie.every((s) => s.views === 0) ? (
-                  <p style={{ color: 'var(--text-dim)', fontSize: '0.85rem', margin: '1rem 0 0' }}>Sem visitas registradas ainda. Compartilhe o link da sua vitrine para começar a medir.</p>
+                  <VizEmpty icon="fa-chart-column">Sem visitas registradas ainda. Compartilhe o link da sua vitrine para começar a medir.</VizEmpty>
                 ) : (
-                  <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 140, marginTop: 16 }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 140, marginTop: 16, borderBottom: '1px solid var(--border-color)' }}>
                     {m.serie.map((s, i) => (
                       <div key={i} title={`${s.dia}: ${s.views} visitas, ${s.whatsapp} no WhatsApp`}
                         style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', height: '100%', gap: 2 }}>
@@ -512,7 +523,7 @@ function VitrineBlock({ m, days, setDays }: { m: VitrineMetrics | null; days: nu
               <div className="card viz-card">
                 <div className="viz-head"><h4>Produtos mais clicados</h4></div>
                 {m.topProdutos.length === 0 ? (
-                  <p style={{ color: 'var(--text-dim)', fontSize: '0.85rem', margin: '1rem 0 0' }}>Nenhum clique em produto ainda.</p>
+                  <VizEmpty icon="fa-arrow-pointer">Nenhum clique em produto ainda.</VizEmpty>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 12 }}>
                     {m.topProdutos.map((p, i) => (
@@ -552,14 +563,14 @@ function LandingBlock({ m, days, setDays }: { m: any | null; days: number; setDa
             <StatCard green label="Cliques no WhatsApp" value={fmtInt(m.cliques)} subtitle={`${m.conversao}% de conversão`} />
             <StatCard label="Leads no período" value={fmtInt(m.leadsPeriodo)} subtitle={`${fmtInt(m.leadsTotal)} no total`} />
           </div>
-          <div className="dash-viz" style={{ marginTop: '1rem' }}>
-            <div className="dash-col" style={{ flex: 1 }}>
+          <div className="dash-viz cols-1" style={{ marginTop: '1rem' }}>
+            <div className="dash-col">
               <div className="card viz-card">
                 <div className="viz-head"><h4>Visitas por dia</h4></div>
                 {m.serie.every((s: any) => s.views === 0) ? (
-                  <p style={{ color: 'var(--text-dim)', fontSize: '0.85rem', margin: '1rem 0 0' }}>Sem visitas registradas ainda. Divulgue o link da sua landing page para começar a medir.</p>
+                  <VizEmpty icon="fa-chart-column">Sem visitas registradas ainda. Divulgue o link da sua landing page para começar a medir.</VizEmpty>
                 ) : (
-                  <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 140, marginTop: 16 }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 140, marginTop: 16, borderBottom: '1px solid var(--border-color)' }}>
                     {m.serie.map((s: any, i: number) => (
                       <div key={i} title={`${s.dia}: ${s.views} visitas, ${s.cliques} cliques`}
                         style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', height: '100%', gap: 2 }}>
@@ -602,14 +613,14 @@ function LinksBlock({ m, days, setDays }: { m: any | null; days: number; setDays
             <StatCard green label="Cliques nos links" value={fmtInt(m.cliques)} subtitle={`${m.conversao}% de cliques por visita`} />
             <StatCard label="Média por visita" value={m.views > 0 ? (Math.round((m.cliques / m.views) * 10) / 10).toString() : '0'} subtitle="cliques por visitante" />
           </div>
-          <div className="dash-viz" style={{ marginTop: '1rem' }}>
-            <div className="dash-col" style={{ flex: 1 }}>
+          <div className="dash-viz cols-2" style={{ marginTop: '1rem' }}>
+            <div className="dash-col">
               <div className="card viz-card">
                 <div className="viz-head"><h4>Visitas por dia</h4></div>
                 {m.serie.every((s: any) => s.views === 0) ? (
-                  <p style={{ color: 'var(--text-dim)', fontSize: '0.85rem', margin: '1rem 0 0' }}>Sem visitas ainda. Divulgue o link da sua página para começar a medir.</p>
+                  <VizEmpty icon="fa-chart-column">Sem visitas ainda. Divulgue o link da sua página para começar a medir.</VizEmpty>
                 ) : (
-                  <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 140, marginTop: 16 }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 140, marginTop: 16, borderBottom: '1px solid var(--border-color)' }}>
                     {m.serie.map((s: any, i: number) => (
                       <div key={i} title={`${s.dia}: ${s.views} visitas, ${s.cliques} cliques`}
                         style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', height: '100%', gap: 2 }}>
@@ -625,11 +636,11 @@ function LinksBlock({ m, days, setDays }: { m: any | null; days: number; setDays
                 </div>
               </div>
             </div>
-            <div className="dash-col" style={{ flex: 1 }}>
+            <div className="dash-col">
               <div className="card viz-card">
                 <div className="viz-head"><h4>Links mais clicados</h4></div>
                 {(!m.topLinks || m.topLinks.length === 0) ? (
-                  <p style={{ color: 'var(--text-dim)', fontSize: '0.85rem', margin: '1rem 0 0' }}>Nenhum clique registrado ainda.</p>
+                  <VizEmpty icon="fa-link">Nenhum clique registrado ainda.</VizEmpty>
                 ) : (
                   <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
                     {m.topLinks.map((l: any, i: number) => {
