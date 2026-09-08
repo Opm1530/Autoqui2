@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { linkTrackerApi, type TrackedLink, type TrackedLinksResult } from '../../../services/linkTrackerApi';
 import { toast } from '../../../services/toast';
+import { dbService } from '../../../services/db';
+import { useAuth } from '../../useAuth';
 import { SkeletonCards } from '../../components/Skeleton';
 
 const fmtInt = (n: number) => new Intl.NumberFormat('pt-BR').format(Math.round(n || 0));
-const shortUrl = (code: string) => `${window.location.origin}/r/${code}`;
 
 function StatCard({ label, value, color }: { label: string; value: string; color?: string }) {
   return (
@@ -27,12 +28,27 @@ function Spark({ serie }: { serie: { dia: string; n: number }[] }) {
 }
 
 export function LinkTracker() {
+  const { user } = useAuth();
+  const companyId = user?.companyId || '';
   const [data, setData] = useState<TrackedLinksResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState<TrackedLink | 'new' | null>(null);
+  const [subHost, setSubHost] = useState('');
 
   const load = () => { setLoading(true); linkTrackerApi.list().then(setData).catch(() => toast.error('Erro ao carregar')).finally(() => setLoading(false)); };
   useEffect(load, []);
+
+  // Base do link curto: subdomínio da empresa (loja ou landing FarmaQui), senão o domínio do painel.
+  useEffect(() => {
+    if (!companyId) return;
+    dbService.get('companies', companyId).then((c: any) => {
+      const host = (c?.stores || []).find((s: any) => s.subdominio)?.subdominio || c?.farmaqui?.landing?.host || '';
+      setSubHost(host);
+    }).catch(() => {});
+  }, [companyId]);
+
+  const base = useMemo(() => (subHost ? `https://${subHost}` : window.location.origin), [subHost]);
+  const shortUrl = (code: string) => `${base}/r/${code}`;
 
   const copiar = (code: string) => navigator.clipboard?.writeText(shortUrl(code)).then(() => toast.success('Link copiado!'));
   const toggle = async (l: TrackedLink) => { try { await linkTrackerApi.update(l.codigo, { ativo: !l.ativo }); load(); } catch { toast.error('Erro'); } };
@@ -78,7 +94,7 @@ export function LinkTracker() {
                   <td>
                     <strong>{l.nome}</strong>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
-                      <code style={{ fontSize: '0.8rem', color: 'var(--primary)' }}>/r/{l.codigo}</code>
+                      <code style={{ fontSize: '0.8rem', color: 'var(--primary)' }}>{base.replace(/^https?:\/\//, '')}/r/{l.codigo}</code>
                       <button title="Copiar link" onClick={() => copiar(l.codigo)} className="btn-icon" style={{ padding: '2px 6px', fontSize: '0.75rem' }}><i className="fa-solid fa-copy" /></button>
                     </div>
                   </td>
