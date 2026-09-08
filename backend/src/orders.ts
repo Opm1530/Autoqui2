@@ -7,6 +7,7 @@ import { getAll, getDoc, db } from './firebase.js';
 import { loadUser } from './currentUser.js';
 import { notifyNewOrder, notifyPaymentReceived, notifyStatusChange } from './notify.js';
 import { createPixCharge, getPayment } from './mercadopago.js';
+import { registrarConversao } from './trackedLinks.js';
 import { Timestamp } from 'firebase-admin/firestore';
 
 type CartLine = { id: string; qty: number; isCombo?: boolean; opcoes?: string[] };
@@ -21,6 +22,7 @@ export interface CreateOrderInput {
   paymentMethod: 'na_entrega' | 'pix_manual' | 'pix_mercadopago';
   paymentSubMethod?: string | null;
   troco?: number | null;
+  fonte?: string | null; // código do link rastreado (?fonte=), pra atribuir a origem
 }
 
 function num(v: any, def = 0): number {
@@ -57,7 +59,8 @@ async function findOrCreateLead(
   companyId: string,
   storeId: string,
   name: string,
-  phone: string
+  phone: string,
+  campanha?: string
 ): Promise<string> {
   let cleanPhone = phone.replace(/\D/g, '');
   if (cleanPhone.length === 13 && cleanPhone.startsWith('55')) cleanPhone = cleanPhone.substring(2);
@@ -93,6 +96,7 @@ async function findOrCreateLead(
     empresaId: companyId,
     lojaId: storeId,
     origem: 'catalogo',
+    ...(campanha ? { campanha } : {}),
     statusLead: 'cliente_ativo',
     criadoEm: new Date().toISOString(),
   });
@@ -223,7 +227,8 @@ export async function createCatalogOrder(
 
   // 7. Baixa estoque e resolve lead.
   await deductStock(deductions);
-  const leadId = await findOrCreateLead(companyId, storeId, input.customer.name, input.customer.phone);
+  const fonteRaw = String(input.fonte || '').trim();
+  const leadId = await findOrCreateLead(companyId, storeId, input.customer.name, input.customer.phone, fonteRaw || undefined);
 
   // 8. Cria o pedido com os valores do servidor.
   const pagamento = input.paymentMethod === 'na_entrega' ? 'na_entrega' : 'pagamento_no_pix';
@@ -251,6 +256,7 @@ export async function createCatalogOrder(
     source: 'catalog',
     criadoEm: new Date().toISOString(),
   };
+  if (fonteRaw) orderData.campanha = fonteRaw; // veio de um link rastreado
   if (input.paymentMethod === 'na_entrega') {
     orderData.paymentSubMethod = input.paymentSubMethod || null;
     orderData.troco = input.troco != null ? num(input.troco) : null;
@@ -265,6 +271,7 @@ export async function createCatalogOrder(
 
   const ref = await db.collection('pedidos').add(orderData);
   const orderId = ref.id;
+  if (fonteRaw) registrarConversao(fonteRaw, companyId).catch(() => {}); // conta a conversão do link
 
   // Contabiliza o uso do cupom (para o limite de usos). Best-effort.
   if (codigoCupom && config.id) {

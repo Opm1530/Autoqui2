@@ -91,6 +91,9 @@ export function Catalog({ storeId: storeIdProp }: { storeId?: string } = {}) {
         const config = lojaConfigs[0] || {};
         // Preview: overrides passados pela tela de Configuração (?preview=1&pt=...&c1=...)
         const qs = new URLSearchParams(window.location.search);
+        // Origem do link rastreado (?fonte=CODIGO) — guarda pra carimbar no pedido.
+        const fonte = qs.get('fonte');
+        if (fonte) { try { localStorage.setItem('aq_fonte', fonte); } catch { /* ignore */ } }
         const previewDesign: any = {};
         if (qs.get('preview')) {
           const map: Record<string, string> = { pt: 'themeId', c1: 'primaryColor', c2: 'secondaryColor', c3: 'textColor', c4: 'priceColor', c5: 'productBgColor' };

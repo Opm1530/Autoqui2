@@ -114,6 +114,7 @@ export function CheckoutModals({ cart, subtotal, storeId, companyId, data, onClo
       body: JSON.stringify({
         storeId, cart: buildCartPayload(), deliveryType, bairro: resolvedBairro.nome,
         couponCode: coupon?.codigo || null,
+        fonte: (() => { try { return localStorage.getItem('aq_fonte') || null; } catch { return null; } })(),
         customer: { name, phone, address: fullAddress, bairro: resolvedBairro.nome },
         paymentMethod, ...extra,
       }),

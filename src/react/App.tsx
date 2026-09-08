@@ -18,6 +18,8 @@ import { Leads } from './pages/Leads/Leads';
 import { CRMBoard } from './pages/CRM/Board';
 import { LinksEditor } from './pages/Links/LinksEditor';
 import { LinksPublic } from './pages/Links/LinksPublic';
+import { RedirectLink } from './pages/Links/RedirectLink';
+import { LinkTracker } from './pages/Links/LinkTracker';
 import { CatalogSettings } from './pages/Configuration/CatalogSettings';
 import { Stores } from './pages/Stores';
 import { Campaigns } from './pages/Campaigns/Campaigns';
@@ -126,6 +128,7 @@ export function App() {
           <Route path="/catalog/:storeId" element={<Catalog />} />
           <Route path="/links/:storeId" element={<LinksPublic />} />
           <Route path="/links" element={<LinksHostRoute />} />
+          <Route path="/r/:code" element={<RedirectLink />} />
           <Route path="/qr/:token" element={<QRPage />} />
           <Route path="/lp-preview" element={<LandingPreviewRoute />} />
 
@@ -148,6 +151,7 @@ export function App() {
             <Route path="/leads" element={<Leads />} />
             <Route path="/crm" element={<CRMBoard />} />
             <Route path="/links-editor" element={<LinksEditor />} />
+            <Route path="/link-tracker" element={<LinkTracker />} />
             <Route path="/business" element={<Stores />} />
             <Route path="/users" element={<Users />} />
             <Route path="/instances" element={<Instances />} />
