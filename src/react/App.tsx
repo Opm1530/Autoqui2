@@ -18,7 +18,7 @@ import { Leads } from './pages/Leads/Leads';
 import { CRMBoard } from './pages/CRM/Board';
 import { LinksEditor } from './pages/Links/LinksEditor';
 import { LinksPublic } from './pages/Links/LinksPublic';
-import { RedirectLink } from './pages/Links/RedirectLink';
+import { RedirectLink, RedirectView } from './pages/Links/RedirectLink';
 import { LinkTracker } from './pages/Links/LinkTracker';
 import { CatalogSettings } from './pages/Configuration/CatalogSettings';
 import { Stores } from './pages/Stores';
@@ -120,6 +120,16 @@ function SignupRoute() {
 }
 
 export function App() {
+  // Domínio curto dedicado do encurtador: qualquer host que NÃO seja autoqui.com.br
+  // (nem localhost) é tratado como encurtador — o 1º segmento do path é o código.
+  const host = window.location.hostname;
+  if (!host.endsWith('autoqui.com.br') && !MAIN_HOSTS.includes(host)) {
+    const seg = window.location.pathname.replace(/^\/+/, '').split('/')[0];
+    if (seg) return <RedirectView code={seg} />;
+    window.location.replace('https://autoqui.com.br'); // raiz do domínio curto → site principal
+    return null;
+  }
+
   return (
     <AuthProvider>
       <BrowserRouter>

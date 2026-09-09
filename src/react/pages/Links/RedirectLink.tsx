@@ -21,9 +21,15 @@ function comFonte(destino: string, codigo: string): string {
   } catch { return destino; }
 }
 
-// Rota pública: autoqui.com.br/r/CODIGO → conta o clique e redireciona.
+// Rota pública dentro do Router: /r/CODIGO (pega o código da URL).
 export function RedirectLink() {
   const { code = '' } = useParams();
+  return <RedirectView code={code} />;
+}
+
+// Núcleo do redirect — não usa hooks de Router, então também funciona fora dele
+// (domínio curto dedicado, onde o código é o 1º segmento do path).
+export function RedirectView({ code = '' }: { code?: string }) {
   const [erro, setErro] = useState(false);
 
   useEffect(() => {

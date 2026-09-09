@@ -66,6 +66,23 @@ app.use(express.json({ limit: '256kb' }));
 // global, porque roda em domínios de loja que não estão na lista de origens.
 app.use('/api/ecommerce/storefront', storefrontPublicRouter);
 
+// Endpoints públicos chamados de QUALQUER domínio (encurtador em domínio curto
+// dedicado, storefront). CORS aberto — montado ANTES do cors global, e respondem
+// direto, então o cors restritivo abaixo não roda para eles.
+{
+  const openCors = express.Router();
+  openCors.use(cors());
+  openCors.get('/api/r/resolve', rateLimit(120, 60_000), async (req, res) => {
+    try { res.json(await resolveTrackedLink(String(req.query.code || ''), req.query.first === '1')); }
+    catch { res.status(400).json({ error: 'erro' }); }
+  });
+  openCors.get('/api/store/public', rateLimit(120, 60_000), async (req, res) => {
+    try { res.json(await getPublicStore({ storeId: String(req.query.storeId || ''), companyId: String(req.query.companyId || '') })); }
+    catch { res.status(400).json({ error: 'erro' }); }
+  });
+  app.use(openCors);
+}
+
 app.use(
   cors({
     origin(origin, cb) {
@@ -272,9 +289,7 @@ app.get('/api/catalog/funnel', requireAuth, wrap((req) => getCatalogFunnel(req.u
 app.get('/api/farmaqui/landing-metrics', requireAuth, wrap((req) => getLandingMetrics(req.uid, Number(req.query.days) || 30)));
 app.get('/api/links/metrics', requireAuth, wrap((req) => getLinksMetrics(req.uid, Number(req.query.days) || 30)));
 // Rastreador de links (encurtador de campanha)
-app.get('/api/r/resolve', rateLimit(120, 60_000), wrap((req) => resolveTrackedLink(String(req.query.code || ''), req.query.first === '1')));
-// Dados públicos e seguros da loja (storefront) — evita expor o doc de companies.
-app.get('/api/store/public', rateLimit(120, 60_000), wrap((req) => getPublicStore({ storeId: String(req.query.storeId || ''), companyId: String(req.query.companyId || '') })));
+// (/api/r/resolve e /api/store/public são registrados no topo com CORS aberto)
 app.get('/api/links-tracker/list', requireAuth, wrap((req) => listTrackedLinks(req.uid)));
 app.post('/api/links-tracker/create', requireAuth, wrap((req) => createTrackedLink(req.uid, req.body || {})));
 app.post('/api/links-tracker/update', requireAuth, wrap((req) => updateTrackedLink(req.uid, String(req.body?.codigo || ''), req.body?.fields || {})));

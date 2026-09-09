@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { linkTrackerApi, type TrackedLink, type TrackedLinksResult } from '../../../services/linkTrackerApi';
 import { toast } from '../../../services/toast';
 import { dbService } from '../../../services/db';
+import { SHORT_LINK_HOST } from '../../../services/api';
 import { useAuth } from '../../useAuth';
 import { SkeletonCards } from '../../components/Skeleton';
 
@@ -47,8 +48,11 @@ export function LinkTracker() {
     }).catch(() => {});
   }, [companyId]);
 
-  const base = useMemo(() => (subHost ? `https://${subHost}` : window.location.origin), [subHost]);
-  const shortUrl = (code: string) => `${base}/r/${code}`;
+  // Domínio curto dedicado (se configurado) → link mais curto e sem /r/.
+  const useShort = !!SHORT_LINK_HOST;
+  const base = useMemo(() => useShort ? `https://${SHORT_LINK_HOST}` : (subHost ? `https://${subHost}` : window.location.origin), [subHost, useShort]);
+  const prefix = useShort ? '' : '/r';
+  const shortUrl = (code: string) => `${base}${prefix}/${code}`;
 
   const copiar = (code: string) => navigator.clipboard?.writeText(shortUrl(code)).then(() => toast.success('Link copiado!'));
   const toggle = async (l: TrackedLink) => { try { await linkTrackerApi.update(l.codigo, { ativo: !l.ativo }); load(); } catch { toast.error('Erro'); } };
@@ -94,7 +98,7 @@ export function LinkTracker() {
                   <td>
                     <strong>{l.nome}</strong>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
-                      <code style={{ fontSize: '0.8rem', color: 'var(--primary)' }}>{base.replace(/^https?:\/\//, '')}/r/{l.codigo}</code>
+                      <code style={{ fontSize: '0.8rem', color: 'var(--primary)' }}>{base.replace(/^https?:\/\//, '')}{prefix}/{l.codigo}</code>
                       <button title="Copiar link" onClick={() => copiar(l.codigo)} className="btn-icon" style={{ padding: '2px 6px', fontSize: '0.75rem' }}><i className="fa-solid fa-copy" /></button>
                     </div>
                   </td>
