@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { dbService } from '../../../services/db';
+import { getPublicStore } from '../../../services/publicApi';
 import { API_BASE_URL } from '../../../services/api';
 
 // 1ª visita do visitante hoje? (para contar visitantes únicos)
@@ -127,8 +128,9 @@ export function LinksPublic({ storeId: storeIdProp, companyId }: { storeId?: str
         if (!page || page.ativo === false) { setState(null); return; }
         const empresaId = cfg?.empresaId || companyId || '';
         const lojaId = cfg?.lojaId || storeId || '';
+        // Nome/logo vêm do endpoint público seguro (não lê o doc de companies).
         let company: any = null;
-        if (empresaId) company = await dbService.get('companies', empresaId).catch(() => null);
+        if (empresaId) { const pub = await getPublicStore({ companyId: empresaId }); if (pub) company = { name: pub.name, logoUrl: pub.logoUrl }; }
         setState({ page, company, empresaId, lojaId });
         linksTrack('links_view', empresaId, lojaId); // conta a visita
       } catch { setState(null); }

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { dbService } from '../../../services/db';
+import { getPublicStore } from '../../../services/publicApi';
 import { toast } from '../../../services/toast';
 import { getImageUrl, getProductGallery, getCategoryCover, storeStatusLabel, isFreteAbertoAgora, isStoreOpen, getNextOpenTime, getStoreHorario, DIAS_NOME } from './helpers';
 import { CheckoutModals } from './CheckoutModals';
@@ -66,13 +67,10 @@ export function Catalog({ storeId: storeIdProp }: { storeId?: string } = {}) {
     (async () => {
       try {
         const lojaConfigs = (await dbService.getAll('loja_config', { field: 'lojaId', operator: '==', value: storeId })) as any[];
-        let companyId = lojaConfigs[0]?.empresaId;
-        let company: any = null, store: any = null;
-        if (companyId) { company = await dbService.get('companies', companyId); if (company) store = company.stores?.find((s: any) => s.id === storeId); }
-        if (!store) {
-          const all = (await dbService.getAll('companies')) as any[];
-          for (const c of all) { const s = c.stores?.find((st: any) => st.id === storeId); if (s) { company = c; store = s; break; } }
-        }
+        // Dados da loja vêm do endpoint público seguro (não lê o doc de companies).
+        const pub = await getPublicStore({ storeId });
+        const company: any = pub ? { id: pub.companyId, name: pub.name, modulos_ativos: pub.modulos_ativos, mercadoPagoAtivo: pub.mercadoPagoAtivo } : null;
+        const store: any = pub?.store || null;
         if (!company || !store) { setData({ notFound: true }); setLoading(false); return; }
 
         const modulos = company.modulos_ativos || [];
@@ -115,7 +113,7 @@ export function Catalog({ storeId: storeIdProp }: { storeId?: string } = {}) {
         if (!whatsappNumber && store.instancia_id) {
           try { const inst = (await dbService.get('instancias', store.instancia_id)) as any; if (inst?.numero) whatsappNumber = inst.numero.replace(/\D/g, ''); } catch { /* ignore */ }
         }
-        const isMpActive = (company.mercadoPagoAtivo === true || !!company.mercadoPagoToken) && (config.mercadoPagoActive !== false);
+        const isMpActive = company.mercadoPagoAtivo === true && (config.mercadoPagoActive !== false);
 
         // Frete por bairro (achatado) + taxa genérica + cupons
         const flatBairros: { nome: string; preco: number }[] = [];

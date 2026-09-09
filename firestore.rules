@@ -30,12 +30,18 @@ service cloud.firestore {
     // Isso impede burlar a validação do backend escrevendo direto no Firestore.
     // ─────────────────────────────────────────────────────────────────────────
 
+    // ── companies: dados sensíveis (assinatura/valor, métricas, leadCapture).
+    //    Leitura só do dono/funcionário da própria empresa ou admin — NÃO é
+    //    pública. O storefront usa o endpoint /api/store/public (campos seguros). ──
+    match /companies/{id}    { allow read: if isAdmin() || (signedIn() && id == myCompany()); allow write: if false; }
+
     // ── Catálogo público: leitura liberada, escrita só backend ──
-    match /companies/{id}    { allow read: if true; allow write: if false; }
     match /loja_config/{id}  { allow read: if true; allow write: if false; }
     match /categories/{id}   { allow read: if true; allow write: if false; }
     match /combos/{id}       { allow read: if true; allow write: if false; }
     match /products/{id}     { allow read: if true; allow write: if false; }
+    // complementos: o catálogo público resolve as opções dos produtos.
+    match /complementos/{id} { allow read: if true; allow write: if false; }
     // instancias: o catálogo/QR leem o nome/número; nenhum segredo aqui.
     match /instancias/{id}   { allow read: if true; allow write: if false; }
 

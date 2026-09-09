@@ -34,6 +34,7 @@ import { storefrontPublicRouter, storefrontAuthRouter } from './ecommerce/storef
 import { handleIncoming, activateCapture, deactivateCapture, clearCaptureForInstance, captureStatus, getConfig, saveRecompra, saveAutomacoes, saveFidelidade, sendFidelidade, sendLeadMessage, setUltimaCompra, startFarmaquiJobs, getLanding, saveLanding, setLandingHost, publicLanding, farmaMetrics, listRecompra, cancelRecompra, sendRecompraNow, groupsList, listGroupOffers, createGroupOffer, deleteGroupOffer, extractGroupLeads, extractAgendaLeads, createManualLead, numberHealth } from "./farmaqui.js";
 import { trackEvent, getVitrineMetrics, getLandingMetrics, getCatalogFunnel, getLinksMetrics } from "./vitrineMetrics.js";
 import { resolveTrackedLink, listTrackedLinks, createTrackedLink, updateTrackedLink, deleteTrackedLink, registrarConversao } from "./trackedLinks.js";
+import { getPublicStore } from "./publicStore.js";
 import { setStoreSubdomain, removeStoreSubdomain, storeByHost } from './domains.js';
 
 // Enforcement de assinatura no backend: bloqueia escrita se inadimplente além
@@ -271,6 +272,8 @@ app.get('/api/farmaqui/landing-metrics', requireAuth, wrap((req) => getLandingMe
 app.get('/api/links/metrics', requireAuth, wrap((req) => getLinksMetrics(req.uid, Number(req.query.days) || 30)));
 // Rastreador de links (encurtador de campanha)
 app.get('/api/r/resolve', rateLimit(120, 60_000), wrap((req) => resolveTrackedLink(String(req.query.code || ''), req.query.first === '1')));
+// Dados públicos e seguros da loja (storefront) — evita expor o doc de companies.
+app.get('/api/store/public', rateLimit(120, 60_000), wrap((req) => getPublicStore({ storeId: String(req.query.storeId || ''), companyId: String(req.query.companyId || '') })));
 app.get('/api/links-tracker/list', requireAuth, wrap((req) => listTrackedLinks(req.uid)));
 app.post('/api/links-tracker/create', requireAuth, wrap((req) => createTrackedLink(req.uid, req.body || {})));
 app.post('/api/links-tracker/update', requireAuth, wrap((req) => updateTrackedLink(req.uid, String(req.body?.codigo || ''), req.body?.fields || {})));
