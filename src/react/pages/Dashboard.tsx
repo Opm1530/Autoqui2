@@ -74,6 +74,7 @@ export function Dashboard() {
   const [lpDays, setLpDays] = useState(30);
   const [linksM, setLinksM] = useState<any | null>(null);
   const [linksDays, setLinksDays] = useState(30);
+  const [waReconnect, setWaReconnect] = useState<string[]>([]);
   const [funnel, setFunnel] = useState<any | null>(null);
   const [funnelRange, setFunnelRange] = useState('30');
   const [fkpi, setFkpi] = useState<any | null>(null);
@@ -223,6 +224,14 @@ export function Dashboard() {
     vitrineApi.metrics(vmDays).then(setVm).catch(() => {});
   }, [isVitrine, vmDays]);
 
+  // Watchdog do WhatsApp: instâncias que o backend não conseguiu reconectar sozinho.
+  useEffect(() => {
+    if (!companyId) return;
+    dbService.getAll('instancias', { field: 'empresaId', operator: '==', value: companyId })
+      .then((list: any) => setWaReconnect((list as any[]).filter((i) => i.precisaReconectar).map((i) => i.nome)))
+      .catch(() => {});
+  }, [companyId]);
+
   const isLinks = modulos.includes('links');
   useEffect(() => {
     if (!isLinks) return;
@@ -292,6 +301,18 @@ export function Dashboard() {
           </Link>
         )}
       </div>
+
+      {waReconnect.length > 0 && (
+        <Link to="/instances" style={{ textDecoration: 'none' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.35)', borderRadius: 12, padding: '12px 16px', margin: '0 0 1.25rem' }}>
+            <i className="fa-solid fa-plug-circle-xmark" style={{ color: '#ef4444', fontSize: '1.2rem' }} />
+            <div style={{ lineHeight: 1.35 }}>
+              <div style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)' }}>WhatsApp desconectado{waReconnect.length > 1 ? ` (${waReconnect.length} instâncias)` : ''}</div>
+              <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Tentamos reconectar automaticamente sem sucesso. Toque para ler o QR Code de novo e voltar a enviar mensagens.</div>
+            </div>
+          </div>
+        </Link>
+      )}
 
       {showChecklist && (
         <div className="card" style={{ marginBottom: '1.5rem', border: '1px solid rgba(132, 204, 22,0.3)', background: 'rgba(132, 204, 22,0.04)' }}>

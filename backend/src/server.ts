@@ -21,6 +21,7 @@ import {
   handleSubscriptionWebhook, provisionSignup, listPublicPlans, isCompanyBlocked,
 } from './subscriptions.js';
 import { startCampaignJobs } from './campaigns.js';
+import { startWaWatchdog } from './waWatchdog.js';
 import { getCrmConfig, saveCrmConfig } from './crm.js';
 import { getPricing, savePricing } from './pricing.js';
 import { listCoupons, saveCoupon, deleteCoupon, validateCoupon, applyCouponToCompany } from './coupons.js';
@@ -487,4 +488,5 @@ app.listen(PORT, () => {
   startEcommerceJobs();
   startFarmaquiJobs();
   startCampaignJobs();
+  startWaWatchdog();
 });

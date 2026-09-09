@@ -199,6 +199,21 @@ export async function getQRCode(instanceName: string): Promise<{ base64: string 
   }
 }
 
+// Reinicia a sessão de uma instância que caiu (reconecta sem novo QR quando as
+// credenciais ainda são válidas). Usado pelo watchdog de reconexão automática.
+export async function restartInstance(instanceName: string): Promise<boolean> {
+  try {
+    const response = await fetch(`${EVOLUTION_API_URL}/instance/restart/${instanceName}`, {
+      method: 'POST',
+      headers: headers(),
+    });
+    return response.ok;
+  } catch (error) {
+    console.error('[evolution] restartInstance erro:', error);
+    return false;
+  }
+}
+
 export async function deleteInstance(instanceName: string): Promise<boolean> {
   try {
     const response = await fetch(`${EVOLUTION_API_URL}/instance/delete/${instanceName}`, {
