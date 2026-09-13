@@ -22,6 +22,9 @@
 
 /* Header */
 .vt-header { display: flex; justify-content: center; align-items: center; padding: 22px 16px; }
+/* Logo sobreposta ao banner */
+.vt-top { position: relative; }
+.vt-header--over { position: absolute; top: 0; left: 0; right: 0; z-index: 3; background: transparent; padding-top: 26px; }
 .vt-logo-img { height: 40px; width: auto; }
 .vt-logo-txt { font-family: Georgia, serif; font-size: 1.5rem; letter-spacing: 0.02em; }
 

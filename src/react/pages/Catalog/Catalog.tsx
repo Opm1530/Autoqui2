@@ -418,18 +418,24 @@ export function Catalog({ storeId: storeIdProp }: { storeId?: string } = {}) {
       <div className="vt-body" style={vtVars}>
         {design.vitrineBar && <div className="vt-bar">{design.vitrineBar}</div>}
 
-        <header className="vt-header">
-          {logoUrl ? <img src={logoUrl} alt={store.name} className="vt-logo-img" /> : <span className="vt-logo-txt">{store.name}</span>}
-        </header>
-
-        {bannerUrl && (
-          <section className="vt-hero" style={{ backgroundImage: `url(${bannerUrl})` }}>
-            <div className="vt-hero-overlay">
-              {design.vitrineHeroTitle && <h1>{design.vitrineHeroTitle}</h1>}
-              {design.vitrineHeroSubtitle && <p>{design.vitrineHeroSubtitle}</p>}
-              {design.vitrineHeroCta && <button className="vt-hero-btn" onClick={() => gridRef.current?.scrollIntoView({ behavior: 'smooth' })}>{design.vitrineHeroCta}</button>}
-            </div>
-          </section>
+        {bannerUrl ? (
+          // Logo sobreposta ao banner (header transparente por cima do hero).
+          <div className="vt-top">
+            <header className="vt-header vt-header--over">
+              {logoUrl ? <img src={logoUrl} alt={store.name} className="vt-logo-img" /> : <span className="vt-logo-txt">{store.name}</span>}
+            </header>
+            <section className="vt-hero" style={{ backgroundImage: `url(${bannerUrl})` }}>
+              <div className="vt-hero-overlay">
+                {design.vitrineHeroTitle && <h1>{design.vitrineHeroTitle}</h1>}
+                {design.vitrineHeroSubtitle && <p>{design.vitrineHeroSubtitle}</p>}
+                {design.vitrineHeroCta && <button className="vt-hero-btn" onClick={() => gridRef.current?.scrollIntoView({ behavior: 'smooth' })}>{design.vitrineHeroCta}</button>}
+              </div>
+            </section>
+          </div>
+        ) : (
+          <header className="vt-header">
+            {logoUrl ? <img src={logoUrl} alt={store.name} className="vt-logo-img" /> : <span className="vt-logo-txt">{store.name}</span>}
+          </header>
         )}
 
         {cats.length > 0 && (
