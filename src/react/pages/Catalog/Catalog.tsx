@@ -418,13 +418,17 @@ export function Catalog({ storeId: storeIdProp }: { storeId?: string } = {}) {
       <div className="vt-body" style={vtVars}>
         {design.vitrineBar && <div className="vt-bar">{design.vitrineBar}</div>}
 
-        {bannerUrl ? (
+        {(bannerUrl || bannerMobileUrl) ? (
           // Logo sobreposta ao banner (header transparente por cima do hero).
+          // Desktop usa bannerUrl; mobile usa bannerMobileUrl (CSS troca por media query).
           <div className="vt-top">
             <header className="vt-header vt-header--over">
               {logoUrl ? <img src={logoUrl} alt={store.name} className="vt-logo-img" /> : <span className="vt-logo-txt">{store.name}</span>}
             </header>
-            <section className="vt-hero" style={{ backgroundImage: `url(${bannerUrl})` }}>
+            <section className="vt-hero" style={{
+              ['--vt-hero-bg' as any]: `url(${bannerUrl || bannerMobileUrl})`,
+              ['--vt-hero-bg-m' as any]: `url(${bannerMobileUrl || bannerUrl})`,
+            }}>
               <div className="vt-hero-overlay">
                 {design.vitrineHeroTitle && <h1>{design.vitrineHeroTitle}</h1>}
                 {design.vitrineHeroSubtitle && <p>{design.vitrineHeroSubtitle}</p>}

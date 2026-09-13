@@ -29,7 +29,7 @@
 .vt-logo-txt { font-family: Georgia, serif; font-size: 1.5rem; letter-spacing: 0.02em; }
 
 /* Hero / banner */
-.vt-hero { background-size: cover; background-position: center; min-height: 62vh; display: flex; align-items: center; }
+.vt-hero { background-image: var(--vt-hero-bg); background-size: cover; background-position: center; min-height: 62vh; display: flex; align-items: center; }
 .vt-hero-overlay { max-width: 1200px; margin: 0 auto; width: 100%; padding: 0 6vw; }
 .vt-hero-overlay h1 { font-size: 3rem; line-height: 1.1; margin: 0 0 14px; max-width: 12ch; }
 .vt-hero-overlay p { font-size: 1.05rem; color: var(--vt-ink); opacity: 0.85; margin: 0 0 26px; max-width: 42ch; }
@@ -88,4 +88,8 @@
   .vt-cats { justify-content: flex-start; gap: 20px; padding: 26px 5vw; }
   .vt-cat-circle { width: 66px; height: 66px; }
   .vt-section-head h2 { font-size: 1.6rem; }
+}
+/* No celular usa o banner mobile (cai pro desktop se não houver). */
+@media (max-width: 600px) {
+  .vt-hero { background-image: var(--vt-hero-bg-m, var(--vt-hero-bg)); }
 }
