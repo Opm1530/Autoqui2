@@ -410,6 +410,9 @@ export function Catalog({ storeId: storeIdProp }: { storeId?: string } = {}) {
       ['--vt-accent' as any]: design.vtAccent || '#8a6d4b',
       ['--vt-card' as any]: design.vtCard || '#ffffff',
       ['--vt-muted' as any]: '#8c8378',
+      // Barra do topo: cor própria; se não definida, mantém o padrão antigo (texto/fundo).
+      ['--vt-bar' as any]: design.vtBar || design.vtInk || '#2b2620',
+      ['--vt-bar-text' as any]: design.vtBarText || design.vtBg || '#efe9e0',
     };
     return (
       <div className="vt-body" style={vtVars}>

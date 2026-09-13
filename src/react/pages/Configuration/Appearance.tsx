@@ -35,6 +35,9 @@ export function Appearance({ companyId, storeId, design, vitrine = false, onSave
   const [vtInk, setVtInk] = useState(design.vtInk || '#2b2620');
   const [vtAccent, setVtAccent] = useState(design.vtAccent || '#8a6d4b');
   const [vtCard, setVtCard] = useState(design.vtCard || '#ffffff');
+  // Barra do topo: cor própria (padrão = texto/fundo atuais, pra não mudar lojas existentes).
+  const [vtBar, setVtBar] = useState(design.vtBar || design.vtInk || '#2b2620');
+  const [vtBarText, setVtBarText] = useState(design.vtBarText || design.vtBg || '#efe9e0');
   const [primary, setPrimary] = useState(design.primaryColor || '#5aa513');
   const [secondary, setSecondary] = useState(design.secondaryColor || '#f6f9f2');
   const [textColor, setTextColor] = useState(design.textColor || '#16251c');
@@ -79,7 +82,7 @@ export function Appearance({ companyId, storeId, design, vitrine = false, onSave
 
       const newDesign = { ...design, primaryColor: primary, secondaryColor: secondary, textColor, priceColor, productBgColor: productBg, logoUrl, themeId, bannerUrl, bannerMobileUrl, metaDescription: meta,
         vitrineBar: barMsg.trim(), vitrineHeroTitle: heroTitle.trim(), vitrineHeroSubtitle: heroSubtitle.trim(), vitrineHeroCta: heroCta.trim(),
-        vtBg, vtInk, vtAccent, vtCard };
+        vtBg, vtInk, vtAccent, vtCard, vtBar, vtBarText };
       await onSave({ design: newDesign });
       toast.success('Aparência salva!');
     } catch (e) { toast.error('Erro ao salvar aparência.'); throw e; }
@@ -139,6 +142,8 @@ export function Appearance({ companyId, storeId, design, vitrine = false, onSave
           <ColorField label="Cor dos cartões" value={vtCard} onChange={setVtCard} />
           <ColorField label="Cor do texto" value={vtInk} onChange={setVtInk} />
           <ColorField label="Cor de destaque" value={vtAccent} onChange={setVtAccent} />
+          <ColorField label="Barra do topo — fundo" value={vtBar} onChange={setVtBar} />
+          <ColorField label="Barra do topo — texto" value={vtBarText} onChange={setVtBarText} />
         </div>
       ) : (
         <>

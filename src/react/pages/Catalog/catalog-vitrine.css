@@ -15,7 +15,7 @@
 
 /* Barra de aviso */
 .vt-bar {
-  background: var(--vt-ink); color: var(--vt-bg);
+  background: var(--vt-bar); color: var(--vt-bar-text);
   text-align: center; font-size: 0.78rem; letter-spacing: 0.14em; text-transform: uppercase;
   padding: 9px 16px;
 }
