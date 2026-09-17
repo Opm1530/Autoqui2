@@ -355,8 +355,8 @@ export function Catalog({ storeId: storeIdProp }: { storeId?: string } = {}) {
     return (
       <div className="cat-modal-base" style={{ alignItems: 'center', zIndex: 9999 }} onClick={(e) => { if (e.target === e.currentTarget) setDetail(null); }}>
         <div className="vt-detail">
-          <div style={{ position: 'relative' }}>
-            <img src={imgs[detailImg]} alt={detail.name} style={{ width: '100%', maxHeight: 400, objectFit: 'cover', display: 'block' }} />
+          <div style={{ position: 'relative', height: 'min(56vh, 440px)', background: 'var(--vt-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+            <img src={imgs[detailImg]} alt={detail.name} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', display: 'block' }} />
             <button onClick={() => setDetail(null)} style={{ position: 'absolute', top: 12, right: 12, background: 'rgba(0,0,0,0.5)', border: 'none', color: 'white', width: 36, height: 36, borderRadius: '50%', cursor: 'pointer' }}><i className="fa-solid fa-xmark" /></button>
             {imgs.length > 1 && (
               <>
