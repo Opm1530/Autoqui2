@@ -48,13 +48,16 @@ export function Appearance({ companyId, storeId, design, vitrine = false, onSave
   const [logoPreview, setLogoPreview] = useState<string | null>(design.logoUrl || null);
   const [bannerPreview, setBannerPreview] = useState<string | null>(design.bannerUrl || null);
   const [bannerMobilePreview, setBannerMobilePreview] = useState<string | null>(design.bannerMobileUrl || null);
+  const [faviconPreview, setFaviconPreview] = useState<string | null>(design.faviconUrl || null);
 
   const logoFile = useRef<File | null>(null);
   const bannerFile = useRef<File | null>(null);
   const bannerMobileFile = useRef<File | null>(null);
+  const faviconFile = useRef<File | null>(null);
   const logoInput = useRef<HTMLInputElement>(null);
   const bannerInput = useRef<HTMLInputElement>(null);
   const bannerMobileInput = useRef<HTMLInputElement>(null);
+  const faviconInput = useRef<HTMLInputElement>(null);
 
   function pick(fileRef: React.MutableRefObject<File | null>, setPreview: (s: string) => void, f?: File) {
     if (!f) return;
@@ -79,8 +82,10 @@ export function Appearance({ companyId, storeId, design, vitrine = false, onSave
       if (logoFile.current) { const r = ref(storage, `logos/${companyId}/${storeId}_logo`); await uploadBytes(r, logoFile.current); logoUrl = await getDownloadURL(r); }
       if (bannerFile.current) { const r = ref(storage, `banners/${companyId}/${storeId}_desktop`); await uploadBytes(r, bannerFile.current); bannerUrl = await getDownloadURL(r); }
       if (bannerMobileFile.current) { const r = ref(storage, `banners/${companyId}/${storeId}_mobile`); await uploadBytes(r, bannerMobileFile.current); bannerMobileUrl = await getDownloadURL(r); }
+      let faviconUrl = design.faviconUrl || '';
+      if (faviconFile.current) { const r = ref(storage, `favicons/${companyId}/${storeId}`); await uploadBytes(r, faviconFile.current); faviconUrl = await getDownloadURL(r); }
 
-      const newDesign = { ...design, primaryColor: primary, secondaryColor: secondary, textColor, priceColor, productBgColor: productBg, logoUrl, themeId, bannerUrl, bannerMobileUrl, metaDescription: meta,
+      const newDesign = { ...design, primaryColor: primary, secondaryColor: secondary, textColor, priceColor, productBgColor: productBg, logoUrl, themeId, bannerUrl, bannerMobileUrl, faviconUrl, metaDescription: meta,
         vitrineBar: barMsg.trim(), vitrineHeroTitle: heroTitle.trim(), vitrineHeroSubtitle: heroSubtitle.trim(), vitrineHeroCta: heroCta.trim(),
         vtBg, vtInk, vtAccent, vtCard, vtBar, vtBarText };
       await onSave({ design: newDesign });
@@ -202,6 +207,19 @@ export function Appearance({ companyId, storeId, design, vitrine = false, onSave
             </div>
             <input ref={bannerMobileInput} type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => pick(bannerMobileFile, setBannerMobilePreview, e.target.files?.[0])} />
             <button className="btn-secondary" style={{ width: '100%' }} onClick={() => bannerMobileInput.current?.click()}><i className="fa-solid fa-upload" /> Upload Mobile (600×300)</button>
+          </div>
+        </div>
+        <div style={{ marginTop: 16 }}>
+          <label className="config-label">Favicon <span style={{ color: 'var(--text-dim)', fontWeight: 400 }}>(ícone da aba do navegador)</span></label>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ width: 48, height: 48, borderRadius: 8, border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--surface-hover)', overflow: 'hidden', flexShrink: 0 }}>
+              {faviconPreview ? <img src={faviconPreview} style={{ width: '100%', height: '100%', objectFit: 'contain' }} /> : <i className="fa-solid fa-star" style={{ color: 'var(--text-dim)' }} />}
+            </div>
+            <div>
+              <input ref={faviconInput} type="file" accept="image/png,image/x-icon,image/svg+xml,image/jpeg" style={{ display: 'none' }} onChange={(e) => pick(faviconFile, setFaviconPreview, e.target.files?.[0])} />
+              <button className="btn-secondary" onClick={() => faviconInput.current?.click()}><i className="fa-solid fa-upload" /> Escolher favicon</button>
+              <p className="cat-field-hint" style={{ marginTop: 6 }}>Quadrado, ideal 64×64px (PNG/ICO/SVG). Se vazio, usa a logo.</p>
+            </div>
           </div>
         </div>
       </div>

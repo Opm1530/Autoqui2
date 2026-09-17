@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { dbService } from '../../../services/db';
 import { getPublicStore } from '../../../services/publicApi';
+import { applyStoreBranding } from '../../../services/branding';
 import { toast } from '../../../services/toast';
 import { getImageUrl, getProductGallery, getCategoryCover, storeStatusLabel, isFreteAbertoAgora, isStoreOpen, getNextOpenTime, getStoreHorario, DIAS_NOME } from './helpers';
 import { CheckoutModals } from './CheckoutModals';
@@ -138,6 +139,14 @@ export function Catalog({ storeId: storeIdProp }: { storeId?: string } = {}) {
           bannerUrl: design.bannerUrl || '', bannerMobileUrl: design.bannerMobileUrl || '',
           logoUrl: design.logoUrl || '', pixKey: design.pixKey || '',
           flatBairros, taxaGenerica, cuponsList,
+        });
+
+        // Identidade da loja na aba do navegador (favicon + título).
+        applyStoreBranding({
+          title: store.name,
+          faviconUrl: design.faviconUrl || design.logoUrl,
+          imageUrl: design.logoUrl,
+          description: design.metaDescription || `${store.name} — catálogo online`,
         });
 
         // Métrica: visita (topo do funil — catálogo e vitrine), uma vez por carga.

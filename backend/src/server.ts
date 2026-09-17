@@ -36,6 +36,7 @@ import { handleIncoming, activateCapture, deactivateCapture, clearCaptureForInst
 import { trackEvent, getVitrineMetrics, getLandingMetrics, getCatalogFunnel, getLinksMetrics } from "./vitrineMetrics.js";
 import { resolveTrackedLink, listTrackedLinks, createTrackedLink, updateTrackedLink, deleteTrackedLink, registrarConversao } from "./trackedLinks.js";
 import { getPublicStore } from "./publicStore.js";
+import { storefrontHtml } from "./storefrontMeta.js";
 import { setStoreSubdomain, removeStoreSubdomain, storeByHost } from './domains.js';
 
 // Enforcement de assinatura no backend: bloqueia escrita se inadimplente além
@@ -288,6 +289,15 @@ app.get('/api/vitrine/metrics', requireAuth, wrap((req) => getVitrineMetrics(req
 app.get('/api/catalog/funnel', requireAuth, wrap((req) => getCatalogFunnel(req.uid, String(req.query.range || req.query.days || '30'))));
 app.get('/api/farmaqui/landing-metrics', requireAuth, wrap((req) => getLandingMetrics(req.uid, Number(req.query.days) || 30)));
 app.get('/api/links/metrics', requireAuth, wrap((req) => getLinksMetrics(req.uid, Number(req.query.days) || 30)));
+// HTML da loja com as meta tags do cliente (logo/favicon) — para preview de link.
+// O nginx roteia o documento das URLs de loja pra cá (de preferência só crawlers).
+app.get('/api/storefront/html', rateLimit(120, 60_000), async (req, res) => {
+  try {
+    const html = await storefrontHtml({ host: String(req.query.host || req.headers.host || ''), path: String(req.query.path || '') });
+    res.set('Cache-Control', 'public, max-age=300');
+    res.type('html').send(html);
+  } catch (err: any) { console.warn('[storefront/html]', err?.message); res.status(500).type('html').send('<!doctype html><title>Autoqui</title>'); }
+});
 // Rastreador de links (encurtador de campanha)
 // (/api/r/resolve e /api/store/public são registrados no topo com CORS aberto)
 app.get('/api/links-tracker/list', requireAuth, wrap((req) => listTrackedLinks(req.uid)));

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { dbService } from '../../../services/db';
 import { getPublicStore } from '../../../services/publicApi';
+import { applyStoreBranding } from '../../../services/branding';
 import { API_BASE_URL } from '../../../services/api';
 
 // 1ª visita do visitante hoje? (para contar visitantes únicos)
@@ -138,7 +139,11 @@ export function LinksPublic({ storeId: storeIdProp, companyId }: { storeId?: str
   }, [storeId, companyId]);
 
   useEffect(() => {
-    if (state?.page?.titulo) document.title = state.page.titulo;
+    if (state) {
+      const nome = state.page?.titulo || state.company?.name || '';
+      const foto = imgUrl(state.page?.avatarPath, state.page?.avatarToken) || state.company?.logoUrl || '';
+      applyStoreBranding({ title: nome, faviconUrl: foto, imageUrl: foto, description: state.page?.bio || nome });
+    }
     // Pinta o fundo do body com a cor do tema (evita branco no overscroll/barras).
     const cor = state?.page?.tema?.fundoCor;
     if (cor) { document.body.style.background = cor; return () => { document.body.style.background = ''; }; }
