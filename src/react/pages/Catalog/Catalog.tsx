@@ -385,7 +385,12 @@ export function Catalog({ storeId: storeIdProp }: { storeId?: string } = {}) {
             <div style={{ marginBottom: 16 }}>
               {detail.priceOnRequest
                 ? <span style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--vt-accent)' }}>Sob consulta</span>
-                : <span style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--vt-ink)' }}>R$ {Number(detail.price || 0).toFixed(2)}</span>}
+                : (detail.promotionalActive && Number(detail.promotionalPrice) > 0
+                  ? <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 10 }}>
+                      <span style={{ fontSize: '1.05rem', color: 'var(--vt-muted)', textDecoration: 'line-through' }}>R$ {Number(detail.price || 0).toFixed(2)}</span>
+                      <span style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--vt-ink)' }}>R$ {Number(detail.promotionalPrice).toFixed(2)}</span>
+                    </span>
+                  : <span style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--vt-ink)' }}>R$ {Number(detail.price || 0).toFixed(2)}</span>)}
             </div>
             {detail.observation && <p style={{ color: 'var(--vt-muted)', lineHeight: 1.7, fontSize: '0.95rem', whiteSpace: 'pre-wrap', margin: '0 0 18px' }}>{detail.observation}</p>}
             {vars.length > 0 && (
@@ -488,8 +493,13 @@ export function Catalog({ storeId: storeIdProp }: { storeId?: string } = {}) {
                     <div className="vt-card-img"><img src={cover} alt={p.name} loading="lazy" /></div>
                     <div className="vt-card-info">
                       <div className="vt-card-name">{p.name}</div>
-                      {p.observation && <div className="vt-card-meta">{p.observation}</div>}
-                      <div className="vt-card-price">{p.priceOnRequest ? 'Sob consulta' : `R$ ${Number(p.price || 0).toFixed(2)}`}</div>
+                      {p.subtitulo && <div className="vt-card-sub">{p.subtitulo}</div>}
+                      <div className="vt-card-price">
+                        {p.priceOnRequest ? 'Sob consulta'
+                          : (p.promotionalActive && Number(p.promotionalPrice) > 0
+                            ? <><span className="vt-price-old">R$ {Number(p.price || 0).toFixed(2)}</span> <span className="vt-price-now">R$ {Number(p.promotionalPrice).toFixed(2)}</span></>
+                            : `R$ ${Number(p.price || 0).toFixed(2)}`)}
+                      </div>
                     </div>
                   </button>
                 );

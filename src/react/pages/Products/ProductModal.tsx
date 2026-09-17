@@ -15,6 +15,7 @@ interface ItemDraft {
   stock: string;
   duration: string;
   observation: string;
+  subtitulo: string;        // subtexto abaixo do título no card da vitrine (ex: "3x sem juros")
   variations: string;       // "P, M, G" — separado por vírgula (modo vitrine)
   priceOnRequest: boolean;  // preço sob consulta (modo vitrine)
   complementoIds: string[]; // complementos escolhidos (biblioteca)
@@ -32,7 +33,7 @@ let seq = 0;
 const newTempId = () => `prod_${Date.now()}_${seq++}`;
 
 function emptyDraft(): ItemDraft {
-  return { tempId: newTempId(), name: '', price: '', categoryId: '', stock: '', duration: '', observation: '', variations: '', priceOnRequest: false, complementoIds: [], galleryExisting: [], galleryFiles: [], galleryPreviews: [], promoActive: false, promoName: '', promoPrice: '', file: null, previewUrl: null };
+  return { tempId: newTempId(), name: '', price: '', categoryId: '', stock: '', duration: '', observation: '', subtitulo: '', variations: '', priceOnRequest: false, complementoIds: [], galleryExisting: [], galleryFiles: [], galleryPreviews: [], promoActive: false, promoName: '', promoPrice: '', file: null, previewUrl: null };
 }
 
 interface Props {
@@ -66,6 +67,7 @@ export function ProductModal({ companyId, isOwner, isAgendamento, isVitrine, lab
         stock: editProduct.stock != null ? String(editProduct.stock) : '',
         duration: editProduct.duration != null ? String(editProduct.duration) : '',
         observation: editProduct.observation || '',
+        subtitulo: (editProduct as any).subtitulo || '',
         variations: Array.isArray((editProduct as any).variations) ? (editProduct as any).variations.join(', ') : '',
         priceOnRequest: !!(editProduct as any).priceOnRequest,
         complementoIds: Array.isArray((editProduct as any).complementoIds) ? (editProduct as any).complementoIds : [],
@@ -149,11 +151,12 @@ export function ProductModal({ companyId, isOwner, isAgendamento, isVitrine, lab
           storeIds: targetStores,
           companyId,
           active: editProduct ? editProduct.active : true,
-          promotionalActive: isAgendamento || isVitrine ? false : it.promoActive,
-          promotionalName: isAgendamento || isVitrine ? '' : it.promoName,
-          promotionalPrice: isAgendamento || isVitrine ? 0 : (parseFloat(it.promoPrice) || 0),
+          promotionalActive: isAgendamento ? false : it.promoActive,
+          promotionalName: isAgendamento ? '' : it.promoName,
+          promotionalPrice: isAgendamento ? 0 : (parseFloat(it.promoPrice) || 0),
           stock, duration,
           observation: it.observation || '',
+          subtitulo: it.subtitulo || '',   // subtexto abaixo do título (vitrine)
           variations: variationsArr,
           priceOnRequest: isVitrine ? it.priceOnRequest : false,
           // Complementos (referências à biblioteca) — só no catálogo com carrinho.
@@ -339,6 +342,28 @@ function ItemCard({ it, companyId, isAgendamento, isVitrine, labelSingular, cate
               <input type="checkbox" checked={it.priceOnRequest} onChange={(e) => onPatch(it.tempId, { priceOnRequest: e.target.checked })} style={{ width: 16, height: 16 }} />
               <i className="fa-solid fa-comments-dollar" /> Preço sob consulta (não mostrar preço)
             </label>
+
+            <div style={{ marginTop: 12 }} className="field">
+              <label>Subtexto <span style={{ color: 'var(--text-dim)', fontWeight: 400 }}>(aparece abaixo do título)</span></label>
+              <input type="text" value={it.subtitulo} onChange={(e) => onPatch(it.tempId, { subtitulo: e.target.value })} placeholder="Ex: 3x sem juros" />
+            </div>
+
+            {!it.priceOnRequest && (
+              <div style={{ marginTop: 12 }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', color: 'var(--primary)', fontWeight: 600, fontSize: '0.85rem' }}>
+                  <input type="checkbox" checked={it.promoActive} onChange={(e) => onPatch(it.tempId, { promoActive: e.target.checked })} style={{ width: 16, height: 16 }} />
+                  <i className="fa-solid fa-tag" /> Em promoção (preço riscado)
+                </label>
+                {it.promoActive && (
+                  <div style={{ marginTop: 10, borderRadius: 8, background: 'rgba(132, 204, 22, 0.05)', padding: 12, border: '1px solid rgba(132, 204, 22, 0.2)' }}>
+                    <div className="field">
+                      <label>Preço promocional (por) <span style={{ color: 'var(--text-dim)', fontWeight: 400 }}>— o preço acima vira o "de" riscado</span></label>
+                      <input type="number" value={it.promoPrice} onChange={(e) => onPatch(it.tempId, { promoPrice: e.target.value })} placeholder="0,00" step="0.01" />
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             <div style={{ marginTop: 12 }} className="field">
               <label>Fotos adicionais <span style={{ color: 'var(--text-dim)', fontWeight: 400 }}>(a 1ª foto acima é a capa)</span></label>
