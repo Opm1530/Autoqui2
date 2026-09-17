@@ -358,6 +358,19 @@ export function Catalog({ storeId: storeIdProp }: { storeId?: string } = {}) {
           <div style={{ position: 'relative' }}>
             <img src={imgs[detailImg]} alt={detail.name} style={{ width: '100%', maxHeight: 400, objectFit: 'cover', display: 'block' }} />
             <button onClick={() => setDetail(null)} style={{ position: 'absolute', top: 12, right: 12, background: 'rgba(0,0,0,0.5)', border: 'none', color: 'white', width: 36, height: 36, borderRadius: '50%', cursor: 'pointer' }}><i className="fa-solid fa-xmark" /></button>
+            {imgs.length > 1 && (
+              <>
+                <button aria-label="Foto anterior" onClick={() => setDetailImg((i) => (i - 1 + imgs.length) % imgs.length)}
+                  style={{ position: 'absolute', top: '50%', left: 12, transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.45)', border: 'none', color: 'white', width: 40, height: 40, borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><i className="fa-solid fa-chevron-left" /></button>
+                <button aria-label="Próxima foto" onClick={() => setDetailImg((i) => (i + 1) % imgs.length)}
+                  style={{ position: 'absolute', top: '50%', right: 12, transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.45)', border: 'none', color: 'white', width: 40, height: 40, borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><i className="fa-solid fa-chevron-right" /></button>
+                <div style={{ position: 'absolute', bottom: 12, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 6 }}>
+                  {imgs.map((_, i) => (
+                    <span key={i} style={{ width: 7, height: 7, borderRadius: '50%', background: i === detailImg ? '#fff' : 'rgba(255,255,255,0.5)' }} />
+                  ))}
+                </div>
+              </>
+            )}
           </div>
           {imgs.length > 1 && (
             <div style={{ display: 'flex', gap: 8, padding: '12px 20px 0', overflowX: 'auto' }}>
